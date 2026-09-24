@@ -62,9 +62,7 @@ def _get(session, source, path, params=None, timeout=300):
 	url = source.base_url.rstrip("/") + "/" + path
 	response = session.get(url, params=params, timeout=timeout)
 	if response.status_code != 200:
-		raise SourceFetchError(
-			f"GET {url} → HTTP {response.status_code}: {response.text[:500]}"
-		)
+		raise SourceFetchError(f"GET {url} → HTTP {response.status_code}: {response.text[:500]}")
 	response.encoding = "utf-8"
 	try:
 		return response.json()

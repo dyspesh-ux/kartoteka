@@ -20,7 +20,9 @@ class HRDepartment(NestedSet):
 			self.head, self.head_source = self.manual_head, "Вручную"
 		else:
 			self.head, self.head_source = None, ""
-		self.head_conflict = int(bool(self.zup_head and self.manual_head and self.zup_head != self.manual_head))
+		self.head_conflict = int(
+			bool(self.zup_head and self.manual_head and self.zup_head != self.manual_head)
+		)
 
 
 @frappe.whitelist()

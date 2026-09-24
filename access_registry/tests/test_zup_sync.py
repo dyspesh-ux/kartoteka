@@ -82,7 +82,12 @@ class TestZupSync(FrappeTestCase):
 		ensure_root()
 		for code in (S1, S2):
 			frappe.get_doc(
-				{"doctype": "HR Source", "source_code": code, "title": code, "base_url": "http://127.0.0.1:9/hs"}
+				{
+					"doctype": "HR Source",
+					"source_code": code,
+					"title": code,
+					"base_url": "http://127.0.0.1:9/hs",
+				}
 			).insert()
 
 	def tearDown(self):
@@ -148,10 +153,13 @@ class TestZupSync(FrappeTestCase):
 		self.assertEqual(org2.head_organization, org1.name)
 		self.assertEqual(org2.legal_entity, "7700000002")
 
-		root_children = frappe.get_all("HR Department", filters={"parent_hr_department": ROOT_KEY}, pluck="name")
+		root_children = frappe.get_all(
+			"HR Department", filters={"parent_hr_department": ROOT_KEY}, pluck="name"
+		)
 		self.assertEqual(sorted(root_children), sorted([org_node_key(S1, ORG(1)), org_node_key(S1, ORG(2))]))
 		self.assertEqual(
-			frappe.db.get_value("HR Department", f"{S1}:{DEP(1)}", "parent_hr_department"), org_node_key(S1, ORG(1))
+			frappe.db.get_value("HR Department", f"{S1}:{DEP(1)}", "parent_hr_department"),
+			org_node_key(S1, ORG(1)),
 		)
 		self.assertEqual(
 			frappe.db.get_value("HR Department", f"{S1}:{DEP(2)}", "parent_hr_department"), f"{S1}:{DEP(1)}"
@@ -187,7 +195,10 @@ class TestZupSync(FrappeTestCase):
 		# /meta contains a state kind with category «Неизвестно»
 		self.assertIn("Неизвестно", log.messages)
 		self.assertTrue(json.loads(log.meta_snapshot)["ВидыСостояний"])
-		self.assertEqual(json.loads(log.stats)["Employment"]["created"], 9)
+		stats = json.loads(log.stats)
+		self.assertEqual(stats["Employment"]["created"], 9)
+		# New departments are inserted straight under their final parent: no moves on the first load
+		self.assertNotIn("moved", stats["HR Department"])
 
 	# ------------------------------------------------------------------ 2. idempotency
 
@@ -333,9 +344,14 @@ class TestZupSync(FrappeTestCase):
 		self.assertEqual(frappe.db.get_value("HR Department", f"{S1}:{DEP(3)}", "head"), person_a)
 		self.assertEqual(frappe.db.get_value("Legal Entity", "7700000002", "director"), person_a)
 		self.assertEqual(frappe.db.get_value("Person Merge Candidate", candidate.name, "status"), "Склеено")
-		self.assertEqual(frappe.db.get_value("Person Merge Candidate", candidate.name, "merged_uuid"), person_b)
+		self.assertEqual(
+			frappe.db.get_value("Person Merge Candidate", candidate.name, "merged_uuid"), person_b
+		)
 		self.assertTrue(
-			frappe.db.exists("Comment", {"reference_doctype": "Person", "reference_name": person_a, "content": ["like", "%Склеен%"]})
+			frappe.db.exists(
+				"Comment",
+				{"reference_doctype": "Person", "reference_name": person_a, "content": ["like", "%Склеен%"]},
+			)
 		)
 		# Syncing both sources again keeps everything attached to A and creates nothing new
 		self.assertSuccess(self.sync(S2, load("zup2")))
@@ -356,7 +372,9 @@ class TestZupSync(FrappeTestCase):
 		clone["ФизЛицоGUID"] = FL(12)
 		data["employees"].append(clone)
 		self.assertSuccess(self.sync(S2, data))
-		self.assertEqual(frappe.db.get_value("Person Merge Candidate", candidate.name, "status"), "Разные люди")
+		self.assertEqual(
+			frappe.db.get_value("Person Merge Candidate", candidate.name, "status"), "Разные люди"
+		)
 		pair = sorted([candidate.person_a, candidate.person_b])
 		self.assertEqual(frappe.db.count("Person Merge Candidate", {"pair_key": "|".join(pair)}), 1)
 		# The duplicate physical person in the same base is suggested against the existing Волкова
@@ -374,7 +392,9 @@ class TestZupSync(FrappeTestCase):
 		data = load("zup1")
 		self.assertSuccess(self.sync(S1, data))
 		versions, events = self.versions(), len(self.events())
-		snapshot = frappe.get_all("Employment", fields=["name", "missing", "status", "modified"], order_by="name")
+		snapshot = frappe.get_all(
+			"Employment", fields=["name", "missing", "status", "modified"], order_by="name"
+		)
 
 		data["employees"] = data["employees"][:4]
 		data["departments"][0]["Наименование"] = "Дирекция (переименована)"
@@ -384,7 +404,8 @@ class TestZupSync(FrappeTestCase):
 		self.assertIn("Допустимое сокращение выгрузки", log.messages)
 		self.assertIn("сотрудников", log.messages)
 		self.assertEqual(
-			frappe.get_all("Employment", fields=["name", "missing", "status", "modified"], order_by="name"), snapshot
+			frappe.get_all("Employment", fields=["name", "missing", "status", "modified"], order_by="name"),
+			snapshot,
 		)
 		self.assertEqual(frappe.db.get_value("HR Department", f"{S1}:{DEP(1)}", "title"), "Дирекция")
 		self.assertEqual(self.versions(), versions)
@@ -424,13 +445,19 @@ class TestZupSync(FrappeTestCase):
 		data = load("zup1")
 		orphan = copy.deepcopy(data["departments"][1])
 		orphan.update(
-			{"ПодразделениеGUID": DEP(7), "Код": "RMЗП-0007", "Наименование": "Архив", "РодительGUID": DEP(99)}
+			{
+				"ПодразделениеGUID": DEP(7),
+				"Код": "RMЗП-0007",
+				"Наименование": "Архив",
+				"РодительGUID": DEP(99),
+			}
 		)
 		data["departments"].append(orphan)
 		log = self.sync(S1, data)
 		self.assertSuccess(log)
 		self.assertEqual(
-			frappe.db.get_value("HR Department", f"{S1}:{DEP(7)}", "parent_hr_department"), org_node_key(S1, ORG(1))
+			frappe.db.get_value("HR Department", f"{S1}:{DEP(7)}", "parent_hr_department"),
+			org_node_key(S1, ORG(1)),
 		)
 		self.assertIn(DEP(99), log.messages)
 		self.assertTreeConsistent()
@@ -451,7 +478,8 @@ class TestZupSync(FrappeTestCase):
 			frappe.db.get_value("HR Department", f"{S1}:{DEP(4)}", "parent_hr_department"), f"{S1}:{DEP(5)}"
 		)
 		self.assertEqual(
-			frappe.db.get_value("HR Department", f"{S1}:{DEP(5)}", "parent_hr_department"), org_node_key(S1, ORG(2))
+			frappe.db.get_value("HR Department", f"{S1}:{DEP(5)}", "parent_hr_department"),
+			org_node_key(S1, ORG(2)),
 		)
 		dept2 = frappe.db.get_value("HR Department", f"{S1}:{DEP(2)}", ["lft", "rgt"], as_dict=True)
 		dept3 = frappe.db.get_value("HR Department", f"{S1}:{DEP(3)}", ["lft", "rgt"], as_dict=True)
@@ -566,7 +594,9 @@ class TestZupSync(FrappeTestCase):
 
 	def test_14b_first_load_parental_leave_without_event(self):
 		self.assertSuccess(self.sync(S1, load("zup1")))
-		self.assertEqual(frappe.db.get_value("Person", person_of(S1, FL(6)), "presence"), "Длительное отсутствие")
+		self.assertEqual(
+			frappe.db.get_value("Person", person_of(S1, FL(6)), "presence"), "Длительное отсутствие"
+		)
 		self.assertEqual(self.events(), [])
 
 	# ------------------------------------------------------------------ 15. cancelled absence
@@ -590,7 +620,9 @@ class TestZupSync(FrappeTestCase):
 		self.assertEqual(str(frappe.db.get_value("HR Absence", vacation, "date_to")), "2026-06-30")
 		self.assertEqual(frappe.db.count("HR Absence", {"employment": f"{S1}:{EMP(3)}"}), 2)
 
-		data["absences"] = [r for r in data["absences"] if r["ДатаНачала"] not in ("2026-06-10", "2025-01-10")]
+		data["absences"] = [
+			r for r in data["absences"] if r["ДатаНачала"] not in ("2026-06-10", "2025-01-10")
+		]
 		self.assertSuccess(self.sync(S1, data))
 		self.assertEqual(frappe.db.get_value("HR Absence", vacation, "cancelled"), 1)
 		self.assertEqual(frappe.db.get_value("HR Absence", outside, "cancelled"), 0)
@@ -660,3 +692,11 @@ class TestZupSync(FrappeTestCase):
 		self.assertSuccess(self.sync(S1, load("zup1")))
 		a = person_of(S1, FL(1))
 		self.assertRaises(frappe.ValidationError, merge_persons, a, a)
+
+	def test_scheduler_day_and_night_jobs(self):
+		cron = frappe.get_hooks("scheduler_events")["cron"]
+		methods = [m for jobs in cron.values() for m in jobs]
+		self.assertIn("access_registry.sync.engine.scheduled_sync_day", cron["*/30 7-20 * * *"])
+		self.assertIn("access_registry.sync.engine.scheduled_sync_night", cron["0 21-23,0-6 * * *"])
+		# Scheduled Job Type is keyed by method: the same method twice would lose one schedule
+		self.assertEqual(len(methods), len(set(methods)))

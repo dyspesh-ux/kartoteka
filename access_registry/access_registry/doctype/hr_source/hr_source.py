@@ -15,7 +15,9 @@ class HRSource(Document):
 		self.source_code = (self.source_code or "").strip()
 		if not SOURCE_CODE_RE.match(self.source_code):
 			frappe.throw(
-				_("Код источника: 1–20 символов, латиница, цифры, «_» и «-». Он входит в ключи записей и не меняется.")
+				_(
+					"Код источника: 1–20 символов, латиница, цифры, «_» и «-». Он входит в ключи записей и не меняется."
+				)
 			)
 		if self.base_url:
 			self.base_url = self.base_url.strip()
@@ -25,7 +27,13 @@ class HRSource(Document):
 	@frappe.whitelist()
 	def sync_now(self):
 		frappe.only_for("System Manager")
-		from access_registry.sync.engine import enqueue_source_sync
+		from frappe.utils.background_jobs import is_job_enqueued
 
+		from access_registry.sync.engine import enqueue_source_sync, job_id_for
+
+		if is_job_enqueued(job_id_for(self.name)):
+			return _("Синхронизация источника {0} уже в очереди или выполняется.").format(self.name)
 		enqueue_source_sync(self.name)
-		return _("Синхронизация источника {0} поставлена в очередь long. Результат — в Sync Log.").format(self.name)
+		return _("Синхронизация источника {0} поставлена в очередь long. Результат — в Sync Log.").format(
+			self.name
+		)

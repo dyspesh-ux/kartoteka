@@ -137,7 +137,10 @@ def _refresh_candidates(keep: str, drop: str, candidate: str | None):
 		if new_key == doc.pair_key:
 			continue
 		duplicate = frappe.db.get_value(
-			"Person Merge Candidate", {"pair_key": new_key, "name": ["!=", doc.name]}, ["name", "status"], as_dict=True
+			"Person Merge Candidate",
+			{"pair_key": new_key, "name": ["!=", doc.name]},
+			["name", "status"],
+			as_dict=True,
 		)
 		if duplicate:
 			# The same pair already exists; keep «Разные люди» if either said so.

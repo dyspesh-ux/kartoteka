@@ -112,6 +112,14 @@ def enqueue_all_sources():
 		enqueue_source_sync(name)
 
 
+def scheduled_sync_day():
+	enqueue_all_sources()
+
+
+def scheduled_sync_night():
+	enqueue_all_sources()
+
+
 def enqueue_source_sync(source: str):
 	settings = get_settings()
 	return frappe.enqueue(
@@ -169,13 +177,13 @@ def run_source_sync(source: str, today=None, commit: bool = True, fetch=None):
 			sync.mark_source_synced()
 			status = "Успех"
 		except GuardTripped as e:
-			frappe.db.rollback(save_point=SAVEPOINT)
+			_rollback_sync()
 			status = "Остановлен предохранителем"
 			messages.append(str(e))
 		except Exception:
-			frappe.db.rollback(save_point=SAVEPOINT)
-			status = "Ошибка"
 			messages.append(traceback.format_exc())
+			_rollback_sync()
+			status = "Ошибка"
 	except Exception:
 		status = "Ошибка"
 		messages.append(traceback.format_exc())
@@ -186,19 +194,37 @@ def run_source_sync(source: str, today=None, commit: bool = True, fetch=None):
 
 	if sync:
 		messages = sync.warnings + messages
-	log.reload()
+	log_exists = frappe.db.exists("Sync Log", log.name)
+	if log_exists:
+		log.reload()
 	log.status = status
 	log.finished = now_datetime()
 	log.first_load = cint(sync.first_load) if sync else 0
-	log.stats = json.dumps(sync.stats_dict() if sync else {}, ensure_ascii=False, indent=1, sort_keys=True)
+	stats = sync.stats_dict() if sync else {}
+	if status != "Успех":
+		stats["_результат"] = "изменения откатены, счётчики показывают, что успел сделать синк до остановки"
+	log.stats = json.dumps(stats, ensure_ascii=False, indent=1, sort_keys=True)
 	log.messages = _format_messages(messages)
 	if meta_snapshot is not None:
 		log.meta_snapshot = json.dumps(meta_snapshot, ensure_ascii=False, indent=1)
-	log.save(ignore_permissions=True, ignore_version=False)
+	if log_exists:
+		log.save(ignore_permissions=True)
+	else:
+		log.db_insert()
 	frappe.db.set_value("HR Source", source, "last_status", _status_line(status, log), update_modified=False)
 	if commit:
 		frappe.db.commit()
 	return log
+
+
+def _rollback_sync():
+	"""Undoes everything the sync wrote. The Sync Log row was created before the savepoint."""
+	try:
+		frappe.db.rollback(save_point=SAVEPOINT)
+	except Exception:
+		# The server may have aborted the whole transaction (deadlock, lost connection):
+		# the savepoint is gone, roll back completely. With commit=True the log is already committed.
+		frappe.db.rollback()
 
 
 def _status_line(status, log):
@@ -346,8 +372,12 @@ class SourceSync:
 
 	def run(self, data: dict):
 		self.check_meta(data)
-		organizations = self.index_rows(data.get("organizations") or [], ("ОрганизацияGUID", "GUID"), "организаций")
-		departments = self.index_rows(data.get("departments") or [], ("ПодразделениеGUID", "GUID"), "подразделений")
+		organizations = self.index_rows(
+			data.get("organizations") or [], ("ОрганизацияGUID", "GUID"), "организаций"
+		)
+		departments = self.index_rows(
+			data.get("departments") or [], ("ПодразделениеGUID", "GUID"), "подразделений"
+		)
 		employees = self.index_rows(data.get("employees") or [], ("СотрудникGUID",), "сотрудников")
 		self.check_guard(employees, departments)
 
@@ -372,9 +402,9 @@ class SourceSync:
 			if isinstance(node, dict):
 				for key, value in node.items():
 					if "Категория" in key and value in SUSPICIOUS_CATEGORIES:
-						label = first(node, "Наименование", "Представление", "Состояние", "Код") or json.dumps(
-							node, ensure_ascii=False
-						)
+						label = first(
+							node, "Наименование", "Представление", "Состояние", "Код"
+						) or json.dumps(node, ensure_ascii=False)
 						suspicious.append(f"{label} → {value}")
 					walk(value)
 			elif isinstance(node, list):
@@ -390,7 +420,9 @@ class SourceSync:
 		for row in rows:
 			guid = first(row, *key_names)
 			if not guid:
-				self.warn(f"в выгрузке {label} запись без GUID пропущена: {json.dumps(row, ensure_ascii=False)[:300]}")
+				self.warn(
+					f"в выгрузке {label} запись без GUID пропущена: {json.dumps(row, ensure_ascii=False)[:300]}"
+				)
 				continue
 			if guid in result:
 				self.warn(f"в выгрузке {label} GUID {guid} встречается несколько раз, взята последняя запись")
@@ -495,7 +527,9 @@ class SourceSync:
 				for guid in pending:
 					prepared[guid][0]["head_organization"] = ""
 					self.warn(f"цикл головных организаций, связь не проставлена: {guid}")
-					self.upsert("HR Organization", self.key(guid), prepared[guid][0], existing.get(self.key(guid)))
+					self.upsert(
+						"HR Organization", self.key(guid), prepared[guid][0], existing.get(self.key(guid))
+					)
 				break
 
 		for name, row in existing.items():
@@ -504,7 +538,9 @@ class SourceSync:
 				self.stats["HR Organization"]["missing"] += 1
 
 		# One tree node per organisation under the root.
-		nodes = self.load_existing("HR Department", DEPT_FIELDS, {"source": self.code, "node_type": "Организация"})
+		nodes = self.load_existing(
+			"HR Department", DEPT_FIELDS, {"source": self.code, "node_type": "Организация"}
+		)
 		all_orgs = {row.guid: row for row in existing.values()}
 		for guid in organizations:
 			all_orgs[guid] = frappe._dict(guid=guid, title=prepared[guid][0]["title"], missing=0)
@@ -520,13 +556,21 @@ class SourceSync:
 			current = nodes.get(org_node_key(self.code, guid))
 			if current is None:
 				values["parent_hr_department"] = ROOT_KEY
-			self.upsert("HR Department", org_node_key(self.code, guid), values, current, entity="HR Department (организации)")
+			self.upsert(
+				"HR Department",
+				org_node_key(self.code, guid),
+				values,
+				current,
+				entity="HR Department (организации)",
+			)
 		self.org_guids = set(all_orgs)
 
 	# ------------------------------------------------------------ departments
 
 	def sync_departments(self, departments: dict):
-		existing = self.load_existing("HR Department", DEPT_FIELDS, {"source": self.code, "node_type": "Подразделение"})
+		existing = self.load_existing(
+			"HR Department", DEPT_FIELDS, {"source": self.code, "node_type": "Подразделение"}
+		)
 		org_nodes = {}
 		for guid, row in departments.items():
 			org_guid = clean(row.get("ОрганизацияGUID"))
@@ -539,27 +583,8 @@ class SourceSync:
 					f"не найдена, узел повешен на корень"
 				)
 
-		# Pass 1: upsert attributes; new nodes go straight under their organisation.
-		for guid, row in departments.items():
-			org_guid = clean(row.get("ОрганизацияGUID"))
-			values = {
-				"source": self.code,
-				"guid": guid,
-				"title": clean(row.get("Наименование")),
-				"code": clean(row.get("Код")),
-				"node_type": "Подразделение",
-				"organization": self.key(org_guid) if org_guid in self.org_guids else "",
-				"missing": 0,
-			}
-			name = self.key(guid)
-			current = existing.get(name)
-			if current is None:
-				# The parent GUID of existing nodes is updated together with the move (one version).
-				values["parent_hr_department"] = org_nodes[guid]
-				values["zup_parent_guid"] = clean(row.get("РодительGUID"))
-			self.upsert("HR Department", name, values, current)
-
-		# Pass 2: desired parents, moves ordered by depth so a move never creates a loop.
+		# Desired parents; processing by depth guarantees a parent is handled before its children,
+		# so a move never creates a loop.
 		desired = {}
 		for guid, row in departments.items():
 			parent_guid = clean(row.get("РодительGUID"))
@@ -577,6 +602,30 @@ class SourceSync:
 		for cycle in cycles:
 			self.warn(f"цикл в иерархии подразделений: {', '.join(cycle)} — узлы повешены на организацию")
 
+		# Pass 1: upsert attributes. New nodes are inserted straight under their final parent
+		# (already created, it is shallower) or under their organisation.
+		order = sorted(departments, key=lambda g: depth.get(g, 0))
+		for guid in order:
+			row = departments[guid]
+			org_guid = clean(row.get("ОрганизацияGUID"))
+			values = {
+				"source": self.code,
+				"guid": guid,
+				"title": clean(row.get("Наименование")),
+				"code": clean(row.get("Код")),
+				"node_type": "Подразделение",
+				"organization": self.key(org_guid) if org_guid in self.org_guids else "",
+				"missing": 0,
+			}
+			name = self.key(guid)
+			current = existing.get(name)
+			if current is None:
+				values["parent_hr_department"] = self.key(desired[guid]) if desired[guid] else org_nodes[guid]
+				values["zup_parent_guid"] = clean(row.get("РодительGUID"))
+			self.upsert("HR Department", name, values, current)
+
+		# Pass 2: move existing nodes whose parent changed; the parent GUID is saved with the move
+		# (one version per node).
 		current = {
 			r.name: r
 			for r in frappe.get_all(
@@ -586,7 +635,7 @@ class SourceSync:
 				limit_page_length=0,
 			)
 		}
-		for guid in sorted(departments, key=lambda g: depth.get(g, 0)):
+		for guid in order:
 			name = self.key(guid)
 			target = self.key(desired[guid]) if desired[guid] else org_nodes[guid]
 			zup_parent_guid = clean(departments[guid].get("РодительGUID"))
@@ -619,7 +668,9 @@ class SourceSync:
 				positions[guid] = clean(row.get("Должность"))
 		for guid, title in positions.items():
 			name = self.key(guid)
-			self.upsert("HR Position", name, {"source": self.code, "guid": guid, "title": title}, existing.get(name))
+			self.upsert(
+				"HR Position", name, {"source": self.code, "guid": guid, "title": title}, existing.get(name)
+			)
 		self.position_guids = set(positions) | {row.guid for row in existing.values()}
 
 	# ------------------------------------------------------------ persons & employments
@@ -667,7 +718,9 @@ class SourceSync:
 				)
 				if not has_own:
 					person = frappe.get_doc("Person", full_matches[0])
-					row = person.append("source_ids", {"source": self.code, "person_guid": person_guid, **incoming})
+					row = person.append(
+						"source_ids", {"source": self.code, "person_guid": person_guid, **incoming}
+					)
 					person.save(ignore_permissions=True, ignore_version=False)
 					self.source_ids[person_guid] = frappe._dict(row.as_dict())
 					self.source_ids[person_guid].parent = person.name
@@ -692,7 +745,11 @@ class SourceSync:
 		if partial_key:
 			partial = frappe.get_all(
 				"Person",
-				filters={"match_key_partial": partial_key, "match_key": ["!=", key], "name": ["!=", person.name]},
+				filters={
+					"match_key_partial": partial_key,
+					"match_key": ["!=", key],
+					"name": ["!=", person.name],
+				},
 				pluck="name",
 			)
 			for other in partial:
@@ -739,7 +796,9 @@ class SourceSync:
 					date_or_none(row.get("ДатаРождения")),
 				)
 				if other != names:
-					self.warn(f"у физлица {person_guid} разные ФИО/дата рождения в записях сотрудников, взята первая")
+					self.warn(
+						f"у физлица {person_guid} разные ФИО/дата рождения в записях сотрудников, взята первая"
+					)
 			person = self.resolve_person(person_guid, *names)
 			affected_persons.add(person)
 			full_name = " ".join(filter(None, names[:3]))
@@ -906,7 +965,11 @@ class SourceSync:
 		)
 		positions = dict(
 			frappe.get_all(
-				"HR Position", filters={"source": self.code}, fields=["name", "title"], as_list=True, limit_page_length=0
+				"HR Position",
+				filters={"source": self.code},
+				fields=["name", "title"],
+				as_list=True,
+				limit_page_length=0,
 			)
 		)
 		by_dept = defaultdict(list)
@@ -967,7 +1030,11 @@ class SourceSync:
 		)
 		employments = dict(
 			frappe.get_all(
-				"Employment", filters={"source": self.code}, fields=["guid", "person"], as_list=True, limit_page_length=0
+				"Employment",
+				filters={"source": self.code},
+				fields=["guid", "person"],
+				as_list=True,
+				limit_page_length=0,
 			)
 		)
 		seen = set()
@@ -977,7 +1044,9 @@ class SourceSync:
 			code = clean(row.get("Код"))
 			date_from = date_or_none(row.get("ДатаНачала"))
 			if not emp_guid or not code or not date_from:
-				self.warn(f"отсутствие без СотрудникGUID/Код/ДатаНачала пропущено: {json.dumps(row, ensure_ascii=False)[:300]}")
+				self.warn(
+					f"отсутствие без СотрудникGUID/Код/ДатаНачала пропущено: {json.dumps(row, ensure_ascii=False)[:300]}"
+				)
 				continue
 			name = f"{self.code}:{emp_guid}:{code}:{date_from.isoformat()}"
 			if name in seen:
