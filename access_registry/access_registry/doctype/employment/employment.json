@@ -1,0 +1,281 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:record_key",
+ "creation": "2026-09-24 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "person",
+  "tab_number",
+  "status",
+  "missing",
+  "column_break_1",
+  "organization",
+  "department",
+  "position",
+  "employment_kind_code",
+  "employment_kind",
+  "section_break_2",
+  "hire_date",
+  "termination_date",
+  "column_break_2",
+  "zup_state",
+  "section_break_3",
+  "state_code",
+  "state",
+  "category",
+  "actually_working",
+  "column_break_3",
+  "absent_from",
+  "absent_to",
+  "absent_until_expected",
+  "part_time_share",
+  "section_break_4",
+  "record_key",
+  "source",
+  "column_break_4",
+  "guid",
+  "person_guid"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Трудоустройство",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Человек",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "tab_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Табельный номер",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Статус",
+   "options": "\nРаботает\nУвольняется\nНе принят\nУволен\nНет в выгрузке",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "Запись была в ЗУП, но в последней выгрузке её нет",
+   "fieldname": "missing",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Нет в выгрузке",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "organization",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Организация",
+   "options": "HR Organization",
+   "read_only": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Подразделение",
+   "options": "HR Department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "position",
+   "fieldtype": "Link",
+   "label": "Должность",
+   "options": "HR Position",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employment_kind_code",
+   "fieldtype": "Data",
+   "label": "Вид занятости (код)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employment_kind",
+   "fieldtype": "Data",
+   "label": "Вид занятости",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Даты"
+  },
+  {
+   "fieldname": "hire_date",
+   "fieldtype": "Date",
+   "label": "Дата приёма",
+   "read_only": 1
+  },
+  {
+   "description": "Последний рабочий день",
+   "fieldname": "termination_date",
+   "fieldtype": "Date",
+   "label": "Дата увольнения",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Справочно: в ЗУП «Уволен» бывает и у карточки без проведённого приёма",
+   "fieldname": "zup_state",
+   "fieldtype": "Data",
+   "label": "Состояние в ЗУП",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Кадровое состояние"
+  },
+  {
+   "fieldname": "state_code",
+   "fieldtype": "Data",
+   "label": "Код состояния",
+   "read_only": 1
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Data",
+   "label": "Состояние",
+   "read_only": 1
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Категория",
+   "read_only": 1
+  },
+  {
+   "fieldname": "actually_working",
+   "fieldtype": "Check",
+   "label": "Фактически работает",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "absent_from",
+   "fieldtype": "Date",
+   "label": "Отсутствует с",
+   "read_only": 1
+  },
+  {
+   "fieldname": "absent_to",
+   "fieldtype": "Date",
+   "label": "Отсутствует по",
+   "read_only": 1
+  },
+  {
+   "fieldname": "absent_until_expected",
+   "fieldtype": "Date",
+   "label": "Окончание предположительно",
+   "read_only": 1
+  },
+  {
+   "fieldname": "part_time_share",
+   "fieldtype": "Float",
+   "label": "Доля неполного времени",
+   "precision": "4",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break",
+   "label": "Источник"
+  },
+  {
+   "fieldname": "record_key",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Источник",
+   "options": "HR Source",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "guid",
+   "fieldtype": "Data",
+   "label": "GUID сотрудника в ЗУП",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person_guid",
+   "fieldtype": "Data",
+   "label": "GUID физлица в ЗУП",
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Employment",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "title,tab_number",
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

@@ -1,0 +1,127 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:source_code",
+ "creation": "2026-09-24 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "source_code",
+  "title",
+  "enabled",
+  "column_break_1",
+  "last_sync",
+  "last_status",
+  "section_break_2",
+  "base_url",
+  "verify_ssl",
+  "column_break_2",
+  "username",
+  "password"
+ ],
+ "fields": [
+  {
+   "description": "Короткий постоянный код (латиница, цифры, _ и -), например ZUP1. Входит в ключи всех записей источника, после создания не меняется",
+   "fieldname": "source_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Код источника",
+   "reqd": 1,
+   "set_only_once": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Название"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Включён"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_sync",
+   "fieldtype": "Datetime",
+   "label": "Последний успешный синк",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Статус последнего запуска",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Подключение к HR_Export_API"
+  },
+  {
+   "description": "Адрес HTTP-сервиса, например http://1c.example.local/zup/hs/hr_export",
+   "fieldname": "base_url",
+   "fieldtype": "Data",
+   "label": "Базовый URL",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "verify_ssl",
+   "fieldtype": "Check",
+   "label": "Проверять сертификат HTTPS"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "svc_hr_export",
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "label": "Пользователь"
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "label": "Пароль",
+   "no_copy": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "HR Source",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

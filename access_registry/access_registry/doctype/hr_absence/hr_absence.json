@@ -1,0 +1,179 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:record_key",
+ "creation": "2026-09-24 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "person",
+  "employment",
+  "state",
+  "state_code",
+  "category",
+  "cancelled",
+  "column_break_1",
+  "date_from",
+  "date_to",
+  "until_expected",
+  "part_time_share",
+  "actually_working",
+  "org_source",
+  "section_break_2",
+  "record_key",
+  "source",
+  "column_break_2",
+  "employment_guid"
+ ],
+ "fields": [
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Человек",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "employment",
+   "fieldtype": "Link",
+   "label": "Трудоустройство",
+   "options": "Employment",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Состояние",
+   "read_only": 1
+  },
+  {
+   "fieldname": "state_code",
+   "fieldtype": "Data",
+   "label": "Код состояния",
+   "read_only": 1
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Категория",
+   "read_only": 1
+  },
+  {
+   "description": "Отсутствие было в окне выгрузки, но в новой выгрузке за то же окно его нет (сторно, отмена приказа)",
+   "fieldname": "cancelled",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Отменено",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date_from",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "С",
+   "read_only": 1
+  },
+  {
+   "fieldname": "date_to",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "По",
+   "read_only": 1
+  },
+  {
+   "fieldname": "until_expected",
+   "fieldtype": "Date",
+   "label": "Окончание предположительно",
+   "read_only": 1
+  },
+  {
+   "fieldname": "part_time_share",
+   "fieldtype": "Float",
+   "label": "Доля неполного времени",
+   "precision": "4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "actually_working",
+   "fieldtype": "Check",
+   "label": "Фактически работает",
+   "read_only": 1
+  },
+  {
+   "fieldname": "org_source",
+   "fieldtype": "Data",
+   "label": "Источник организации",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Источник"
+  },
+  {
+   "fieldname": "record_key",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Источник",
+   "options": "HR Source",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employment_guid",
+   "fieldtype": "Data",
+   "label": "GUID сотрудника в ЗУП",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "HR Absence",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "state",
+ "sort_field": "date_from",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "state",
+ "track_changes": 1
+}

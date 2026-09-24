@@ -1,0 +1,125 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-09-24 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_1",
+  "sync_user",
+  "absence_days_back",
+  "absence_days_ahead",
+  "column_break_1",
+  "http_timeout",
+  "job_timeout",
+  "section_break_2",
+  "shrink_threshold_pct",
+  "column_break_2",
+  "guard_min_records",
+  "section_break_3",
+  "head_keywords"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Синхронизация с ЗУП"
+  },
+  {
+   "default": "sync-zup@access.local",
+   "description": "От имени этого пользователя синк записывает изменения (видно в истории версий)",
+   "fieldname": "sync_user",
+   "fieldtype": "Data",
+   "label": "Пользователь синхронизации"
+  },
+  {
+   "default": "30",
+   "description": "Окно запроса /absences: с сегодня минус N дней",
+   "fieldname": "absence_days_back",
+   "fieldtype": "Int",
+   "label": "Отсутствия: дней назад"
+  },
+  {
+   "default": "180",
+   "description": "Окно запроса /absences: по сегодня плюс M дней",
+   "fieldname": "absence_days_ahead",
+   "fieldtype": "Int",
+   "label": "Отсутствия: дней вперёд"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "300",
+   "fieldname": "http_timeout",
+   "fieldtype": "Int",
+   "label": "Таймаут HTTP-запроса, сек"
+  },
+  {
+   "default": "7200",
+   "fieldname": "job_timeout",
+   "fieldtype": "Int",
+   "label": "Таймаут фоновой задачи синка, сек"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Предохранитель"
+  },
+  {
+   "default": "10",
+   "description": "Если сотрудников или подразделений в выгрузке меньше, чем актуальных в реестре, более чем на этот процент — синк останавливается без изменений",
+   "fieldname": "shrink_threshold_pct",
+   "fieldtype": "Int",
+   "label": "Допустимое сокращение выгрузки, %"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "20",
+   "description": "Предохранитель работает, когда актуальных записей источника в реестре не меньше этого числа",
+   "fieldname": "guard_min_records",
+   "fieldtype": "Int",
+   "label": "Минимум записей для предохранителя"
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Руководители подразделений"
+  },
+  {
+   "default": "руководитель\nначальник\nдиректор\nзаведующий\nглавный\nзаместитель",
+   "description": "По одному на строку, по приоритету. Кандидат в руководители — активный сотрудник подразделения, чья должность начинается с первого подходящего слова",
+   "fieldname": "head_keywords",
+   "fieldtype": "Small Text",
+   "label": "Ключевые слова должностей руководителей"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Access Registry Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

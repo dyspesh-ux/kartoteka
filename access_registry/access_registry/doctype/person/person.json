@@ -1,0 +1,164 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-09-24 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "full_name",
+  "last_name",
+  "first_name",
+  "middle_name",
+  "birth_date",
+  "column_break_1",
+  "person_uuid",
+  "status",
+  "presence",
+  "external_part_time_only",
+  "section_break_2",
+  "source_ids",
+  "match_key",
+  "match_key_partial"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "ФИО",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "label": "Фамилия",
+   "read_only": 1
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "label": "Имя",
+   "read_only": 1
+  },
+  {
+   "fieldname": "middle_name",
+   "fieldtype": "Data",
+   "label": "Отчество",
+   "read_only": 1
+  },
+  {
+   "fieldname": "birth_date",
+   "fieldtype": "Date",
+   "label": "Дата рождения",
+   "permlevel": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Постоянный идентификатор, уходит в AD employeeNumber. Не меняется никогда",
+   "fieldname": "person_uuid",
+   "fieldtype": "Data",
+   "label": "UUID человека",
+   "no_copy": 1,
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Статус",
+   "options": "\nРаботает\nНе принят\nУволен\nНет в выгрузке",
+   "read_only": 1
+  },
+  {
+   "fieldname": "presence",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Присутствие",
+   "options": "\nНа месте\nДлительное отсутствие",
+   "read_only": 1
+  },
+  {
+   "description": "Есть активные трудоустройства, но ни одно не основное место работы — разобрать вручную",
+   "fieldname": "external_part_time_only",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Только совместительство",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Идентификаторы в источниках"
+  },
+  {
+   "fieldname": "source_ids",
+   "fieldtype": "Table",
+   "label": "Физлица в источниках",
+   "options": "Person Source ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "match_key",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Ключ сопоставления",
+   "permlevel": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "match_key_partial",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Ключ сопоставления без фамилии",
+   "permlevel": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Person",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "export": 1,
+   "permlevel": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "write": 1
+  }
+ ],
+ "search_fields": "full_name",
+ "show_title_field_in_link": 1,
+ "sort_field": "full_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "full_name",
+ "track_changes": 1
+}

@@ -1,0 +1,136 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:SYNC-{YYYY}{MM}{DD}-{####}",
+ "creation": "2026-09-24 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "source",
+  "kind",
+  "status",
+  "column_break_1",
+  "started",
+  "finished",
+  "first_load",
+  "section_break_2",
+  "stats",
+  "section_break_3",
+  "messages",
+  "section_break_4",
+  "meta_snapshot"
+ ],
+ "fields": [
+  {
+   "fieldname": "source",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Источник",
+   "options": "HR Source",
+   "read_only": 1
+  },
+  {
+   "default": "ЗУП",
+   "fieldname": "kind",
+   "fieldtype": "Select",
+   "label": "Вид",
+   "options": "ЗУП",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Статус",
+   "options": "В процессе\nУспех\nОстановлен предохранителем\nОшибка",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "started",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Начало",
+   "read_only": 1
+  },
+  {
+   "fieldname": "finished",
+   "fieldtype": "Datetime",
+   "label": "Окончание",
+   "read_only": 1
+  },
+  {
+   "fieldname": "first_load",
+   "fieldtype": "Check",
+   "label": "Первая загрузка",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Счётчики"
+  },
+  {
+   "fieldname": "stats",
+   "fieldtype": "Code",
+   "label": "Счётчики",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Сообщения"
+  },
+  {
+   "fieldname": "messages",
+   "fieldtype": "Code",
+   "label": "Предупреждения и ошибки",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break",
+   "label": "/meta"
+  },
+  {
+   "fieldname": "meta_snapshot",
+   "fieldtype": "Code",
+   "label": "Ответ /meta",
+   "options": "JSON",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Sync Log",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

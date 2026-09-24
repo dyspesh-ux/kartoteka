@@ -1,0 +1,146 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:record_key",
+ "creation": "2026-09-24 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "record_key",
+  "source",
+  "guid",
+  "column_break_1",
+  "title",
+  "prefix",
+  "missing",
+  "section_break_2",
+  "full_title",
+  "inn",
+  "kpp",
+  "column_break_2",
+  "head_organization",
+  "legal_entity"
+ ],
+ "fields": [
+  {
+   "description": "<код источника>:<GUID>",
+   "fieldname": "record_key",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Источник",
+   "options": "HR Source",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "guid",
+   "fieldtype": "Data",
+   "label": "GUID в ЗУП",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Наименование",
+   "read_only": 1
+  },
+  {
+   "fieldname": "prefix",
+   "fieldtype": "Data",
+   "label": "Префикс",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "Запись была в ЗУП, но в последней выгрузке её нет",
+   "fieldname": "missing",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Нет в выгрузке",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "full_title",
+   "fieldtype": "Small Text",
+   "label": "Полное наименование",
+   "read_only": 1
+  },
+  {
+   "fieldname": "inn",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "ИНН",
+   "read_only": 1
+  },
+  {
+   "fieldname": "kpp",
+   "fieldtype": "Data",
+   "label": "КПП",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "head_organization",
+   "fieldtype": "Link",
+   "label": "Головная организация",
+   "options": "HR Organization",
+   "read_only": 1
+  },
+  {
+   "fieldname": "legal_entity",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Юрлицо",
+   "options": "Legal Entity",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "HR Organization",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "title,inn",
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

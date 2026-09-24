@@ -1,0 +1,119 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:HRE-{#######}",
+ "creation": "2026-09-24 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "event_type",
+  "person",
+  "employment",
+  "source",
+  "column_break_1",
+  "event_date",
+  "processed",
+  "sync_log",
+  "section_break_2",
+  "details"
+ ],
+ "fields": [
+  {
+   "fieldname": "event_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Тип события",
+   "options": "Приём\nУвольнение\nПредстоящее увольнение\nПеревод\nУход в отпуск по уходу\nВыход из отпуска по уходу\nПропал из выгрузки\nВернулся в выгрузку",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Человек",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "employment",
+   "fieldtype": "Link",
+   "label": "Трудоустройство",
+   "options": "Employment",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Link",
+   "label": "Источник",
+   "options": "HR Source",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "event_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Дата события",
+   "read_only": 1
+  },
+  {
+   "fieldname": "processed",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Обработано"
+  },
+  {
+   "fieldname": "sync_log",
+   "fieldtype": "Link",
+   "label": "Запуск синка",
+   "options": "Sync Log",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "details",
+   "fieldtype": "Small Text",
+   "label": "Подробности",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "HR Event",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "event_type",
+ "track_changes": 1
+}
