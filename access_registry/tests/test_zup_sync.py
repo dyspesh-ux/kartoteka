@@ -700,3 +700,17 @@ class TestZupSync(FrappeTestCase):
 		self.assertIn("access_registry.sync.engine.scheduled_sync_night", cron["0 21-23,0-6 * * *"])
 		# Scheduled Job Type is keyed by method: the same method twice would lose one schedule
 		self.assertEqual(len(methods), len(set(methods)))
+
+	def test_old_sync_logs_are_cleared(self):
+		from access_registry.access_registry.doctype.sync_log.sync_log import SyncLog
+
+		data = load("zup1")
+		self.assertSuccess(self.sync(S1, data))
+		row(data, "employees", EMP(3), "СотрудникGUID")["ПодразделениеGUID"] = DEP(2)
+		log = self.sync(S1, data)
+		self.assertEqual(frappe.db.get_value("HR Event", {"event_type": "Перевод"}, "sync_log"), log.name)
+		frappe.db.set_value("Sync Log", log.name, "creation", "2020-01-01 00:00:00", update_modified=False)
+		SyncLog.clear_old_logs(days=180)
+		self.assertFalse(frappe.db.exists("Sync Log", log.name))
+		self.assertEqual(frappe.db.count("Sync Log", {"source": S1}), 1)
+		self.assertFalse(frappe.db.get_value("HR Event", {"event_type": "Перевод"}, "sync_log"))

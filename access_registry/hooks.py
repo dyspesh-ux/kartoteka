@@ -9,6 +9,9 @@ required_apps = ["frappe"]
 after_install = "access_registry.install.after_install"
 after_migrate = "access_registry.install.after_migrate"
 
+# Sync Log retention in days; adjustable in Log Settings.
+default_log_clearing_doctypes = {"Sync Log": [180]}
+
 # Day: every 30 minutes from 07:00 to 21:00; night: once an hour.
 # The jobs only enqueue one "long" job per enabled source. Two methods, because Frappe keys
 # Scheduled Job Type by method: one method with two cron lines would keep only one of them.
