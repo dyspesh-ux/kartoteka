@@ -16,6 +16,8 @@
 - [Тесты и разработка](#тесты-и-разработка)
 - [Проверка на реальной базе](#проверка-на-реальной-базе)
 
+Окружение разработчика на Windows (WSL2 + VS Code): [docs/dev-setup-wsl.md](docs/dev-setup-wsl.md).
+
 ## Установка
 
 Нужен bench с Frappe v15 (обычный или [frappe_docker](https://github.com/frappe/frappe_docker)).
