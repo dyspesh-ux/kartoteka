@@ -262,6 +262,31 @@ def _release_lock():
 # --------------------------------------------------------------------------- sync
 
 
+# Personal data (152-FZ) is never copied into Sync Log messages.
+PERSONAL_KEYS = ("Фамилия", "Имя", "Отчество", "ДатаРождения", "ФИО")
+
+
+def _shown(key, value):
+	return "…" if key in PERSONAL_KEYS and value not in (None, "") else value
+
+
+def describe_row(row: dict) -> str:
+	return json.dumps({k: _shown(k, v) for k, v in row.items()}, ensure_ascii=False)[:300]
+
+
+def describe_differences(rows: list) -> str:
+	"""Which fields differ between duplicate rows, values in export order (personal data hidden)."""
+	keys = []
+	for row in rows:
+		keys += [k for k in row if k not in keys]
+	parts = []
+	for key in keys:
+		values = [row.get(key) for row in rows]
+		if len({json.dumps(v, ensure_ascii=False) for v in values}) > 1:
+			parts.append(f"{key}: " + " | ".join(str(_shown(key, v)) for v in values))
+	return "различаются: " + "; ".join(parts) if parts else "строки полностью совпадают"
+
+
 def first(row: dict, *keys):
 	for key in keys:
 		value = row.get(key)
@@ -417,16 +442,22 @@ class SourceSync:
 
 	def index_rows(self, rows, key_names, label) -> dict:
 		result = {}
+		duplicates = defaultdict(list)
 		for row in rows:
 			guid = first(row, *key_names)
 			if not guid:
-				self.warn(
-					f"в выгрузке {label} запись без GUID пропущена: {json.dumps(row, ensure_ascii=False)[:300]}"
-				)
+				self.warn(f"в выгрузке {label} запись без GUID пропущена: {describe_row(row)}")
 				continue
 			if guid in result:
-				self.warn(f"в выгрузке {label} GUID {guid} встречается несколько раз, взята последняя запись")
+				if not duplicates[guid]:
+					duplicates[guid].append(result[guid])
+				duplicates[guid].append(row)
 			result[guid] = row
+		for guid, copies in duplicates.items():
+			self.warn(
+				f"в выгрузке {label} GUID {guid} встречается {len(copies)} раз(а), взята последняя запись; "
+				f"{describe_differences(copies)}"
+			)
 		return result
 
 	# ------------------------------------------------------------ guard

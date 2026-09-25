@@ -732,3 +732,18 @@ class TestZupSync(FrappeTestCase):
 			if shortcut.stats_filter:
 				filters = [f[1:] for f in json.loads(shortcut.stats_filter)]
 				frappe.db.count(shortcut.link_to, filters)  # the counter query must be valid
+
+	def test_duplicate_rows_warning_shows_differences_without_personal_data(self):
+		data = load("zup1")
+		dup = copy.deepcopy(row(data, "employees", EMP(3), "СотрудникGUID"))
+		dup.update({"Категория": "Отпуск", "КадровоеСостояниеКод": "ОтпускОсновной", "Фамилия": "Сидорова"})
+		data["employees"].append(dup)
+		log = self.sync(S1, data)
+		self.assertSuccess(log)
+		line = next(m for m in log.messages.splitlines() if EMP(3) in m)
+		self.assertIn("встречается 2 раз(а)", line)
+		self.assertIn("Категория: Работает | Отпуск", line)
+		self.assertIn("КадровоеСостояниеКод: Работа | ОтпускОсновной", line)
+		self.assertIn("Фамилия: … | …", line)
+		self.assertNotIn("Сидор", log.messages)
+		self.assertEqual(frappe.db.get_value("Employment", f"{S1}:{EMP(3)}", "category"), "Отпуск")
