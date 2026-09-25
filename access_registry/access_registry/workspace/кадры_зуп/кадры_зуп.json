@@ -10,7 +10,7 @@
  "icon": "users",
  "idx": 0,
  "is_hidden": 0,
- "label": "Access Registry",
+ "label": "Кадры ЗУП",
  "links": [
   {
    "hidden": 0,
@@ -181,10 +181,10 @@
    "type": "Link"
   }
  ],
- "modified": "2026-09-25 12:00:00.000000",
+ "modified": "2026-09-25 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
- "name": "Access Registry",
+ "name": "Кадры ЗУП",
  "number_cards": [],
  "owner": "Administrator",
  "parent_page": "",
