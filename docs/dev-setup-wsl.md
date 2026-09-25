@@ -128,7 +128,9 @@ cd ~/frappe-bench
 git clone https://github.com/dyspesh-ux/kartoteka.git apps/access_registry
 git -C apps/access_registry checkout claude/new-session-dkdpyd   # пока работа не влита в основную ветку
 ./env/bin/pip install -e apps/access_registry
-echo access_registry >> sites/apps.txt
+# apps.txt может заканчиваться без перевода строки: сначала дописываем его, потом имя приложения
+sed -i -e '$a\' sites/apps.txt && echo access_registry >> sites/apps.txt
+cat sites/apps.txt   # должно быть две строки: frappe и access_registry
 ```
 
 ## 7. Dev-сайт
@@ -297,6 +299,7 @@ git config --global core.autocrlf input
 | Симптом | Что сделать |
 |---|---|
 | `bench init` падает на `uv venv … python3.11` | `uv python install 3.11`, затем снова `bench init` (перед этим удалите папку `frappe-bench`) |
+| `No module named 'frappeaccess_registry'` | в `sites/apps.txt` имена слиплись в одну строку: `printf 'frappe\naccess_registry\n' > sites/apps.txt` |
 | `ModuleNotFoundError: jinja2` при запуске bench | `pipx inject frappe-bench jinja2 requests` |
 | `Access denied for user 'root'` при `new-site` | повторите `ALTER USER` из шага 3 |
 | MariaDB не стартует после перезагрузки | `sudo systemctl status mariadb`, проверьте, что systemd включён (шаг 1) |
