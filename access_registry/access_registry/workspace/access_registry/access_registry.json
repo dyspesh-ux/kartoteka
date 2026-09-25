@@ -1,0 +1,302 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Кадры</b></span>\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Люди\", \"col\": 4}}, {\"id\": \"ar00000003\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Трудоустройства\", \"col\": 4}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Дерево подразделений\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Длительное отсутствие\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Источники ЗУП\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал синхронизаций\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000009\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Требует внимания</b></span>\", \"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты на склейку\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Новые кадровые события\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Только совместительство\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Расхождения руководителей\", \"col\": 4}}, {\"id\": \"ar00000014\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты в руководители\", \"col\": 4}}, {\"id\": \"ar00000015\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Нет в выгрузке\", \"col\": 4}}, {\"id\": \"ar00000016\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Неудачные синки\", \"col\": 4}}, {\"id\": \"ar00000017\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000018\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и настройки</b></span>\", \"col\": 12}}, {\"id\": \"ar00000019\", \"type\": \"card\", \"data\": {\"card_name\": \"Кадры ЗУП\", \"col\": 3}}, {\"id\": \"ar00000020\", \"type\": \"card\", \"data\": {\"card_name\": \"Организации\", \"col\": 3}}, {\"id\": \"ar00000021\", \"type\": \"card\", \"data\": {\"card_name\": \"Разбор\", \"col\": 3}}, {\"id\": \"ar00000022\", \"type\": \"card\", \"data\": {\"card_name\": \"Синхронизация\", \"col\": 3}}]",
+ "creation": "2026-09-25 12:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "users",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Access Registry",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Кадры ЗУП",
+   "link_count": 5,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Люди",
+   "link_count": 0,
+   "link_to": "Person",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Трудоустройства",
+   "link_count": 0,
+   "link_to": "Employment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Подразделения",
+   "link_count": 0,
+   "link_to": "HR Department",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Должности",
+   "link_count": 0,
+   "link_to": "HR Position",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Отсутствия",
+   "link_count": 0,
+   "link_to": "HR Absence",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Организации",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Организации ЗУП",
+   "link_count": 0,
+   "link_to": "HR Organization",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Юрлица",
+   "link_count": 0,
+   "link_to": "Legal Entity",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Разбор",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Кадровые события",
+   "link_count": 0,
+   "link_to": "HR Event",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Кандидаты на склейку",
+   "link_count": 0,
+   "link_to": "Person Merge Candidate",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Синхронизация",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Источники ЗУП",
+   "link_count": 0,
+   "link_to": "HR Source",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Журнал синхронизаций",
+   "link_count": 0,
+   "link_to": "Sync Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Настройки реестра",
+   "link_count": 0,
+   "link_to": "Access Registry Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-09-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Access Registry",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "label": "Люди",
+   "link_to": "Person",
+   "type": "DocType",
+   "stats_filter": "[[\"Person\", \"status\", \"=\", \"Работает\"]]",
+   "color": "Green",
+   "format": "{} работают"
+  },
+  {
+   "label": "Трудоустройства",
+   "link_to": "Employment",
+   "type": "DocType",
+   "stats_filter": "[[\"Employment\", \"status\", \"in\", [\"Работает\", \"Увольняется\"]]]",
+   "color": "Green",
+   "format": "{} активных"
+  },
+  {
+   "label": "Дерево подразделений",
+   "link_to": "HR Department",
+   "type": "DocType",
+   "doc_view": "Tree"
+  },
+  {
+   "label": "Длительное отсутствие",
+   "link_to": "Person",
+   "type": "DocType",
+   "stats_filter": "[[\"Person\", \"presence\", \"=\", \"Длительное отсутствие\"]]",
+   "color": "Purple",
+   "format": "{} человек"
+  },
+  {
+   "label": "Источники ЗУП",
+   "link_to": "HR Source",
+   "type": "DocType",
+   "stats_filter": "[[\"HR Source\", \"enabled\", \"=\", 1]]",
+   "color": "Blue",
+   "format": "{} включено"
+  },
+  {
+   "label": "Журнал синхронизаций",
+   "link_to": "Sync Log",
+   "type": "DocType"
+  },
+  {
+   "label": "Кандидаты на склейку",
+   "link_to": "Person Merge Candidate",
+   "type": "DocType",
+   "stats_filter": "[[\"Person Merge Candidate\", \"status\", \"=\", \"Открыт\"]]",
+   "color": "Orange",
+   "format": "{} открыто"
+  },
+  {
+   "label": "Новые кадровые события",
+   "link_to": "HR Event",
+   "type": "DocType",
+   "stats_filter": "[[\"HR Event\", \"processed\", \"=\", 0]]",
+   "color": "Blue",
+   "format": "{} не обработано"
+  },
+  {
+   "label": "Только совместительство",
+   "link_to": "Person",
+   "type": "DocType",
+   "stats_filter": "[[\"Person\", \"external_part_time_only\", \"=\", 1]]",
+   "color": "Yellow",
+   "format": "{} человек"
+  },
+  {
+   "label": "Расхождения руководителей",
+   "link_to": "HR Department",
+   "type": "DocType",
+   "stats_filter": "[[\"HR Department\", \"head_conflict\", \"=\", 1]]",
+   "color": "Red",
+   "format": "{} подразделений"
+  },
+  {
+   "label": "Кандидаты в руководители",
+   "link_to": "HR Department",
+   "type": "DocType",
+   "stats_filter": "[[\"HR Department\", \"head_candidate\", \"is\", \"set\"], [\"HR Department\", \"manual_head\", \"is\", \"not set\"]]",
+   "color": "Cyan",
+   "format": "{} к принятию"
+  },
+  {
+   "label": "Нет в выгрузке",
+   "link_to": "Employment",
+   "type": "DocType",
+   "stats_filter": "[[\"Employment\", \"missing\", \"=\", 1]]",
+   "color": "Grey",
+   "format": "{} трудоустройств"
+  },
+  {
+   "label": "Неудачные синки",
+   "link_to": "Sync Log",
+   "type": "DocType",
+   "stats_filter": "[[\"Sync Log\", \"status\", \"in\", [\"Ошибка\", \"Остановлен предохранителем\"]]]",
+   "color": "Red",
+   "format": "{} запусков"
+  }
+ ],
+ "title": "Кадры ЗУП"
+}

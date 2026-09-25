@@ -714,3 +714,19 @@ class TestZupSync(FrappeTestCase):
 		self.assertFalse(frappe.db.exists("Sync Log", log.name))
 		self.assertEqual(frappe.db.count("Sync Log", {"source": S1}), 1)
 		self.assertFalse(frappe.db.get_value("HR Event", {"event_type": "Перевод"}, "sync_log"))
+
+	def test_workspace_links_existing_doctypes(self):
+		ws = frappe.get_doc("Workspace", "Access Registry")
+		self.assertEqual(ws.title, "Кадры ЗУП")
+		self.assertEqual(ws.public, 1)
+		targets = [s.link_to for s in ws.shortcuts] + [
+			link.link_to for link in ws.links if link.type == "Link"
+		]
+		self.assertIn("HR Source", targets)
+		self.assertIn("Person Merge Candidate", targets)
+		for doctype in targets:
+			self.assertTrue(frappe.db.exists("DocType", doctype), doctype)
+		for shortcut in ws.shortcuts:
+			if shortcut.stats_filter:
+				filters = [f[1:] for f in json.loads(shortcut.stats_filter)]
+				frappe.db.count(shortcut.link_to, filters)  # the counter query must be valid
