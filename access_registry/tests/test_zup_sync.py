@@ -716,10 +716,10 @@ class TestZupSync(FrappeTestCase):
 		self.assertFalse(frappe.db.get_value("HR Event", {"event_type": "Перевод"}, "sync_log"))
 
 	def test_workspace_links_existing_doctypes(self):
-		ws = frappe.get_doc("Workspace", "Кадры ЗУП")
+		ws = frappe.get_doc("Workspace", "Access Registry")
 		# Frappe routes by slug(title) but registers the page by slug(name): they must match
 		self.assertEqual(ws.title, ws.name)
-		self.assertFalse(frappe.db.exists("Workspace", "Access Registry"))
+		self.assertFalse(frappe.db.exists("Workspace", "Кадры ЗУП"))
 		self.assertEqual(ws.public, 1)
 		targets = [s.link_to for s in ws.shortcuts] + [
 			link.link_to for link in ws.links if link.type == "Link"

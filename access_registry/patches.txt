@@ -1,4 +1,4 @@
 [pre_model_sync]
 
 [post_model_sync]
-access_registry.patches.v0_1.rename_workspace
+access_registry.patches.v0_1.remove_cyrillic_workspace

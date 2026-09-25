@@ -164,8 +164,8 @@ bench start
 сборщик интерфейса. Откройте в браузере Windows **http://localhost:8000**: WSL2 сам пробрасывает
 порты. Вход: `Administrator` / `admin`.
 
-Вся работа с ЗУП — в разделе **«Кадры ЗУП»**, первом пункте боковой панели
-(http://localhost:8000/app/кадры-зуп): источники, журнал синхронизаций, люди, дерево
+Вся работа с ЗУП — в разделе **«Access Registry»**, первом пункте боковой панели
+(http://localhost:8000/app/access-registry): источники, журнал синхронизаций, люди, дерево
 подразделений и всё, что требует разбора. Описание раздела — в README.
 
 Остановить: `Ctrl+C` в терминале с `bench start`.
@@ -182,13 +182,13 @@ python3 tools/mock_hr_export.py --dir access_registry/tests/fixtures/zup1 --port
 # python3 tools/mock_hr_export.py --dir ~/zup_big --port 8765 --password secret
 ```
 
-В разделе **«Кадры ЗУП» → «Источники ЗУП»** создайте источник: код `ZUP1`, базовый URL
+В разделе **«Access Registry» → «Источники ЗУП»** создайте источник: код `ZUP1`, базовый URL
 `http://127.0.0.1:8765/hs/hr_export`, пользователь `svc_hr_export`, пароль `secret`. Нажмите
 **«Синхронизировать сейчас»**.
 
 Как понять, что синхронизация прошла:
 
-1. «Кадры ЗУП» → **«Журнал синхронизаций»**: у последнего запуска статус **«Успех»**, при первом
+1. «Access Registry» → **«Журнал синхронизаций»**: у последнего запуска статус **«Успех»**, при первом
    запуске отмечена «Первая загрузка». В поле «Счётчики» — сколько записей создано.
 2. В форме источника заполнены «Последний успешный синк» и «Статус последнего запуска».
 3. На ярлыках «Люди» и «Трудоустройства» появились счётчики, в «Дереве подразделений» видны
@@ -313,7 +313,7 @@ bench build --app access_registry
 bench --site dev.localhost clear-cache
 ```
 
-`migrate` применяет изменения DocType, раздела «Кадры ЗУП» и патчи. Затем обновите страницу в
+`migrate` применяет изменения DocType, раздела «Access Registry» и патчи. Затем обновите страницу в
 браузере (Ctrl+Shift+R).
 
 ## 13. Git
@@ -337,7 +337,7 @@ git config --global core.autocrlf input
 | `bench init` падает на `uv venv … python3.11` | `uv python install 3.11`, затем снова `bench init` (перед этим удалите папку `frappe-bench`) |
 | `No module named 'frappeaccess_registry'` | в `sites/apps.txt` имена слиплись в одну строку: `printf 'frappe\naccess_registry\n' > sites/apps.txt` |
 | `Service redis_cache is not running` при `migrate` | в другом терминале запустите `bench start` и повторите |
-| Раздела «Кадры ЗУП» нет в боковой панели | `bench start` запущен, затем `bench --site dev.localhost migrate` и `clear-cache` |
+| Раздела «Access Registry» нет в боковой панели | `bench start` запущен, затем `bench --site dev.localhost migrate` и `clear-cache` |
 | `ModuleNotFoundError: jinja2` при запуске bench | `pipx inject frappe-bench jinja2 requests` |
 | `Access denied for user 'root'` при `new-site` | повторите `ALTER USER` из шага 3 |
 | MariaDB не стартует после перезагрузки | `sudo systemctl status mariadb`, проверьте, что systemd включён (шаг 1) |
