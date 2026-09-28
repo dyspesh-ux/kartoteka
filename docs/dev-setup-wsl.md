@@ -176,7 +176,8 @@ bench start
 
 ```bash
 cd ~/frappe-bench/apps/access_registry
-python3 tools/mock_hr_export.py --dir access_registry/tests/fixtures/zup1 --port 8765 --password secret
+python3 tools/mock_hr_export.py --dir access_registry/tests/fixtures/zup1 \
+    --itaccess-dir access_registry/tests/fixtures/itaccess --port 8765 --password secret
 # или большой набор:
 # python3 tools/generate_synthetic.py --out ~/zup_big --employees 5000 --departments 400
 # python3 tools/mock_hr_export.py --dir ~/zup_big --port 8765 --password secret
@@ -196,8 +197,14 @@ python3 tools/mock_hr_export.py --dir access_registry/tests/fixtures/zup1 --port
 4. Статус «В процессе» дольше нескольких минут значит, что не работает воркер очереди `long`: он
    должен быть в выводе `bench start`.
 
+Права пользователей 1С: в той же форме источника включите «Загружать права пользователей», URL
+`http://127.0.0.1:8765/hs/itaccess`, пользователь `svc_hr_export`, пароль `secret` (заглушка
+принимает одну пару для обоих сервисов). Затем **«Права 1С» → «Загрузить права сейчас»** и
+«Загрузить журнал 1С сейчас». В Sync Log появятся запуски видов «Права 1С» и «Журнал 1С», в
+разделе — счётчики блока «Права 1С».
+
 Реальную базу ЗУП подключают так же: указывают URL её HTTP-сервиса HR_Export_API и пароль
-пользователя `svc_hr_export`. Что проверить после первой загрузки на реальных данных — в README,
+пользователя `svc_hr_export`, для прав — URL сервиса ITAccess и пароль `svc_itaccess`. Что проверить после первой загрузки на реальных данных — в README,
 раздел «Проверка на реальной базе».
 
 ## 10. Тесты и линтер
