@@ -732,8 +732,9 @@ class TestZupSync(FrappeTestCase):
 		]
 		self.assertIn(("DocType", "Info Base"), targets)
 		self.assertIn(("DocType", "Person Merge Candidate"), targets)
+		self.assertIn(("Page", "access-overview"), targets)
 		for link_type, target in targets:
-			self.assertIn(link_type, ("DocType", "Report"))
+			self.assertIn(link_type, ("DocType", "Report", "Page"))
 			self.assertTrue(frappe.db.exists(link_type, target), target)
 		for shortcut in ws.shortcuts:
 			if shortcut.stats_filter:

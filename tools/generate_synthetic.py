@@ -91,6 +91,11 @@ def main():
 	parser.add_argument("--departments", type=int, default=400)
 	parser.add_argument("--organizations", type=int, default=5)
 	parser.add_argument("--seed", type=int, default=42)
+	parser.add_argument(
+		"--itaccess",
+		action="store_true",
+		help="also write snapshot.json/log.json of the ITAccess service for this ZUP base and an accounting base",
+	)
 	args = parser.parse_args()
 	rng = random.Random(args.seed)
 	os.makedirs(args.out, exist_ok=True)
@@ -249,6 +254,201 @@ def main():
 		f"{len(orgs)} organizations, {len(deps)} departments, {len(emps)} employees, "
 		f"{len(people)} people, {len(absences)} absences → {args.out}"
 	)
+	if args.itaccess:
+		for name, zup in (("itaccess_zup", True), ("itaccess_bp", False)):
+			folder = os.path.join(args.out, name)
+			os.makedirs(folder, exist_ok=True)
+			snapshot, log = itaccess_snapshot(rng, emps, orgs, zup)
+			for fname, data in (("snapshot.json", snapshot), ("log.json", log)):
+				with open(os.path.join(folder, fname), "w", encoding="utf-8") as fh:
+					json.dump(data, fh, ensure_ascii=False)
+			print(f"{len(snapshot['users'])} 1C users → {folder}")
+
+
+PROFILE_SETS = {
+	True: [
+		("Кадровик", ["ДобавлениеИзменениеКадровыхДанных", "ЧтениеКадровыхДанных"]),
+		("Расчетчик", ["ДобавлениеИзменениеНачислений", "ЧтениеНачислений"]),
+		("Руководитель", ["ЧтениеКадровыхДанных", "ЧтениеОтчетов"]),
+		("Сотрудник", ["БазовыеПраваБСП", "ЧтениеЛичныхДанных"]),
+		("Администратор", ["ПолныеПрава", "АдминистраторСистемы"]),
+	],
+	False: [
+		("Бухгалтер", ["ДобавлениеИзменениеПроводок", "ЧтениеОтчетов"]),
+		("Главный бухгалтер", ["ДобавлениеИзменениеПроводок", "ЗакрытиеМесяца", "ЧтениеОтчетов"]),
+		("Казначей", ["ДобавлениеИзменениеПлатежей", "ЧтениеОтчетов"]),
+		("Менеджер по закупкам", ["ДобавлениеИзменениеЗакупок"]),
+		("Администратор", ["ПолныеПрава", "АдминистраторСистемы"]),
+	],
+}
+EXTRA_ROLES = [
+	"ИнтерактивноеОткрытиеВнешнихОтчетовИОбработок",
+	"ИспользованиеРегламентированнойОтчетности",
+	"ПолныеПрава",
+]
+TRANSLIT = dict(
+	zip(
+		"абвгдеёжзийклмнопрстуфхцчшщыэюя",
+		"a b v g d e e zh z i y k l m n o p r s t u f kh ts ch sh sch y e yu ya".split(),
+		strict=True,
+	)
+)
+
+
+def translit(text):
+	return "".join(TRANSLIT.get(ch, "") for ch in text.lower())
+
+
+def itaccess_snapshot(rng, emps, orgs, zup):
+	"""Synthetic ITAccess /snapshot and /log.
+
+	ZUP base: users carry the person GUIDs of the HR export. Accounting base: own GUIDs, mostly without a
+	person, so employees are found by full name. Some dismissed people keep the right to log in.
+	"""
+	profiles = [
+		{
+			"id": guid(rng),
+			"name": name,
+			"deleted": False,
+			"supplied": True,
+			"roles": [{"name": r, "title": r} for r in roles],
+		}
+		for name, roles in PROFILE_SETS[zup]
+	]
+	people = {}
+	for e in emps:
+		people.setdefault(e["ФизЛицоGUID"], e)
+	chosen = rng.sample(list(people.values()), k=min(len(people), 140 if zup else 90))
+	users, rights = [], []
+	for e in chosen:
+		fio = f"{e['Фамилия']} {e['Имя']} {e['Отчество']}"
+		fired = bool(e["ДатаУвольнения"])
+		allowed = (not fired) or rng.random() < 0.3
+		ad = f"{translit(e['Фамилия'])}.{translit(e['Имя'][0])}" if rng.random() < 0.8 else None
+		my_profiles = rng.sample(profiles[:-1], k=rng.randint(1, 2))
+		if rng.random() < 0.03:
+			my_profiles.append(profiles[-1])
+		roles = sorted({r["name"] for p in my_profiles for r in p["roles"]})
+		if rng.random() < 0.08:
+			roles.append(rng.choice(EXTRA_ROLES))
+		user_id = guid(rng)
+		users.append(
+			{
+				"id": user_id,
+				"name": fio,
+				"invalid": fired and not allowed,
+				"service": False,
+				"deleted": False,
+				"person_id": e["ФизЛицоGUID"] if zup else None,
+				"person_name": fio if zup else "",
+				"department_id": None,
+				"department_name": e["Подразделение"],
+				"ib": {
+					"ib_id": guid(rng),
+					"login": f"{e['Фамилия']} {e['Имя'][0]}.{e['Отчество'][0]}.",
+					"full_name": fio,
+					"auth_standard": ad is None,
+					"auth_os": ad is not None,
+					"auth_openid": False,
+					"os_user": f"\\\\CORP\\{ad}" if ad else "",
+					"ad_domain": "corp" if ad else None,
+					"ad_login": ad,
+					"login_allowed": allowed,
+					"roles": roles,
+				},
+			}
+		)
+		org = rng.choice(orgs)
+		only_org = rng.random() < 0.5
+		restriction = {
+			"kind": "Организации",
+			"source": "access_group",
+			"mode": "only" if only_org else "all",
+			"values": [{"id": org["ОрганизацияGUID"], "name": org["Наименование"]}] if only_org else [],
+		}
+		rights.append(
+			{
+				"user_id": user_id,
+				"user_name": fio,
+				"profiles": [
+					{
+						"profile_id": p["id"],
+						"profile_name": p["name"],
+						"access_group_id": guid(rng),
+						"access_group_name": p["name"],
+						"direct": True,
+						"via_name": fio,
+						"restrictions": [restriction],
+					}
+					for p in my_profiles
+				],
+				"organizations": {"all": not only_org, "list": [org["Наименование"]] if only_org else []},
+			}
+		)
+	for n in range(3):
+		users.append(
+			{
+				"id": guid(rng),
+				"name": f"Служебный обмен {n + 1}",
+				"invalid": False,
+				"service": True,
+				"deleted": False,
+				"person_id": None,
+				"person_name": "",
+				"department_id": None,
+				"department_name": "",
+				"ib": {
+					"ib_id": guid(rng),
+					"login": f"svc_exchange_{n + 1}",
+					"full_name": "",
+					"auth_standard": True,
+					"auth_os": False,
+					"auth_openid": False,
+					"os_user": "",
+					"ad_domain": None,
+					"ad_login": None,
+					"login_allowed": True,
+					"roles": ["ПолныеПрава"],
+				},
+			}
+		)
+	orphans = [
+		{
+			"ib_id": guid(rng),
+			"login": "robot",
+			"full_name": "",
+			"auth_standard": True,
+			"auth_os": False,
+			"auth_openid": False,
+			"os_user": "",
+			"ad_domain": None,
+			"ad_login": None,
+			"login_allowed": True,
+			"roles": ["ПолныеПрава"],
+		}
+	]
+	now = datetime.datetime.now().replace(microsecond=0)
+	events = [
+		{
+			"date": (now - datetime.timedelta(hours=h)).isoformat() + "+03:00",
+			"who": "Администратор",
+			"event": rng.choice(["_$User$_.Update", "_$Data$_.Update", "_$Data$_.New"]),
+			"object_type": rng.choice(["", "Справочник.ГруппыДоступа", "Справочник.Пользователи"]),
+			"object": rng.choice(users)["name"],
+			"comment": "",
+			"host": "PC-IT-01",
+		}
+		for h in range(1, 25)
+	]
+	snapshot = {
+		"base": "synthetic",
+		"generated_at": now.isoformat() + "+03:00",
+		"users": users,
+		"ib_orphans": orphans,
+		"profiles": profiles,
+		"user_rights": rights,
+	}
+	return snapshot, {"base": "synthetic", "from": "", "events": events}
 
 
 if __name__ == "__main__":

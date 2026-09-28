@@ -548,7 +548,7 @@ class TestAccessCatalog(FrappeTestCase):
 		# No HR data loaded: every user allowed to log in is without an employee
 		self.assertEqual(
 			sorted(r.name for r in no_person.execute({"configuration": "ЗУП"})[1]),
-			sorted([f"{S1}:{USR(n)}" for n in (1, 2, 3, 6)] + [f"{S1}:ib:{IB(9)}"]),
+			sorted([f"{S1}:{USR(n)}" for n in (1, 2, 3, 6)]),  # orphans have their own report
 		)
 		self.assertEqual(
 			sorted(r.name for r in all_orgs.execute({})[1]), sorted([f"{S1}:{USR(2)}", f"{S1}:{USR(3)}"])
@@ -610,3 +610,52 @@ class TestAccessCatalog(FrappeTestCase):
 		self.assertTrue(all(r["organization"] == org for r in execute({"organization": org})[1]))
 		unlinked = execute({"only_unlinked": 1})[1]
 		self.assertTrue(unlinked and all(not r["person"] for r in unlinked))
+
+	def test_overview_page_api(self):
+		from access_registry.access_registry.page.access_overview import access_overview as ao
+
+		self.hr_sync()
+		self.imp()
+		self.imp(base=BP)
+		overview = ao.get_overview()
+		kpis = overview["kpis"]
+		self.assertEqual(kpis["employees"], frappe.db.count("Person", {"status": "Работает"}))
+		# Фёдоров is dismissed but may log in: in both bases
+		self.assertEqual(kpis["not_working"], 2)
+		self.assertEqual(
+			sorted(r.name for r in overview["attention"]["not_working"]),
+			sorted([f"{BP}:{USR(6)}", f"{S1}:{USR(6)}"]),
+		)
+		# «Администратор» is unlinked; the orphan robot is not counted here
+		self.assertIn(f"{S1}:{USR(3)}", [r.name for r in overview["attention"]["unlinked"]])
+		self.assertNotIn(f"{S1}:ib:{IB(9)}", [r.name for r in overview["attention"]["unlinked"]])
+		self.assertEqual({b.name for b in overview["bases"]}, {S1, S2, BP})
+
+		person = frappe.db.get_value("Person Source ID", {"source": S1, "person_guid": FL(1)}, "parent")
+		card = ao.get_person(person)
+		self.assertEqual(card["person"]["full_name"], "Иванов Иван Иванович")
+		self.assertEqual(card["person"]["organization"], "Ромашка ООО")
+		self.assertEqual(sorted(a.base_code for a in card["accounts"]), sorted([BP, S1]))
+		zup = next(a for a in card["accounts"] if a.base_code == S1)
+		self.assertEqual(zup.profiles[0]["profile"], "Кадровик")
+		self.assertIn("ИнтерактивноеОткрытиеВнешнихОтчетовИОбработок", zup.extra_roles)
+
+		results = ao.search("Иванов")
+		self.assertEqual(results[0]["kind"], "person")
+		self.assertEqual(results[0]["id"], person)
+		self.assertEqual(ao.search("Администратор")[0]["kind"], "account")
+		self.assertEqual(ao.search("x"), [])
+
+		matrix = ao.get_matrix()
+		row = next(r for r in matrix["rows"] if r["person"] == person)
+		self.assertEqual(set(row["cells"]), {S1, BP})
+		self.assertEqual(row["cells"][S1]["profiles"], ["Кадровик"])
+		self.assertTrue(row["cells"][S1]["extra"])
+		self.assertNotIn(
+			frappe.db.get_value("Person Source ID", {"source": S1, "person_guid": FL(8)}, "parent"),
+			[r["person"] for r in matrix["rows"]],
+		)  # dismissed Фёдоров is hidden with «only working»
+		self.assertIn(
+			frappe.db.get_value("Person Source ID", {"source": S1, "person_guid": FL(8)}, "parent"),
+			[r["person"] for r in ao.get_matrix(only_working=0)["rows"]],
+		)
