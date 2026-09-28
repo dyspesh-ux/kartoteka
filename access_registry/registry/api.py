@@ -18,6 +18,7 @@ from access_registry.permissions import (
 	PERSONAL_DATA,
 	PROCESS_MANAGER,
 	READERS,
+	REVIEWER,
 	ROLE_MANAGER,
 	has_any,
 	require,
@@ -45,11 +46,16 @@ def _column(key, label, kind="text", link=None):
 
 @frappe.whitelist()
 def bootstrap() -> dict:
-	_check()
+	"""Who the user is and what the app shows. Reviewers without other roles see only their tasks."""
+	require(*READERS, REVIEWER)
+	from access_registry.access_roles.review import pending_count
+
 	user = frappe.get_cached_doc("User", frappe.session.user)
 	return {
+		"pending_reviews": pending_count(),
 		"user": {"name": user.name, "full_name": user.full_name or user.name, "image": user.user_image},
 		"can": {
+			"read": has_any(*READERS),
 			"personal": _personal(),
 			"roles": has_any(*ADMINS, ROLE_MANAGER),
 			"processes": has_any(*ADMINS, PROCESS_MANAGER),
@@ -1120,3 +1126,95 @@ def create_exception(person: str, entitlement: str, reason: str, valid_to: str |
 	).insert()
 	frappe.cache().delete_value(CACHE_KEY)
 	return doc.name
+
+
+# --------------------------------------------------------------------------- access reviews
+
+
+@frappe.whitelist()
+def my_reviews() -> list:
+	"""Tasks of the current user in running access reviews."""
+	require(*READERS, REVIEWER)
+	from access_registry.access_roles.review import my_items
+
+	return my_items()
+
+
+@frappe.whitelist(methods=["POST"])
+def decide(item: str, decision: str, comment: str | None = None) -> dict:
+	require(*READERS, REVIEWER)
+	from access_registry.access_roles.review import decide as _decide
+
+	return _decide(item, decision, comment)
+
+
+@frappe.whitelist(methods=["POST"])
+def decide_person(review: str, person: str, decision: str) -> int:
+	"""The same decision for all undecided accesses of one employee assigned to the current user."""
+	require(*READERS, REVIEWER)
+	from access_registry.access_roles.review import decide as _decide
+
+	items = frappe.get_all(
+		"Access Review Item",
+		filters={
+			"access_review": review,
+			"person": person,
+			"reviewer_user": frappe.session.user,
+			"decision": ["in", ["", None]],
+		},
+		pluck="name",
+	)
+	for name in items:
+		_decide(name, decision)
+	return len(items)
+
+
+@frappe.whitelist()
+def reviews() -> list:
+	_check()
+	rows = frappe.get_all(
+		"Access Review",
+		fields=[
+			"name",
+			"title",
+			"status",
+			"due_date",
+			"reviewer_mode",
+			"items_total",
+			"items_done",
+			"items_revoke",
+			"items_unassigned",
+			"started_on",
+			"finished_on",
+		],
+		order_by="creation desc",
+	)
+	for r in rows:
+		r.due_date = str(r.due_date) if r.due_date else None
+	return rows
+
+
+@frappe.whitelist()
+def review(name: str) -> dict:
+	_check()
+	from access_registry.access_roles.review import results
+
+	doc = frappe.get_doc("Access Review", name)
+	return {
+		"doc": {
+			k: doc.get(k)
+			for k in (
+				"name",
+				"title",
+				"status",
+				"reviewer_mode",
+				"description",
+				"items_total",
+				"items_done",
+				"items_revoke",
+				"items_unassigned",
+			)
+		}
+		| {"due_date": str(doc.due_date) if doc.due_date else None},
+		"items": results(name),
+	}

@@ -118,6 +118,7 @@
 		download: '<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
 		refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
 		menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+		check: '<rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/>',
 		external: '<path d="M14 4h6v6"/><path d="m20 4-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
 	};
 	const icon = (name) => `<svg viewBox="0 0 24 24">${ICONS[name] || ""}</svg>`;
@@ -275,6 +276,7 @@
 		["key", "#/access", "Права доступа"],
 		["roles", "#/roles", "Роли доступа"],
 		["flow", "#/processes", "Бизнес-процессы"],
+		["check", "#/reviews", "Пересмотр доступа", "reviews"],
 		["db", "#/sources", "Источники"],
 	];
 
@@ -286,7 +288,7 @@
 					<div class="brand"><div class="brand-mark">${icon("shield").replace("<svg", '<svg style="width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2"')}</div>
 						<div>Реестр доступа<small>кто есть кто и у кого что</small></div></div>
 					<nav class="nav">
-						${NAV.map(
+						${NAV.filter(([, href]) => b.can.read || href === "#/reviews").map(
 							([ic, href, label, badge]) =>
 								`<a href="${href}" data-nav="${href}">${icon(ic)}<span>${label}</span>${badge ? `<span class="count" data-badge="${badge}" hidden></span>` : ""}</a>`
 						).join("")}
@@ -301,7 +303,7 @@
 				<div class="main">
 					<header class="topbar">
 						<button class="icon-btn menu-toggle" aria-label="Меню">${icon("menu")}</button>
-						<div class="search">
+						<div class="search" ${b.can.read ? "" : "hidden"}>
 							<svg class="icon" viewBox="0 0 24 24">${ICONS.search}</svg>
 							<input type="search" placeholder="Сотрудник, учётка, логин, роль, процесс…" autocomplete="off" aria-label="Поиск">
 							<kbd>/</kbd>
@@ -315,8 +317,18 @@
 				</div>
 			</div>`;
 		$app.querySelector(".theme").addEventListener("click", toggleTheme);
+		setReviewBadge(b.pending_reviews);
 		$app.querySelector(".menu-toggle").addEventListener("click", () => $app.querySelector(".shell").classList.toggle("nav-open"));
 		bindSearch();
+	}
+
+	function setReviewBadge(n) {
+		const badge = $app.querySelector('[data-badge="reviews"]');
+		if (!badge) return;
+		badge.hidden = !n;
+		badge.textContent = n;
+		badge.style.background = "var(--accent-soft)";
+		badge.style.color = "var(--accent-text)";
 	}
 
 	function toggleTheme() {
@@ -398,16 +410,19 @@
 		[/^\/processes$/, viewProcesses],
 		[/^\/process\/(.+)$/, viewProcess],
 		[/^\/sources$/, viewSources],
+		[/^\/reviews$/, viewReviews],
+		[/^\/review\/(.+)$/, viewReview],
 	];
 
 	async function route() {
-		const path = decodeURIComponent((location.hash || "#/").slice(1)) || "/";
+		let path = decodeURIComponent((location.hash || "#/").slice(1)) || "/";
+		if (!state.boot.can.read && !path.startsWith("/review")) path = "/reviews";
 		const view = document.getElementById("view");
 		$app.querySelector(".shell").classList.remove("nav-open");
 		$app.querySelectorAll("[data-nav]").forEach((a) => {
 			const href = a.dataset.nav.slice(1);
 			a.classList.toggle("active", href === "/" ? path === "/" : path.startsWith(href) || (href === "/people" && path.startsWith("/person")) ||
-				(href === "/access" && path.startsWith("/entitlement")) || (href === "/roles" && path.startsWith("/role/")) || (href === "/processes" && path.startsWith("/process/")));
+				(href === "/access" && path.startsWith("/entitlement")) || (href === "/roles" && path.startsWith("/role/")) || (href === "/processes" && path.startsWith("/process/")) || (href === "/reviews" && path.startsWith("/review/")));
 		});
 		for (const [re, fn] of ROUTES) {
 			const m = path.match(re);
@@ -1063,6 +1078,146 @@
 		});
 	}
 
+	// ------------------------------------------------------------------ access reviews
+
+	async function viewReviews(view) {
+		const can = state.boot.can;
+		const [items, campaigns] = await Promise.all([api("my_reviews"), can.read ? api("reviews") : Promise.resolve([])]);
+		const byReview = {};
+		items.forEach((i) => ((byReview[i.access_review] = byReview[i.access_review] || { title: i.review_title, due: i.due_date, text: i.review_description, people: {} }),
+			(byReview[i.access_review].people[i.person] = byReview[i.access_review].people[i.person] || []).push(i)));
+		const done = items.filter((i) => i.decision).length;
+		view.innerHTML = `
+			<div class="page-head"><div><h1>Пересмотр доступа</h1><p>Проверяющие подтверждают, что доступы сотрудников нужны для работы, или отмечают их на отзыв.
+				Реестр сам ничего не отзывает: список на отзыв получают администраторы систем.</p></div>
+				${can.roles ? `<a class="btn primary" href="/app/access-review/new">Новый пересмотр</a>` : ""}</div>
+			${items.length ? `<div class="card card-pad" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+				<div><b>Мои задания</b><div class="muted small">решено ${done} из ${items.length}</div></div>
+				<div class="meter" style="flex:1;max-width:420px"><i class="my-progress" style="width:${(100 * done) / items.length}%;background:var(--green)"></i></div></div></div>
+				<div class="my-tasks"></div>` : `<div class="card empty" style="margin-bottom:16px"><b>Заданий нет</b>Когда начнётся пересмотр доступа, здесь появятся сотрудники, чьи доступы нужно подтвердить.</div>`}
+			${can.read ? `<div class="section"><h2>Кампании</h2><div class="card campaigns"></div></div>` : ""}`;
+		const box = view.querySelector(".my-tasks");
+		if (box) {
+			const refresh = () => {
+				const n = items.filter((i) => i.decision).length;
+				view.querySelector(".my-progress").style.width = `${(100 * n) / items.length}%`;
+				view.querySelector(".card-pad .muted.small").textContent = `решено ${n} из ${items.length}`;
+				setReviewBadge(items.filter((i) => !i.decision).length);
+			};
+			box.innerHTML = Object.entries(byReview)
+				.map(
+					([review, r]) => `<div class="section" style="margin-top:0"><h2>${esc(r.title)}${r.due ? ` · срок ${esc(fmtDate(r.due))}` : ""}</h2>
+						${r.text ? `<p class="muted" style="margin-top:-6px">${esc(r.text)}</p>` : ""}
+						<div class="grid grid-2">${Object.entries(r.people)
+							.sort(([, a], [, b]) => (a.some((i) => !i.decision) ? 0 : 1) - (b.some((i) => !i.decision) ? 0 : 1))
+							.map(([person, list]) => reviewCard(review, person, list))
+							.join("")}</div></div>`
+				)
+				.join("");
+			box.addEventListener("click", async (e) => {
+				const btn = e.target.closest("button[data-decide]");
+				if (!btn) return;
+				btn.disabled = true;
+				try {
+					if (btn.dataset.item) {
+						const item = items.find((i) => i.name === btn.dataset.item);
+						let comment = null;
+						if (btn.dataset.decide === "Отозвать") {
+							comment = prompt("Почему отозвать? (необязательно)", item.comment || "") ?? null;
+						}
+						await api("decide", { item: item.name, decision: btn.dataset.decide, comment }, true);
+						item.decision = btn.dataset.decide;
+					} else {
+						await api("decide_person", { review: btn.dataset.review, person: btn.dataset.person, decision: btn.dataset.decide }, true);
+						items.filter((i) => i.person === btn.dataset.person && i.access_review === btn.dataset.review && !i.decision).forEach((i) => (i.decision = btn.dataset.decide));
+					}
+					const card = btn.closest("[data-card]");
+					const list = items.filter((i) => i.person === card.dataset.person && i.access_review === card.dataset.review);
+					card.outerHTML = reviewCard(card.dataset.review, card.dataset.person, list);
+					refresh();
+				} catch (err) {
+					toast(err.message);
+					btn.disabled = false;
+				}
+			});
+		}
+		if (can.read)
+			table(view.querySelector(".campaigns"), {
+				name: "пересмотры",
+				rows: campaigns,
+				filter: false,
+				empty: "Пересмотров ещё не было",
+				columns: [
+					{ key: "title", label: "Пересмотр", render: (r) => `<a href="#/review/${enc(r.name)}"><b>${esc(r.title)}</b></a>` },
+					{ key: "status", label: "Статус", render: (r) => pill(r.status, r.status === "Идёт" ? "t-blue" : r.status === "Завершён" ? "t-green" : "") },
+					{ key: "due_date", label: "Срок", type: "deadline" },
+					{ key: "progress", label: "Решено", render: (r) => (r.items_total ? `${r.items_done} из ${r.items_total}` : "—"), csv: (r) => r.items_done },
+					{ key: "items_revoke", label: "На отзыв", type: "number" },
+					{ key: "items_unassigned", label: "Без проверяющего", type: "number" },
+				],
+			});
+	}
+
+	function reviewCard(review, person, list) {
+		const first = list[0];
+		const left = list.filter((i) => !i.decision).length;
+		const decisionPill = (d) => (d === "Оставить" ? pill("оставить", "t-green") : d === "Отозвать" ? pill("отозвать", "t-red") : "");
+		return `<div class="card acct" data-card data-review="${esc(review)}" data-person="${esc(person)}">
+			<div class="acct-head"><span class="avatar ${first.person_status === "Работает" ? "" : "gray"}">${esc(initials(first.full_name))}</span>
+				<div style="flex:1;min-width:0"><b>${esc(first.full_name)}</b> ${first.person_status !== "Работает" ? statusPill(first.person_status) : ""}
+				<div class="muted small">${esc([first.position, first.department].filter(Boolean).join(" · "))}</div></div>
+				${left ? `<button class="btn small" data-decide="Оставить" data-review="${esc(review)}" data-person="${esc(person)}">Оставить всё (${left})</button>` : pill("готово", "t-green")}</div>
+			<div class="list">${list
+				.map(
+					(i) => `<div class="list-item" style="padding:10px 0;gap:10px;flex-wrap:wrap">
+						<div class="grow"><b>${esc(i.access_title)}</b> ${systemBadge(i.system)} ${i.risk && i.risk !== "Средний" ? pill(i.risk, RISK_TONE[i.risk]) : ""}
+							<small>${esc(i.evidence || "")}${i.comment ? " · " + esc(i.comment) : ""}</small></div>
+						${decisionPill(i.decision)}
+						<span class="nowrap"><button class="btn small" data-decide="Оставить" data-item="${esc(i.name)}" ${i.decision === "Оставить" ? "disabled" : ""}>Оставить</button>
+						<button class="btn small" data-decide="Отозвать" data-item="${esc(i.name)}" ${i.decision === "Отозвать" ? "disabled" : ""} style="color:var(--red)">Отозвать</button></span>
+					</div>`
+				)
+				.join("")}</div></div>`;
+	}
+
+	async function viewReview(view, name) {
+		const d = await api("review", { name });
+		const r = d.doc;
+		const done = r.items_total ? Math.round((100 * r.items_done) / r.items_total) : 0;
+		let filter = "";
+		view.innerHTML = `
+			<div class="crumbs"><a href="#/reviews">Пересмотр доступа</a> / ${esc(r.title)}</div>
+			<div class="page-head"><div><h1>${esc(r.title)}</h1><p>${pill(r.status, r.status === "Идёт" ? "t-blue" : r.status === "Завершён" ? "t-green" : "")}
+				· проверяет: ${esc(r.reviewer_mode.toLowerCase())}${r.due_date ? ` · срок ${esc(fmtDate(r.due_date))}` : ""}</p></div>
+				${state.boot.can.roles ? `<a class="btn" href="${deskUrl("Access Review", r.name)}" target="_blank" rel="noopener">${icon("external")} Открыть</a>` : ""}</div>
+			<div class="grid grid-4" style="margin-bottom:16px">
+				${kpi({ label: "Решено", display: `${done}%`, hint: `${r.items_done} из ${r.items_total}`, tone: done === 100 ? "tone-green" : "tone-amber" })}
+				${kpi({ label: "На отзыв", value: r.items_revoke, tone: "tone-red", hint: "передать администраторам систем" })}
+				${kpi({ label: "Без проверяющего", value: r.items_unassigned, tone: "tone-amber", hint: "руководитель или владелец не найден" })}
+			</div>
+			<div class="chips" style="margin-bottom:12px">${["", "Отозвать", "Оставить", "Без решения"].map((f) => `<button class="chip ${f === filter ? "on" : ""}" data-f="${f}">${f || "Все"}</button>`).join("")}</div>
+			<div class="card items"></div>`;
+		const draw = () => {
+			view.querySelectorAll("[data-f]").forEach((b) => b.classList.toggle("on", b.dataset.f === filter));
+			table(view.querySelector(".items"), {
+				name: "пересмотр-" + r.title,
+				rows: d.items.filter((i) => !filter || (filter === "Без решения" ? !i.decision : i.decision === filter)),
+				empty: "Нет доступов",
+				columns: [
+					{ key: "full_name", label: "Сотрудник", type: "person" },
+					{ key: "person_status", label: "Статус", type: "status" },
+					{ key: "access_title", label: "Доступ", render: (i) => (i.entitlement ? `<a href="#/entitlement/${enc(i.entitlement)}">${esc(i.access_title)}</a>` : esc(i.access_title)) },
+					{ key: "system", label: "Система", type: "badge" },
+					{ key: "reviewer_name", label: "Проверяющий" },
+					{ key: "decision", label: "Решение", render: (i) => (i.decision === "Отозвать" ? pill("отозвать", "t-red") : i.decision === "Оставить" ? pill("оставить", "t-green") : `<span class="muted">—</span>`), csv: (i) => i.decision || "" },
+					{ key: "comment", label: "Комментарий" },
+				],
+			});
+		};
+		view.querySelectorAll("[data-f]").forEach((b) => b.addEventListener("click", () => ((filter = b.dataset.f), draw())));
+		draw();
+	}
+
 	// ------------------------------------------------------------------ modal
 
 	function modal({ title, text, fields, submit }) {
@@ -1105,7 +1260,7 @@
 		renderShell();
 		window.addEventListener("hashchange", route);
 		await route();
-		if (!state.dashboard) loadDashboard().catch(() => null);
+		if (!state.dashboard && state.boot.can.read) loadDashboard().catch(() => null);
 	}
 
 	start();

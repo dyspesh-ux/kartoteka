@@ -10,9 +10,12 @@ REGISTRY_ROLES = {
 	"Access Role Manager": "Владелец ролевой модели: права доступа, роли, исключения, конфликты полномочий",
 	"Process Manager": "Методолог процессов: бизнес-процессы, роли процессов, участники",
 	"Access Catalog Viewer": "Контролёр прав (главный бухгалтер, руководители): доступы и отчёты без персональных данных",
+	"Access Reviewer": "Проверяющий в пересмотре доступа (руководитель): только свои задания в /registry",
 	"1C Sync": "Технический пользователь внешнего транспорта (n8n): только методы импорта",
 }
 CATALOG_ROLES = tuple(REGISTRY_ROLES)
+# Reviewers work only in /registry: they may be website users without a desk licence.
+NO_DESK_ROLES = ("Access Reviewer",)
 
 
 def after_install():
@@ -54,9 +57,9 @@ def create_sync_users():
 def create_roles():
 	for role in REGISTRY_ROLES:
 		if not frappe.db.exists("Role", role):
-			frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 1}).insert(
-				ignore_permissions=True
-			)
+			frappe.get_doc(
+				{"doctype": "Role", "role_name": role, "desk_access": int(role not in NO_DESK_ROLES)}
+			).insert(ignore_permissions=True)
 
 
 WORKSPACE = "Access Registry"

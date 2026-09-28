@@ -2,7 +2,7 @@
 
 import frappe
 
-from access_registry.permissions import READERS, has_any
+from access_registry.permissions import READERS, REVIEWER, has_any
 
 no_cache = 1
 
@@ -12,6 +12,6 @@ def get_context(context):
 		frappe.local.flags.redirect_location = "/login?redirect-to=/registry"
 		raise frappe.Redirect
 	context.no_cache = 1
-	context.allowed = has_any(*READERS)
+	context.allowed = has_any(*READERS, REVIEWER)
 	context.title = "Реестр доступа"
 	context.desk = has_any("System Manager", "Registry Admin")

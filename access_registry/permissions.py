@@ -8,6 +8,7 @@ AUDITOR = "Registry Auditor"
 ROLE_MANAGER = "Access Role Manager"
 PROCESS_MANAGER = "Process Manager"
 VIEWER = "Access Catalog Viewer"
+REVIEWER = "Access Reviewer"
 
 # Everybody who works with the registry data at all.
 READERS = (*ADMINS, AUDITOR, ROLE_MANAGER, PROCESS_MANAGER, VIEWER)

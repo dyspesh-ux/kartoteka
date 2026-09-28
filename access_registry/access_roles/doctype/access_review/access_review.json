@@ -1,0 +1,235 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-10-01 07:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "status",
+  "due_date",
+  "column_break_1",
+  "reviewer_mode",
+  "reviewer",
+  "description",
+  "section_break_1",
+  "system",
+  "organization",
+  "column_break_2",
+  "only_privileged",
+  "include_uncatalogued",
+  "section_break_2",
+  "items_total",
+  "items_done",
+  "items_revoke",
+  "column_break_3",
+  "items_unassigned",
+  "started_on",
+  "finished_on"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "description": "Например «Пересмотр доступа, 3 квартал 2026»",
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Пересмотр доступа",
+   "reqd": 1
+  },
+  {
+   "default": "Черновик",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Статус",
+   "options": "Черновик\nИдёт\nЗавершён",
+   "read_only": 1
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Срок"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Руководитель сотрудника",
+   "description": "Руководитель — руководитель подразделения основного места работы (из кадров). Владелец — владелец права в каталоге",
+   "fieldname": "reviewer_mode",
+   "fieldtype": "Select",
+   "label": "Кто проверяет",
+   "options": "Руководитель сотрудника\nВладелец права\nОдин проверяющий"
+  },
+  {
+   "description": "Для режима «Один проверяющий», а в остальных — если руководителя или владельца не нашли",
+   "fieldname": "reviewer",
+   "fieldtype": "Link",
+   "label": "Проверяющий",
+   "options": "User"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Пояснение для проверяющих"
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Что проверяем"
+  },
+  {
+   "default": "Все",
+   "fieldname": "system",
+   "fieldtype": "Select",
+   "label": "Система",
+   "options": "Все\n1С\nActive Directory\nБитрикс24"
+  },
+  {
+   "description": "По основному месту работы. Пусто — все",
+   "fieldname": "organization",
+   "fieldtype": "Link",
+   "label": "Организация",
+   "options": "HR Organization"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "only_privileged",
+   "fieldtype": "Check",
+   "label": "Только привилегированные и высокого риска"
+  },
+  {
+   "description": "Профили 1С, группы AD и Битрикс24, которые ещё не описаны как права",
+   "fieldname": "include_uncatalogued",
+   "fieldtype": "Check",
+   "label": "Включая доступы вне каталога"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Ход проверки"
+  },
+  {
+   "fieldname": "items_total",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Всего доступов",
+   "read_only": 1
+  },
+  {
+   "fieldname": "items_done",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Решено",
+   "read_only": 1
+  },
+  {
+   "fieldname": "items_revoke",
+   "fieldtype": "Int",
+   "label": "На отзыв",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "items_unassigned",
+   "fieldtype": "Int",
+   "label": "Без проверяющего",
+   "read_only": 1
+  },
+  {
+   "fieldname": "started_on",
+   "fieldtype": "Datetime",
+   "label": "Начат",
+   "read_only": 1
+  },
+  {
+   "fieldname": "finished_on",
+   "fieldtype": "Datetime",
+   "label": "Завершён",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "group": "Доступы",
+   "link_doctype": "Access Review Item",
+   "link_fieldname": "access_review"
+  }
+ ],
+ "modified": "2026-10-01 07:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Roles",
+ "name": "Access Review",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

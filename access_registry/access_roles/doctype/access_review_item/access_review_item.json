@@ -1,0 +1,204 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-10-01 07:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "access_review",
+  "person",
+  "full_name",
+  "person_status",
+  "system",
+  "entitlement",
+  "access_title",
+  "access_key",
+  "risk",
+  "evidence",
+  "column_break_1",
+  "reviewer_user",
+  "decision",
+  "comment",
+  "decided_by",
+  "decided_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "access_review",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Пересмотр",
+   "options": "Access Review",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Сотрудник",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "ФИО",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person_status",
+   "fieldtype": "Data",
+   "label": "Статус сотрудника",
+   "read_only": 1
+  },
+  {
+   "fieldname": "system",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Система",
+   "read_only": 1
+  },
+  {
+   "fieldname": "entitlement",
+   "fieldtype": "Link",
+   "label": "Право доступа",
+   "options": "Entitlement",
+   "read_only": 1
+  },
+  {
+   "fieldname": "access_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Доступ",
+   "read_only": 1
+  },
+  {
+   "fieldname": "access_key",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Ключ доступа",
+   "read_only": 1
+  },
+  {
+   "fieldname": "risk",
+   "fieldtype": "Data",
+   "label": "Риск",
+   "read_only": 1
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Data",
+   "label": "Где есть",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reviewer_user",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Проверяющий",
+   "options": "User",
+   "search_index": 1
+  },
+  {
+   "fieldname": "decision",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Решение",
+   "options": "\nОставить\nОтозвать",
+   "read_only": 1
+  },
+  {
+   "fieldname": "comment",
+   "fieldtype": "Small Text",
+   "label": "Комментарий",
+   "read_only": 1
+  },
+  {
+   "fieldname": "decided_by",
+   "fieldtype": "Link",
+   "label": "Решил",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "decided_on",
+   "fieldtype": "Datetime",
+   "label": "Когда",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-01 07:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Roles",
+ "name": "Access Review Item",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "access_title",
+ "track_changes": 1
+}

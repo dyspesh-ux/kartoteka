@@ -178,3 +178,33 @@ def unmanaged_access(filters=None):
 		col("key", _("Ключ"), width=200),
 	]
 	return columns, data
+
+
+def review_results(filters=None):
+	"""Результаты пересмотра доступа: решения проверяющих, список на отзыв."""
+	from access_registry.access_roles.review import results
+
+	filters = frappe._dict(filters or {})
+	if not filters.get("access_review"):
+		return [], []
+	rows = results(filters.access_review)
+	if filters.get("decision") == "Без решения":
+		rows = [r for r in rows if not r.decision]
+	elif filters.get("decision"):
+		rows = [r for r in rows if r.decision == filters.decision]
+	if filters.get("reviewer_user"):
+		rows = [r for r in rows if r.reviewer_user == filters.reviewer_user]
+	columns = [
+		col("full_name", _("Сотрудник"), width=220),
+		col("person_status", _("Статус"), width=100),
+		col("access_title", _("Доступ"), width=260),
+		col("system", _("Система"), width=110),
+		col("risk", _("Риск"), width=90),
+		col("evidence", _("Где есть"), width=180),
+		col("reviewer_name", _("Проверяющий"), width=180),
+		col("decision", _("Решение"), width=100),
+		col("comment", _("Комментарий"), width=220),
+		col("decided_on", _("Когда"), "Datetime", 150),
+		col("person", _("Карточка"), "Link", 150, "Person"),
+	]
+	return columns, rows
