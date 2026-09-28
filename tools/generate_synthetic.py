@@ -96,6 +96,11 @@ def main():
 		action="store_true",
 		help="also write snapshot.json/log.json of the ITAccess service for this ZUP base and an accounting base",
 	)
+	parser.add_argument(
+		"--ad",
+		action="store_true",
+		help="also write ad/directory.json: Active Directory accounts and groups of the same people",
+	)
 	args = parser.parse_args()
 	rng = random.Random(args.seed)
 	os.makedirs(args.out, exist_ok=True)
@@ -263,6 +268,13 @@ def main():
 				with open(os.path.join(folder, fname), "w", encoding="utf-8") as fh:
 					json.dump(data, fh, ensure_ascii=False)
 			print(f"{len(snapshot['users'])} 1C users → {folder}")
+	if args.ad:
+		folder = os.path.join(args.out, "ad")
+		os.makedirs(folder, exist_ok=True)
+		directory = ad_directory(random.Random(args.seed + 1), emps, orgs)
+		with open(os.path.join(folder, "directory.json"), "w", encoding="utf-8") as fh:
+			json.dump(directory, fh, ensure_ascii=False)
+		print(f"{len(directory['users'])} AD accounts, {len(directory['groups'])} groups → {folder}")
 
 
 PROFILE_SETS = {
@@ -449,6 +461,129 @@ def itaccess_snapshot(rng, emps, orgs, zup):
 		"user_rights": rights,
 	}
 	return snapshot, {"base": "synthetic", "from": "", "events": events}
+
+
+AD_BASE = "DC=corp,DC=example,DC=local"
+
+
+def ad_directory(rng, emps, orgs):
+	"""Synthetic result of the LDAP read (the shape of ldap_client.fetch_directory).
+
+	Logins follow the ITAccess generator (фамилия.и), so 1C users find their AD accounts. Some
+	dismissed people keep an enabled account, some names are written short and are not matched.
+	"""
+	now = datetime.datetime.now().replace(microsecond=0)
+
+	def when(days_ago):
+		return (now - datetime.timedelta(days=days_ago)).isoformat()
+
+	def group(cn, group_type, description):
+		return {
+			"objectGUID": guid(rng),
+			"distinguishedName": f"CN={cn},OU=Группы,{AD_BASE}",
+			"cn": cn,
+			"sAMAccountName": cn,
+			"description": description,
+			"groupType": group_type,
+			"managedBy": None,
+			"whenCreated": when(2000),
+			"whenChanged": when(30),
+		}
+
+	security_global, security_local, distribution = -2147483646, -2147483644, 2
+	groups = [
+		group("GG_1C_ZUP_Users", security_global, "Пользователи 1С:ЗУП"),
+		group("GG_1C_BP_Users", security_global, "Пользователи 1С:Бухгалтерии"),
+		group("DL_Share_Buh_RW", security_local, "Папка бухгалтерии: запись"),
+		group("GG_VPN", security_global, "Удалённый доступ"),
+		group("Рассылка всем", distribution, None),
+	]
+	org_groups = {
+		o["ОрганизацияGUID"]: group(f"GG_Staff_{o['Префикс']}", security_global, o["Наименование"])
+		for o in orgs
+	}
+	groups += list(org_groups.values())
+	by_cn = {g["cn"]: g["distinguishedName"] for g in groups}
+
+	people = {}
+	for e in emps:
+		current = people.get(e["ФизЛицоGUID"])
+		if current is None or (current["ДатаУвольнения"] and not e["ДатаУвольнения"]):
+			people[e["ФизЛицоGUID"]] = e
+	users, logins = [], set()
+	for e in people.values():
+		fired = bool(e["ДатаУвольнения"])
+		if fired and rng.random() < 0.4:
+			continue  # the account is already deleted
+		login = base = f"{translit(e['Фамилия'])}.{translit(e['Имя'][0])}"
+		n = 1
+		while login in logins:
+			n += 1
+			login = f"{base}{n}"
+		logins.add(login)
+		fio = f"{e['Фамилия']} {e['Имя']} {e['Отчество']}"
+		if rng.random() < 0.03:
+			fio = f"{e['Фамилия']} {e['Имя'][0]}. {e['Отчество'][0]}."  # not matched by full name
+		enabled = not fired or rng.random() < 0.3
+		member_of = [by_cn["Рассылка всем"], org_groups[e["ОрганизацияGUID"]]["distinguishedName"]]
+		for cn, chance in (
+			("GG_1C_ZUP_Users", 0.15),
+			("GG_1C_BP_Users", 0.2),
+			("DL_Share_Buh_RW", 0.1),
+			("GG_VPN", 0.3),
+		):
+			if rng.random() < chance:
+				member_of.append(by_cn[cn])
+		roll = rng.random()
+		days = rng.randint(120, 400) if roll < 0.1 or fired else rng.randint(0, 20)
+		user = ad_user(
+			rng,
+			login,
+			fio,
+			e["Организация"],
+			512 if enabled else 514,
+			member_of,
+			None if roll < 0.03 else when(days),
+			when,
+		)
+		user.update({"title": e["Должность"], "department": e["Подразделение"], "company": e["Организация"]})
+		users.append(user)
+	for n in range(5):
+		users.append(
+			ad_user(
+				rng, f"svc_app{n + 1}", f"svc_app{n + 1}", "Служебные", 66048, [], when(1), when, service=True
+			)
+		)
+	return {"users": users, "groups": groups}
+
+
+def ad_user(rng, login, display_name, ou, uac, member_of, last_logon, when, service=False):
+	container = f"OU={ou}" if service else f"OU={ou},OU=Сотрудники"
+	return {
+		"objectGUID": guid(rng),
+		"distinguishedName": f"CN={display_name},{container},{AD_BASE}",
+		"sAMAccountName": login,
+		"userPrincipalName": f"{login}@corp.example.local",
+		"displayName": display_name,
+		"givenName": None,
+		"sn": None,
+		"middleName": None,
+		"mail": None if service else f"{login}@example.com",
+		"title": None,
+		"department": None,
+		"company": None,
+		"manager": None,
+		"employeeNumber": None,
+		"employeeID": None,
+		"userAccountControl": uac,
+		"lockoutTime": None,
+		"pwdLastSet": when(rng.randint(1, 200)),
+		"lastLogonTimestamp": last_logon,
+		"accountExpires": None,
+		"whenCreated": when(rng.randint(200, 3000)),
+		"whenChanged": when(rng.randint(0, 30)),
+		"memberOf": sorted(member_of),
+	}
 
 
 if __name__ == "__main__":

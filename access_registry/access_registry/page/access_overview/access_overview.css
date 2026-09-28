@@ -151,6 +151,8 @@
 
 /* attention ------------------------------------------------------------- */
 .ao-attention { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.ao-attention-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1500px) { .ao-attention-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .ao-attention { grid-template-columns: 1fr; } }
 .ao-att-col h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ao-muted); margin: 0 0 8px; }
 .ao-att-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px; margin: 0 -8px; border-radius: 9px; }
@@ -280,3 +282,16 @@
 .ao-spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--ao-border); border-top-color: var(--ao-blue); animation: ao-spin .8s linear infinite; }
 @keyframes ao-spin { to { transform: rotate(360deg); } }
 .ao-empty { padding: 28px; text-align: center; color: var(--ao-muted); border: 1px dashed var(--ao-border); border-radius: var(--ao-radius); }
+
+/* Active Directory */
+.ao-kpi-group { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ao-muted); margin: 4px 0 8px; }
+.ao-avatar-ad { background: linear-gradient(135deg, var(--ao-purple), #6366f1); }
+.ao-card header.ao-subheader { margin-top: 18px; }
+.ao-account-ad { border-top: 3px solid color-mix(in srgb, var(--ao-purple) 55%, transparent); }
+.ao-ok-inline { color: var(--ao-green); }
+.ao-warn-inline { color: var(--ao-orange); font-weight: 500; }
+.ao-extra a.ao-tag { text-decoration: none; }
+.ao-cell-ad { background: var(--ao-purple); }
+.ao-cell-ad.ao-cell-off { background: var(--ao-muted); }
+.ao-groups > span:first-child { color: var(--ao-muted); }
+.ao-accounts + .ao-section-title { margin-top: 22px; }

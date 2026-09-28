@@ -351,3 +351,51 @@ class TestActiveDirectory(FrappeTestCase):
 		self.assertEqual(ivanov["memberOf"], ["CN=GG_1C_ZUP_Users,OU=Группы,DC=corp,DC=example,DC=local"])
 		self.assertEqual([g["cn"] for g in data["groups"]], ["GG_1C_ZUP_Users"])
 		self.assertEqual(data["groups"][0]["groupType"], -2147483646)
+
+	# ---------------------------------------------------------------- overview page and workspace
+
+	def test_overview_page_shows_ad(self):
+		from access_registry.access_registry.page.access_overview import access_overview as page
+
+		self.hr_sync()
+		importer.import_snapshot_data(S1, snapshot())
+		self.sync()
+		overview = page.get_overview()
+		kpis = overview["kpis"]
+		self.assertEqual((kpis["ad_domains"], kpis["ad_enabled"]), (1, 6))
+		self.assertEqual((kpis["ad_not_working"], kpis["ad_unlinked"], kpis["ad_off_1c_on"]), (2, 2, 0))
+		self.assertEqual(overview["domains"][0].enabled_accounts, 6)
+		self.assertEqual(overview["domains"][0].groups, 3)
+		self.assertEqual(
+			sorted(r.sam_account_name for r in overview["attention"]["ad_not_working"]),
+			["fedorov", "novikov"],
+		)
+
+		card = page.get_person(self.person(1))
+		self.assertEqual([a.sam_account_name for a in card["ad_accounts"]], ["Ivanov"])
+		self.assertEqual(
+			[g["name"] for g in card["ad_accounts"][0].groups], ["GG_1C_ZUP_Users", "Рассылка всем"]
+		)
+		self.assertFalse(card["ad_accounts"][0].employee_number_ok)
+		self.assertEqual(card["accounts"][0].ad_state, "on")
+
+		found = page.search("orlova")
+		self.assertEqual([(r["kind"], r["id"]) for r in found], [("ad", f"{DOMAIN}:{ACC(7)}")])
+		self.assertEqual(
+			page.get_ad_account(f"{DOMAIN}:{ACC(7)}")["ad_accounts"][0].display_name, "Орлова Е. П."
+		)
+
+		matrix = page.get_matrix(only_working=0)
+		self.assertEqual([d.name for d in matrix["domains"]], [DOMAIN])
+		row = next(r for r in matrix["rows"] if r["person"] == self.person(1))
+		self.assertEqual(row["ad"][DOMAIN]["groups"], 2)
+
+	def test_workspace_has_ad_block(self):
+		workspace = frappe.get_doc("Workspace", "Access Registry")
+		shortcuts = {s.label: s for s in workspace.shortcuts}
+		self.assertEqual(shortcuts["Учётки AD"].link_to, "AD Account")
+		self.assertEqual(shortcuts["Включены у уволенных"].type, "Report")
+		self.assertEqual(shortcuts["Домены AD"].link_to, "AD Domain")
+		self.assertIn(
+			"Active Directory", [link.label for link in workspace.links if link.type == "Card Break"]
+		)

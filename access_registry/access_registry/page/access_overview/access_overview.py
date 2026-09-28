@@ -11,6 +11,9 @@ ACTIVE_USER = "u.login_allowed = 1 and u.invalid = 0 and u.missing_in_source = 0
 # Service accounts and IB users without a card are not people: they have their own place.
 UNLINKED = "ifnull(u.person, '') = '' and u.service = 0 and u.is_orphan = 0"
 ATTENTION_LIMIT = 8
+AD_ACTIVE = "a.enabled = 1 and a.missing_in_source = 0"
+# 1C login allowed while the AD account behind it is disabled or gone
+AD_OFF_1C_ON = f"{ACTIVE_USER} and (a.enabled = 0 or a.missing_in_source = 1)"
 
 
 def _check():
@@ -42,8 +45,27 @@ def get_overview() -> dict:
 		"failed_syncs": frappe.db.count(
 			"Sync Log", {"status": ["in", ["Ошибка", "Остановлен предохранителем"]]}
 		),
+		"ad_domains": frappe.db.count("AD Domain"),
+		"ad_enabled": _scalar(f"select count(*) from `tabAD Account` a where {AD_ACTIVE}"),
+		"ad_not_working": _scalar(
+			f"""select count(*) from `tabAD Account` a join `tabPerson` p on p.name = a.person
+			where {AD_ACTIVE} and p.status != 'Работает'"""
+		),
+		"ad_unlinked": _scalar(
+			f"select count(*) from `tabAD Account` a where {AD_ACTIVE} and ifnull(a.person, '') = ''"
+		),
+		"ad_off_1c_on": _scalar(
+			f"""select count(*) from `tabIB User` u join `tabAD Account` a on a.name = u.ad_account
+			where {AD_OFF_1C_ON}"""
+		),
+		"ad_groups_controlled": frappe.db.count("AD Group", {"under_control": 1, "missing_in_source": 0}),
 	}
-	return {"kpis": kpis, "bases": get_bases(), "attention": get_attention()}
+	return {
+		"kpis": kpis,
+		"bases": get_bases(),
+		"domains": get_domains(),
+		"attention": get_attention(),
+	}
 
 
 def get_bases() -> list:
@@ -79,6 +101,31 @@ def get_bases() -> list:
 	return bases
 
 
+def get_domains() -> list:
+	domains = frappe.get_all(
+		"AD Domain",
+		fields=["name", "title", "netbios_name", "dns_name", "enabled", "last_sync", "last_status"],
+		order_by="name",
+	)
+	counts = {
+		row[0]: row[1:]
+		for row in frappe.db.sql(
+			"""select a.domain, sum(a.enabled), count(*) from `tabAD Account` a
+			where a.missing_in_source = 0 group by a.domain"""
+		)
+	}
+	groups = dict(
+		frappe.db.sql(
+			"select domain, count(*) from `tabAD Group` where missing_in_source = 0 group by domain"
+		)
+	)
+	for domain in domains:
+		enabled, total = counts.get(domain.name, (0, 0))
+		domain.enabled_accounts, domain.accounts = int(enabled or 0), int(total or 0)
+		domain.groups = groups.get(domain.name, 0)
+	return domains
+
+
 def get_attention() -> dict:
 	not_working = frappe.db.sql(
 		f"""select u.name, u.user_name, u.base_code, u.login, p.name as person, p.full_name, p.status
@@ -103,7 +150,19 @@ def get_attention() -> dict:
 		roles = [r for r in (row.extra_roles or "").splitlines() if r]
 		row.roles = roles[:4]
 		row.more = max(0, len(roles) - 4)
-	return {"not_working": not_working, "unlinked": unlinked, "extra_roles": extra}
+	ad_not_working = frappe.db.sql(
+		f"""select a.name, a.sam_account_name, a.domain, p.name as person, p.full_name, p.status
+		from `tabAD Account` a join `tabPerson` p on p.name = a.person
+		where {AD_ACTIVE} and p.status != 'Работает'
+		order by p.full_name limit {ATTENTION_LIMIT}""",
+		as_dict=True,
+	)
+	return {
+		"not_working": not_working,
+		"unlinked": unlinked,
+		"extra_roles": extra,
+		"ad_not_working": ad_not_working,
+	}
 
 
 @frappe.whitelist()
@@ -158,6 +217,29 @@ def search(query: str) -> list:
 		}
 		for a in accounts
 	]
+	ad_accounts = frappe.db.sql(
+		"""select name, display_name, sam_account_name, domain, enabled from `tabAD Account`
+		where missing_in_source = 0 and ifnull(person, '') = ''
+			and (display_name like %(like)s or sam_account_name like %(like)s
+				or user_principal_name like %(like)s)
+		order by display_name limit 6""",
+		{"like": like},
+		as_dict=True,
+	)
+	results += [
+		{
+			"kind": "ad",
+			"id": a.name,
+			"title": a.display_name,
+			"status": "",
+			"subtitle": " · ".join(
+				(a.domain, a.sam_account_name or "", _("включена") if a.enabled else _("отключена"))
+			)
+			+ " · "
+			+ _("не привязана"),
+		}
+		for a in ad_accounts
+	]
 	return results
 
 
@@ -183,9 +265,18 @@ def _accounts(filters: dict) -> list:
 			"person",
 			"person_link_method",
 			"person_link_note",
+			"ad_account",
 		],
 		order_by="base_code",
 	)
+	ad_state = {
+		row.name: row
+		for row in frappe.get_all(
+			"AD Account",
+			filters={"name": ["in", [a.ad_account for a in accounts if a.ad_account] or [""]]},
+			fields=["name", "enabled", "missing_in_source"],
+		)
+	}
 	profiles = load_profiles([a.name for a in accounts])
 	for account in accounts:
 		account.profiles = [
@@ -198,6 +289,53 @@ def _accounts(filters: dict) -> list:
 			for p in profiles.get(account.name, [])
 		]
 		account.extra_roles = [r for r in (account.extra_roles or "").splitlines() if r]
+		ad = ad_state.get(account.ad_account)
+		account.ad_state = (
+			"" if not ad else "missing" if ad.missing_in_source else "on" if ad.enabled else "off"
+		)
+	return accounts
+
+
+def _ad_accounts(filters: dict) -> list:
+	accounts = frappe.get_all(
+		"AD Account",
+		filters=filters,
+		fields=[
+			"name",
+			"display_name",
+			"sam_account_name",
+			"user_principal_name",
+			"domain",
+			"enabled",
+			"locked",
+			"password_never_expires",
+			"missing_in_source",
+			"last_logon",
+			"password_last_set",
+			"title",
+			"department",
+			"ou",
+			"employee_number",
+			"person",
+			"person_link_method",
+			"person_link_note",
+		],
+		order_by="missing_in_source, enabled desc, domain",
+	)
+	groups = defaultdict(list)
+	for row in frappe.get_all(
+		"AD Account Group",
+		filters={"parent": ["in", [a.name for a in accounts] or [""]], "parenttype": "AD Account"},
+		fields=["parent", "group", "group_name"],
+		order_by="group_name",
+		limit_page_length=0,
+	):
+		groups[row.parent].append({"group": row.group, "name": row.group_name})
+	for account in accounts:
+		account.groups = groups.get(account.name, [])
+		account.employee_number_ok = bool(
+			account.person and (account.employee_number or "").lower() == account.person
+		)
 	return accounts
 
 
@@ -240,13 +378,24 @@ def get_person(person: str) -> dict:
 		"employments": employments,
 		"events": events,
 		"accounts": _accounts({"person": person, "missing_in_source": 0}),
+		"ad_accounts": _ad_accounts({"person": person}),
 	}
 
 
 @frappe.whitelist()
 def get_account(account: str) -> dict:
 	_check()
-	return {"accounts": _accounts({"name": account})}
+	return {"accounts": _accounts({"name": account}), "ad_accounts": []}
+
+
+@frappe.whitelist()
+def get_ad_account(account: str) -> dict:
+	"""An AD account without an employee and the 1C users that log in with it."""
+	_check()
+	return {
+		"ad_accounts": _ad_accounts({"name": account}),
+		"accounts": _accounts({"ad_account": account, "missing_in_source": 0}),
+	}
 
 
 @frappe.whitelist()
@@ -259,6 +408,16 @@ def get_matrix(organization: str | None = None, only_working: int = 1) -> dict:
 		fields=["name", "title", "configuration"],
 		order_by="name",
 	)
+	domains = frappe.get_all("AD Domain", fields=["name", "title"], order_by="name")
+	ad = defaultdict(dict)
+	for row in frappe.db.sql(
+		"""select a.person, a.domain, a.name, a.enabled, a.group_count from `tabAD Account` a
+		where a.missing_in_source = 0 and ifnull(a.person, '') != ''
+		order by a.enabled""",
+		as_dict=True,
+	):
+		# an enabled account wins over a disabled one of the same person
+		ad[row.person][row.domain] = {"account": row.name, "enabled": row.enabled, "groups": row.group_count}
 	rows = frappe.db.sql(
 		f"""select u.person, u.base_code, u.name, u.has_extra_roles, u.all_orgs
 		from `tabIB User` u where {ACTIVE_USER} and ifnull(u.person, '') != ''""",
@@ -275,7 +434,7 @@ def get_matrix(organization: str | None = None, only_working: int = 1) -> dict:
 		}
 	persons = list(cells)
 	if not persons:
-		return {"bases": bases, "rows": []}
+		return {"bases": bases, "domains": domains, "rows": []}
 	people = {
 		p.name: p
 		for p in frappe.get_all(
@@ -305,10 +464,11 @@ def get_matrix(organization: str | None = None, only_working: int = 1) -> dict:
 				"department": place.get("department_title"),
 				"organization": place.get("organization_title"),
 				"cells": cells[person],
+				"ad": ad.get(person, {}),
 			}
 		)
 	result.sort(key=lambda r: (r["organization"] or "", r["department"] or "", r["full_name"] or ""))
-	return {"bases": bases, "rows": result}
+	return {"bases": bases, "domains": domains, "rows": result}
 
 
 @frappe.whitelist()

@@ -19,6 +19,7 @@ frappe.pages["access-overview"].on_page_show = function (wrapper) {
 	frappe.route_options = null;
 	if (options.person) view.open_person(options.person);
 	else if (options.account) view.open_account(options.account);
+	else if (options.ad_account) view.open_ad_account(options.ad_account);
 };
 
 class AccessOverview {
@@ -71,6 +72,13 @@ class AccessOverview {
 		return `<span class="ao-pill ao-${tone}">${this.esc(status)}</span>`;
 	}
 
+	ad_badge(account) {
+		if (account.missing_in_source) return `<span class="ao-pill ao-orange">${__("нет в AD")}</span>`;
+		return account.enabled
+			? `<span class="ao-login-state on">${__("включена")}</span>`
+			: `<span class="ao-login-state off">${__("отключена")}</span>`;
+	}
+
 	config_badge(configuration) {
 		const tone = configuration === "ЗУП" ? "blue" : configuration === "Бухгалтерия" ? "green" : "gray";
 		return `<span class="ao-badge ao-${tone}">${this.esc(configuration || "—")}</span>`;
@@ -101,11 +109,11 @@ class AccessOverview {
 				<div class="ao-hero-text">
 					<div class="ao-eyebrow">${__("Реестр доступа")}</div>
 					<h2>${__("Кто есть кто и у кого какой доступ")}</h2>
-					<p>${__("Кадры из ЗУП, пользователи и права всех баз 1С — в одном месте.")}</p>
+					<p>${__("Кадры из ЗУП, учётки Active Directory, пользователи и права всех баз 1С — в одном месте.")}</p>
 				</div>
 				<div class="ao-search">
 					<svg class="ao-search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-					<input type="search" placeholder="${__("Сотрудник, пользователь 1С, логин или логин AD")}" />
+					<input type="search" placeholder="${__("Сотрудник, пользователь 1С, логин 1С или учётка AD")}" />
 					<div class="ao-results"></div>
 				</div>
 			</div>
@@ -131,7 +139,7 @@ class AccessOverview {
 			if (this.current) this.render_card(this.current);
 			else
 				this.$view.html(
-					this.empty(__("Найдите сотрудника или пользователя 1С через поиск вверху страницы."))
+					this.empty(__("Найдите сотрудника, пользователя 1С или учётку AD через поиск вверху страницы."))
 				);
 		}
 	}
@@ -149,6 +157,10 @@ class AccessOverview {
 		this.$root.on("click", "[data-account]", (e) => {
 			e.preventDefault();
 			this.open_account($(e.currentTarget).data("account"));
+		});
+		this.$root.on("click", "[data-ad-account]", (e) => {
+			e.preventDefault();
+			this.open_ad_account($(e.currentTarget).data("ad-account"));
 		});
 		this.$root.on("click", "[data-route]", (e) => {
 			e.preventDefault();
@@ -182,10 +194,12 @@ class AccessOverview {
 						items
 							.map(
 								(item) => `
-							<a class="ao-result" ${item.kind === "person" ? "data-person" : "data-account"}="${this.esc(item.id)}">
-								<span class="ao-avatar ao-avatar-sm ${item.kind === "account" ? "ao-avatar-account" : ""}">${this.esc(
-									item.kind === "account" ? "1С" : this.initials(item.title)
-								)}</span>
+							<a class="ao-result" ${
+								{ person: "data-person", account: "data-account", ad: "data-ad-account" }[item.kind]
+							}="${this.esc(item.id)}">
+								<span class="ao-avatar ao-avatar-sm ${
+									{ account: "ao-avatar-account", ad: "ao-avatar-ad" }[item.kind] || ""
+								}">${this.esc({ account: "1С", ad: "AD" }[item.kind] || this.initials(item.title))}</span>
 								<span class="ao-result-text">
 									<span class="ao-result-title">${this.esc(item.title)} ${this.status_pill(item.status)}</span>
 									<span class="ao-result-sub">${this.esc(item.subtitle)}</span>
@@ -235,6 +249,17 @@ class AccessOverview {
 				tile(k.extra_roles, __("Роли в обход профилей"), __("выданы напрямую"), k.extra_roles ? "purple" : "gray", "query-report|IB Extra Roles"),
 				tile(k.orphans, __("Сироты ИБ"), __("пользователи ИБ без карточки"), k.orphans ? "orange" : "gray", "query-report|IB Orphans"),
 			].join("");
+			const ad_kpis = k.ad_domains
+				? [
+						tile(k.ad_enabled, __("Учёток AD включено"), __("во всех доменах"), "blue", "List|AD Account", {
+							enabled: 1,
+							missing_in_source: 0,
+						}),
+						tile(k.ad_not_working, __("AD включена у неработающих"), __("уволены, учётка активна"), k.ad_not_working ? "red" : "gray", "query-report|AD Dismissed Enabled"),
+						tile(k.ad_off_1c_on, __("AD отключена, вход в 1С есть"), __("по «Пользователю ОС» в 1С"), k.ad_off_1c_on ? "red" : "gray", "query-report|AD Disabled But 1C Active"),
+						tile(k.ad_unlinked, __("Учётки AD без сотрудника"), __("включённые: служебные и не найденные"), k.ad_unlinked ? "orange" : "gray", "query-report|AD Without Employee"),
+				  ].join("")
+				: "";
 
 			const review = [
 				[k.merge_candidates, __("кандидатов на склейку"), "List|Person Merge Candidate", { status: "Открыт" }],
@@ -252,11 +277,12 @@ class AccessOverview {
 
 			this.$view.html(`
 				<div class="ao-kpis">${kpis}</div>
+				${ad_kpis ? `<div class="ao-kpi-group">Active Directory</div><div class="ao-kpis">${ad_kpis}</div>` : ""}
 				<div class="ao-chips">${review}</div>
 				<div class="ao-grid">
 					<section class="ao-card ao-span-2">
 						<header><h3>${__("Требует внимания")}</h3><span class="ao-muted">${__("первые записи, полный список — в отчётах")}</span></header>
-						<div class="ao-attention">
+						<div class="ao-attention ${k.ad_domains ? "ao-attention-4" : ""}">
 							${this.attention_column(__("Вход у неработающих"), "red", data.attention.not_working, (r) => ({
 								title: r.full_name,
 								sub: `${r.base_code} · ${r.login || r.user_name} · ${r.status}`,
@@ -272,11 +298,25 @@ class AccessOverview {
 								sub: `${r.base_code} · ${r.roles.join(", ")}${r.more ? " +" + r.more : ""}`,
 								attrs: r.person ? `data-person="${this.esc(r.person)}"` : `data-account="${this.esc(r.name)}"`,
 							}))}
+							${
+								k.ad_domains
+									? this.attention_column(__("Учётка AD включена у неработающих"), "red", data.attention.ad_not_working, (r) => ({
+											title: r.full_name,
+											sub: `${r.domain} · ${r.sam_account_name || ""} · ${r.status}`,
+											attrs: `data-person="${this.esc(r.person)}"`,
+									  }))
+									: ""
+							}
 						</div>
 					</section>
 					<section class="ao-card">
 						<header><h3>${__("Базы 1С")}</h3><a class="ao-link" data-route="List|Info Base">${__("все базы")} →</a></header>
 						<div class="ao-bases">${data.bases.map((b) => this.base_card(b)).join("") || this.empty(__("Баз пока нет"))}</div>
+						<header class="ao-subheader"><h3>${__("Домены AD")}</h3><a class="ao-link" data-route="List|AD Domain">${__("все домены")} →</a></header>
+						<div class="ao-bases">${
+							(data.domains || []).map((d) => this.domain_card(d)).join("") ||
+							`<a class="ao-base ao-disabled" data-route="Form|AD Domain|new">${__("Домен не подключён — добавить")}</a>`
+						}</div>
 					</section>
 				</div>
 			`);
@@ -321,6 +361,25 @@ class AccessOverview {
 			</a>`;
 	}
 
+	domain_card(domain) {
+		const state = this.sync_state(domain.last_status, domain.last_sync);
+		return `
+			<a class="ao-base ${domain.enabled ? "" : "ao-disabled"}" data-route="Form|AD Domain|${this.esc(domain.name)}">
+				<div class="ao-base-head">
+					<b>${this.esc(domain.name)}</b><span class="ao-badge ao-purple">AD</span>
+					${domain.enabled ? "" : `<span class="ao-badge ao-gray">${__("выключен")}</span>`}
+				</div>
+				<div class="ao-base-title">${this.esc(domain.dns_name || domain.title || "")}</div>
+				<div class="ao-base-stats">
+					<span><b>${domain.enabled_accounts}</b> ${__("включённых учёток")}</span>
+					<span><b>${domain.groups}</b> ${__("групп")}</span>
+				</div>
+				<div class="ao-sync"><span class="ao-dot ao-${state.tone}"></span><span>${__("Учётки и группы")}</span><span class="ao-muted">${this.esc(
+					state.text
+				)}</span></div>
+			</a>`;
+	}
+
 	// ------------------------------------------------------------------ employee / account
 
 	open_person(person) {
@@ -331,6 +390,12 @@ class AccessOverview {
 
 	open_account(account) {
 		this.current_request = () => this.load_card(this.api("get_account", { account }));
+		this.show_tab_silently("person");
+		this.current_request();
+	}
+
+	open_ad_account(account) {
+		this.current_request = () => this.load_card(this.api("get_ad_account", { account }));
 		this.show_tab_silently("person");
 		this.current_request();
 	}
@@ -351,6 +416,8 @@ class AccessOverview {
 	render_card(data) {
 		const p = data.person;
 		const accounts = data.accounts || [];
+		const ad_accounts = data.ad_accounts || [];
+		const lone_ad = !p && !accounts.length && ad_accounts[0];
 		const header = p
 			? `
 			<section class="ao-card ao-person">
@@ -370,6 +437,12 @@ class AccessOverview {
 					<a class="btn btn-default btn-sm" data-route="Form|Person|${this.esc(p.name)}">${__("Карточка")}</a>
 				</div>
 			</section>`
+			: lone_ad
+			? `<section class="ao-card ao-person"><div class="ao-avatar ao-avatar-ad">AD</div><div class="ao-person-main"><h2>${this.esc(
+					lone_ad.display_name
+			  )}</h2><div class="ao-person-meta"><span>${__("Учётка AD не привязана к сотруднику")}</span><span>${this.esc(
+					lone_ad.person_link_note || ""
+			  )}</span></div></div></section>`
 			: `<section class="ao-card ao-person"><div class="ao-avatar ao-avatar-account">1С</div><div class="ao-person-main"><h2>${this.esc(
 					(accounts[0] || {}).user_name || ""
 			  )}</h2><div class="ao-person-meta"><span>${__("Пользователь 1С не привязан к сотруднику")}</span><span>${this.esc(
@@ -377,9 +450,14 @@ class AccessOverview {
 			  )}</span></div></div></section>`;
 
 		const not_working = p && p.status !== "Работает" && accounts.some((a) => a.login_allowed && !a.invalid);
-		const alert = not_working
-			? `<div class="ao-alert">${__("Сотрудник не работает, но вход в 1С разрешён. Учётные записи ниже нужно отключить.")}</div>`
-			: "";
+		const ad_not_working = p && p.status !== "Работает" && ad_accounts.some((a) => a.enabled && !a.missing_in_source);
+		const alert = [
+			not_working ? __("Сотрудник не работает, но вход в 1С разрешён. Учётные записи 1С ниже нужно отключить.") : "",
+			ad_not_working ? __("Сотрудник не работает, но учётка AD включена.") : "",
+		]
+			.filter(Boolean)
+			.map((text) => `<div class="ao-alert">${text}</div>`)
+			.join("");
 
 		const employments = (data.employments || [])
 			.map(
@@ -412,6 +490,14 @@ class AccessOverview {
 			${alert}
 			<div class="ao-grid">
 				<div class="ao-span-2">
+					${
+						ad_accounts.length || p
+							? `<h3 class="ao-section-title">${__("Active Directory")} <span class="ao-count">${ad_accounts.length}</span></h3>
+					<div class="ao-accounts">${
+						ad_accounts.map((a) => this.ad_account_card(a, p)).join("") || this.empty(__("Учётка AD не найдена"))
+					}</div>`
+							: ""
+					}
 					<h3 class="ao-section-title">${__("Учётные записи 1С")} <span class="ao-count">${accounts.length}</span></h3>
 					<div class="ao-accounts">${accounts.map((a) => this.account_card(a, p)).join("") || this.empty(__("В базах 1С учётных записей нет"))}</div>
 				</div>
@@ -425,6 +511,43 @@ class AccessOverview {
 				}
 			</div>
 		`);
+	}
+
+	ad_account_card(a, person) {
+		const danger = person && person.status !== "Работает" && a.enabled && !a.missing_in_source;
+		const groups = a.groups
+			.map((g) => `<a class="ao-tag ao-blue" data-route="Form|AD Group|${this.esc(g.group)}">${this.esc(g.name)}</a>`)
+			.join("");
+		const number = !a.person
+			? ""
+			: a.employee_number_ok
+			? `<span class="ao-ok-inline">✓ ${__("совпадает с сотрудником")}</span>`
+			: `<span class="ao-warn-inline">${a.employee_number ? this.esc(a.employee_number) : __("не заполнен")}</span>`;
+		return `
+			<article class="ao-account ao-account-ad ${danger ? "ao-account-danger" : ""} ${
+			a.enabled && !a.missing_in_source ? "" : "ao-account-off"
+		}">
+				<div class="ao-account-head">
+					<b>${this.esc(a.domain)}</b><span class="ao-badge ao-purple">AD</span>
+					${this.ad_badge(a)}
+					${a.locked ? `<span class="ao-pill ao-orange">${__("заблокирована")}</span>` : ""}
+				</div>
+				<div class="ao-account-name"><a data-route="Form|AD Account|${this.esc(a.name)}">${this.esc(a.display_name)}</a></div>
+				<dl class="ao-kv">
+					<dt>${__("Логин")}</dt><dd>${this.esc(a.sam_account_name || "—")}</dd>
+					<dt>${__("Последний вход")}</dt><dd>${this.when(a.last_logon)}</dd>
+					<dt>${__("Пароль")}</dt><dd>${a.password_last_set ? __("сменён") + " " + this.when(a.password_last_set) : "—"}${
+			a.password_never_expires ? ` <span class="ao-warn-inline">${__("не истекает")}</span>` : ""
+		}</dd>
+					<dt>OU</dt><dd>${this.esc(a.ou || "—")}</dd>
+					${a.title || a.department ? `<dt>${__("В AD указано")}</dt><dd>${this.esc([a.title, a.department].filter(Boolean).join(" · "))}</dd>` : ""}
+					<dt>employeeNumber</dt><dd>${number || "—"}</dd>
+					<dt>${__("Сотрудник")}</dt><dd>${this.esc(
+						a.person_link_method ? __("найден: {0}", [a.person_link_method]) : a.person_link_note || "—"
+					)}</dd>
+				</dl>
+				<div class="ao-extra ao-groups"><span>${__("Группы")} (${a.groups.length})</span>${groups || `<span class="ao-muted">${__("нет")}</span>`}</div>
+			</article>`;
 	}
 
 	account_card(a, person) {
@@ -451,7 +574,15 @@ class AccessOverview {
 				<div class="ao-account-name"><a data-route="Form|IB User|${this.esc(a.name)}">${this.esc(a.user_name)}</a></div>
 				<dl class="ao-kv">
 					<dt>${__("Логин")}</dt><dd>${this.esc(a.login || "—")}</dd>
-					<dt>${__("Логин AD")}</dt><dd>${this.esc(a.ad_login || "—")}</dd>
+					<dt>${__("Логин AD")}</dt><dd>${this.esc(a.ad_login || "—")}${
+						a.ad_state === "off"
+							? ` <span class="ao-warn-inline">${__("учётка отключена")}</span>`
+							: a.ad_state === "missing"
+							? ` <span class="ao-warn-inline">${__("нет в AD")}</span>`
+							: a.ad_login && !a.ad_state
+							? ` <span class="ao-muted">${__("не найдена в AD")}</span>`
+							: ""
+					}</dd>
 					<dt>${__("Организации")}</dt><dd>${this.esc(a.orgs_text || "—")}</dd>
 					<dt>${__("Сотрудник")}</dt><dd>${this.esc(
 						a.person_link_method ? __("найден: {0}", [a.person_link_method]) : a.person_link_note || "—"
@@ -478,7 +609,8 @@ class AccessOverview {
 				<label class="ao-toggle"><input type="checkbox" class="ao-working" ${
 					this.matrix_filters.only_working ? "checked" : ""
 				}/> ${__("Только работающие")}</label>
-				<span class="ao-legend"><span class="ao-cell-dot"></span>${__("есть доступ (число профилей)")}
+				<span class="ao-legend"><span class="ao-cell-dot ao-cell-ad"></span>${__("учётка AD (число групп)")}
+					<span class="ao-cell-dot"></span>${__("есть доступ (число профилей)")}
 					<span class="ao-cell-dot ao-cell-extra"></span>${__("роли в обход профилей")}</span>
 			</div>
 			<div class="ao-matrix-wrap">${this.loading()}</div>
@@ -506,19 +638,29 @@ class AccessOverview {
 				$wrap.html(this.empty(__("Нет сотрудников с учётными записями 1С по этим условиям.")));
 				return;
 			}
-			const head = data.bases
-				.map((b) => `<th><div>${this.esc(b.name)}</div>${this.config_badge(b.configuration)}</th>`)
-				.join("");
+			const domains = data.domains || [];
+			const head =
+				domains.map((d) => `<th><div>${this.esc(d.name)}</div><span class="ao-badge ao-purple">AD</span></th>`).join("") +
+				data.bases.map((b) => `<th><div>${this.esc(b.name)}</div>${this.config_badge(b.configuration)}</th>`).join("");
 			let group = null;
 			const body = data.rows
 				.map((row) => {
 					let group_row = "";
 					if (row.organization !== group) {
 						group = row.organization;
-						group_row = `<tr class="ao-group"><td colspan="${data.bases.length + 1}">${this.esc(
+						group_row = `<tr class="ao-group"><td colspan="${domains.length + data.bases.length + 1}">${this.esc(
 							group || __("Без организации")
 						)}</td></tr>`;
 					}
+					const ad_cells = domains
+						.map((d) => {
+							const c = row.ad[d.name];
+							if (!c) return `<td class="ao-cell-none">·</td>`;
+							return `<td><a class="ao-cell ao-cell-ad ${c.enabled ? "" : "ao-cell-off"}" title="${this.esc(
+								c.enabled ? __("включена, групп: {0}", [c.groups]) : __("отключена")
+							)}" data-ad-account="${this.esc(c.account)}">${c.enabled ? c.groups : "×"}</a></td>`;
+						})
+						.join("");
 					const cells = data.bases
 						.map((b) => {
 							const c = row.cells[b.name];
@@ -533,7 +675,7 @@ class AccessOverview {
 						<td class="ao-matrix-person"><a data-person="${this.esc(row.person)}"><b>${this.esc(row.full_name)}</b></a>
 							${row.status !== "Работает" ? this.status_pill(row.status) : ""}
 							<small>${this.esc([row.position, row.department].filter(Boolean).join(" · "))}</small></td>
-						${cells}</tr>`;
+						${ad_cells}${cells}</tr>`;
 				})
 				.join("");
 			$wrap.html(`

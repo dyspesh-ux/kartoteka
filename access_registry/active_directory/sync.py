@@ -108,6 +108,20 @@ def run_domain_sync(domain: str, commit: bool = True, fetch=None):
 	return log
 
 
+def load_directory_file(domain: str, path: str):
+	"""Loads a saved directory (JSON of the fetch_directory shape) instead of reading LDAP.
+
+	For a dev site and synthetic data (tools/generate_synthetic.py --ad):
+	bench --site dev.localhost execute access_registry.active_directory.sync.load_directory_file \
+		--kwargs "{'domain': 'CORP', 'path': '/path/to/ad/directory.json'}"
+	"""
+	frappe.only_for("System Manager")
+	with open(path, encoding="utf-8") as fh:
+		data = json.load(fh)
+	log = run_domain_sync(domain, fetch=lambda _domain: data)
+	return {"status": log.status, "log": log.name}
+
+
 # --------------------------------------------------------------------------- import
 
 
@@ -338,6 +352,10 @@ class DomainImport:
 		doc.group_count = len(groups)
 		# the manager may be imported later in this run: link_managers() completes it
 		doc.manager = manager if manager and frappe.db.exists("AD Account", manager) else None
+		if doc.is_new():
+			# later they change without a version, see update_volatile()
+			last_logon, doc.locked = self.volatile[uid]
+			doc.last_logon = get_datetime(last_logon) if last_logon else None
 		self.save(doc)
 
 	def link_managers(self, users, groups):
