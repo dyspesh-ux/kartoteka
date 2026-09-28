@@ -19,7 +19,8 @@
   "section_break_2",
   "source_ids",
   "match_key",
-  "match_key_partial"
+  "match_key_partial",
+  "name_key"
  ],
  "fields": [
   {
@@ -123,10 +124,40 @@
    "permlevel": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "description": "Нормализованное ФИО: по нему к человеку привязываются пользователи баз без кадровых данных",
+   "fieldname": "name_key",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Ключ ФИО",
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "index_web_pages_for_search": 0,
- "links": [],
+ "links": [
+  {
+   "group": "Кадры",
+   "link_doctype": "Employment",
+   "link_fieldname": "person"
+  },
+  {
+   "group": "Кадры",
+   "link_doctype": "HR Event",
+   "link_fieldname": "person"
+  },
+  {
+   "group": "Кадры",
+   "link_doctype": "HR Absence",
+   "link_fieldname": "person"
+  },
+  {
+   "group": "Учётные записи",
+   "link_doctype": "IB User",
+   "link_fieldname": "person"
+  }
+ ],
  "modified": "2026-09-24 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",

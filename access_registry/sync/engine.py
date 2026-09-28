@@ -11,6 +11,7 @@ from collections import Counter, defaultdict
 import frappe
 from frappe.utils import add_days, cint, getdate, now_datetime
 
+from access_registry.access_registry.doctype.info_base.info_base import HR_CONFIGURATION, is_hr_source
 from access_registry.settings import get_settings
 from access_registry.sync import client
 from access_registry.sync.departments import ROOT_KEY, ensure_root, org_node_key
@@ -108,7 +109,9 @@ class GuardTripped(Exception):
 
 def enqueue_all_sources():
 	"""Scheduler entry point: one job in the ``long`` queue per enabled source."""
-	for name in frappe.get_all("HR Source", filters={"enabled": 1}, pluck="name"):
+	for name in frappe.get_all(
+		"Info Base", filters={"enabled": 1, "configuration": HR_CONFIGURATION}, pluck="name"
+	):
 		enqueue_source_sync(name)
 
 
@@ -211,7 +214,7 @@ def run_source_sync(source: str, today=None, commit: bool = True, fetch=None):
 		log.save(ignore_permissions=True)
 	else:
 		log.db_insert()
-	frappe.db.set_value("HR Source", source, "last_status", _status_line(status, log), update_modified=False)
+	frappe.db.set_value("Info Base", source, "last_status", _status_line(status, log), update_modified=False)
 	if commit:
 		frappe.db.commit()
 	return log
@@ -303,7 +306,12 @@ def clean(value) -> str:
 
 class SourceSync:
 	def __init__(self, source: str, today=None, sync_log: str | None = None):
-		self.source = frappe.get_doc("HR Source", source)
+		self.source = frappe.get_doc("Info Base", source)
+		if not is_hr_source(self.source.configuration):
+			frappe.throw(
+				f"База {source} ({self.source.configuration}) не источник кадровых данных: "
+				"кадры загружаются только из баз ЗУП"
+			)
 		self.code = self.source.name
 		self.settings = get_settings()
 		self.today = getdate(today) if today else getdate()
@@ -391,7 +399,7 @@ class SourceSync:
 		self.stats["HR Event"][event_type] += 1
 
 	def mark_source_synced(self):
-		frappe.db.set_value("HR Source", self.code, "last_sync", now_datetime(), update_modified=False)
+		frappe.db.set_value("Info Base", self.code, "last_sync", now_datetime(), update_modified=False)
 
 	# ------------------------------------------------------------ orchestration
 

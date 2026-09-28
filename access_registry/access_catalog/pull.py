@@ -22,7 +22,7 @@ class ITAccessError(Exception):
 
 
 def _sources():
-	return frappe.get_all("HR Source", filters={"enabled": 1, "itaccess_enabled": 1}, pluck="name")
+	return frappe.get_all("Info Base", filters={"enabled": 1, "itaccess_enabled": 1}, pluck="name")
 
 
 def scheduled_snapshot():
@@ -119,14 +119,14 @@ def run_snapshot(source: str, commit: bool = True, fetch_snapshot=None):
 	_switch_user(settings.sync_user, messages)
 	frappe.db.savepoint(SAVEPOINT)
 	try:
-		doc = frappe.get_doc("HR Source", source)
+		doc = frappe.get_doc("Info Base", source)
 		data = (fetch_snapshot or fetch)(doc, "snapshot", timeout=settings.http_timeout)
 		meta = {k: data.get(k) for k in ("base", "generated_at") if k in data}
 		stats, warnings = importer.import_snapshot_data(source, data)
 		messages += warnings
 		status = "Успех"
 		frappe.db.set_value(
-			"HR Source", source, "itaccess_last_snapshot", now_datetime(), update_modified=False
+			"Info Base", source, "itaccess_last_snapshot", now_datetime(), update_modified=False
 		)
 	except importer.CatalogGuardTripped as e:
 		frappe.db.rollback(save_point=SAVEPOINT)
@@ -140,7 +140,7 @@ def run_snapshot(source: str, commit: bool = True, fetch_snapshot=None):
 		_switch_user(previous_user, None)
 	_finish_log(log, status, stats, messages, meta)
 	frappe.db.set_value(
-		"HR Source",
+		"Info Base",
 		source,
 		"itaccess_last_status",
 		f"{status} ({log.name}, {log.finished.strftime('%Y-%m-%d %H:%M')})",
@@ -159,11 +159,11 @@ def run_log(source: str, commit: bool = True, fetch_log=None):
 	_switch_user(settings.sync_user, None)
 	frappe.db.savepoint(SAVEPOINT)
 	try:
-		doc = frappe.get_doc("HR Source", source)
+		doc = frappe.get_doc("Info Base", source)
 		cursor = importer.log_cursor(source)["from"]
 		data = (fetch_log or fetch)(doc, "log", params={"from": cursor}, timeout=settings.http_timeout)
 		result = importer.import_log_data(source, data)
-		frappe.db.set_value("HR Source", source, "itaccess_last_log", now_datetime(), update_modified=False)
+		frappe.db.set_value("Info Base", source, "itaccess_last_log", now_datetime(), update_modified=False)
 		if result["inserted"]:
 			log = _new_log(source, "Журнал 1С")
 			_finish_log(log, "Успех", {**result, "from": cursor}, [])

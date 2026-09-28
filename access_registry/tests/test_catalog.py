@@ -1,8 +1,9 @@
-"""Tests of the catalog of 1C:ZUP user rights (ITAccess snapshot and event log)."""
+"""Tests of the catalog of 1C users and rights (ITAccess snapshot and event log) for any 1C base."""
 
 import copy
 import json
 import os
+from unittest.mock import patch
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
@@ -14,14 +15,14 @@ from access_registry.sync.engine import run_source_sync
 from access_registry.tests.test_zup_sync import TODAY, load
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "itaccess")
-S1, S2 = "TST1", "TST2"
+S1, S2, BP = "TST1", "TST2", "TSTBP"
 CATALOG_DOCTYPES = [
-	"ZUP Audit Event",
-	"ZUP User",
-	"ZUP User Profile",
-	"ZUP User Role",
-	"ZUP Access Profile",
-	"ZUP Profile Role",
+	"IB Audit Event",
+	"IB User",
+	"IB User Profile",
+	"IB User Role",
+	"IB Access Profile",
+	"IB Profile Role",
 ]
 HR_DOCTYPES = [
 	"HR Event",
@@ -35,7 +36,7 @@ HR_DOCTYPES = [
 	"HR Organization",
 	"Legal Entity",
 	"Sync Log",
-	"HR Source",
+	"Info Base",
 ]
 
 
@@ -78,17 +79,26 @@ class TestAccessCatalog(FrappeTestCase):
 		frappe.set_user("Administrator")
 		for doctype in CATALOG_DOCTYPES + HR_DOCTYPES:
 			frappe.db.delete(doctype)
-		frappe.db.delete("Version", {"ref_doctype": ["like", "ZUP %"]})
+		frappe.db.delete("Version", {"ref_doctype": ["like", "IB %"]})
 		ensure_root()
 		for code in (S1, S2):
 			frappe.get_doc(
 				{
-					"doctype": "HR Source",
+					"doctype": "Info Base",
 					"source_code": code,
 					"title": code,
 					"base_url": "http://127.0.0.1:9/hs",
 				}
 			).insert()
+		# Accounting base: no HR data, only users and rights
+		frappe.get_doc(
+			{
+				"doctype": "Info Base",
+				"source_code": BP,
+				"title": "Бухгалтерия",
+				"configuration": "Бухгалтерия",
+			}
+		).insert()
 
 	def tearDown(self):
 		frappe.set_user("Administrator")
@@ -98,7 +108,7 @@ class TestAccessCatalog(FrappeTestCase):
 		result, warnings = importer.import_snapshot_data(base, copy.deepcopy(data or snapshot()))
 		return result
 
-	def versions(self, doctype="ZUP User", name=None):
+	def versions(self, doctype="IB User", name=None):
 		filters = {"ref_doctype": doctype}
 		if name:
 			filters["docname"] = name
@@ -110,7 +120,7 @@ class TestAccessCatalog(FrappeTestCase):
 		result = self.imp()
 		self.assertEqual(result, {"profiles": 5, "users": 6, "orphans": 1, "changed": 12, "missing": 0})
 
-		profile = frappe.get_doc("ZUP Access Profile", f"{S1}:{PRF(1)}")
+		profile = frappe.get_doc("IB Access Profile", f"{S1}:{PRF(1)}")
 		self.assertEqual(profile.profile_name, "Кадровик")
 		self.assertEqual(profile.base_code, S1)
 		self.assertEqual(profile.supplied, 1)
@@ -119,7 +129,7 @@ class TestAccessCatalog(FrappeTestCase):
 			["ДобавлениеИзменениеКадровыхДанных", "ЧтениеКадровыхДанных"],
 		)
 
-		ivanov = frappe.get_doc("ZUP User", f"{S1}:{USR(1)}")
+		ivanov = frappe.get_doc("IB User", f"{S1}:{USR(1)}")
 		self.assertEqual(ivanov.user_name, "Иванов Иван Иванович")
 		self.assertEqual(ivanov.login, "Иванов ИИ")
 		self.assertEqual((ivanov.ad_domain, ivanov.ad_login), ("corp", "ivanov"))
@@ -133,27 +143,27 @@ class TestAccessCatalog(FrappeTestCase):
 		self.assertEqual(
 			[r["kind"] for r in json.loads(row.restrictions_json)], ["Организации", "ФизическиеЛица"]
 		)
-		self.assertTrue(frappe.db.exists("ZUP Access Profile", row.profile))
+		self.assertTrue(frappe.db.exists("IB Access Profile", row.profile))
 
-		# The ZUP User without an IB user has no roles and no profiles
-		card = frappe.get_doc("ZUP User", f"{S1}:{USR(5)}")
+		# The 1C user card without an IB user has no roles and no profiles
+		card = frappe.get_doc("IB User", f"{S1}:{USR(5)}")
 		self.assertEqual((card.login_allowed, card.invalid, len(card.profiles)), (0, 1, 0))
 		self.assertFalse(card.has_extra_roles)
 
 	def test_orgs_text_modes(self):
 		self.imp()
-		petrova = frappe.get_doc("ZUP User", f"{S1}:{USR(2)}")
+		petrova = frappe.get_doc("IB User", f"{S1}:{USR(2)}")
 		rows = {r.access_group_name: r for r in petrova.profiles}
 		self.assertEqual(rows["Бухгалтер"].orgs_text, "все, кроме: Ромашка Сервис ООО")
 		self.assertEqual(rows["Отдел кадров"].orgs_text, "не настроено")
 		self.assertEqual(rows["Отдел кадров"].direct, 0)
 		self.assertEqual((petrova.all_orgs, petrova.orgs_text), (1, "все"))
-		admin = frappe.get_doc("ZUP User", f"{S1}:{USR(3)}")
+		admin = frappe.get_doc("IB User", f"{S1}:{USR(3)}")
 		self.assertEqual(
 			(admin.profiles[0].orgs_mode, admin.profiles[0].orgs_text),
 			("unrestricted", "все (без ограничения)"),
 		)
-		fedorov = frappe.get_doc("ZUP User", f"{S1}:{USR(6)}")
+		fedorov = frappe.get_doc("IB User", f"{S1}:{USR(6)}")
 		self.assertEqual(fedorov.profiles[0].orgs_text, "ни одной")
 		self.assertEqual(
 			importer.orgs_text([{"kind": "Организации", "mode": "all", "values": []}]), ("все", "all")
@@ -163,11 +173,11 @@ class TestAccessCatalog(FrappeTestCase):
 
 	def test_repeat_import_changes_nothing(self):
 		self.imp()
-		before = len(self.versions()) + len(self.versions("ZUP Access Profile"))
+		before = len(self.versions()) + len(self.versions("IB Access Profile"))
 		result = self.imp()
 		self.assertEqual(result["changed"], 0)
 		self.assertEqual(result["missing"], 0)
-		self.assertEqual(len(self.versions()) + len(self.versions("ZUP Access Profile")), before)
+		self.assertEqual(len(self.versions()) + len(self.versions("IB Access Profile")), before)
 
 		# 1C may return lists in any order: still nothing changes
 		shuffled = snapshot()
@@ -185,14 +195,14 @@ class TestAccessCatalog(FrappeTestCase):
 	def test_profile_removed_from_user_is_visible_in_version(self):
 		self.imp()
 		name = f"{S1}:{USR(2)}"
-		row_names = {r.access_group_name: r.name for r in frappe.get_doc("ZUP User", name).profiles}
+		row_names = {r.access_group_name: r.name for r in frappe.get_doc("IB User", name).profiles}
 		data = snapshot()
 		rights = user_rights(data, 2)
 		rights["profiles"] = [p for p in rights["profiles"] if p["access_group_name"] != "Отдел кадров"]
 		result = self.imp(data)
 		self.assertEqual(result["changed"], 1)
 
-		doc = frappe.get_doc("ZUP User", name)
+		doc = frappe.get_doc("IB User", name)
 		self.assertEqual([r.access_group_name for r in doc.profiles], ["Бухгалтер"])
 		self.assertEqual(
 			doc.profiles[0].name, row_names["Бухгалтер"]
@@ -213,32 +223,32 @@ class TestAccessCatalog(FrappeTestCase):
 		data = snapshot()
 		data["users"] = [u for u in data["users"] if u["id"] != USR(4)]
 		self.assertEqual(self.imp(data)["missing"], 1)
-		self.assertEqual(frappe.db.get_value("ZUP User", name, "missing_in_source"), 1)
+		self.assertEqual(frappe.db.get_value("IB User", name, "missing_in_source"), 1)
 		self.assertIn("missing_in_source", self.versions(name=name)[-1].data)
 
 		result = self.imp()
 		self.assertEqual(result["missing"], 0)
-		self.assertEqual(frappe.db.get_value("ZUP User", name, "missing_in_source"), 0)
+		self.assertEqual(frappe.db.get_value("IB User", name, "missing_in_source"), 0)
 
 		data["profiles"] = [p for p in data["profiles"] if p["id"] != PRF(4)]
 		self.imp(data)
-		self.assertEqual(frappe.db.get_value("ZUP Access Profile", f"{S1}:{PRF(4)}", "missing_in_source"), 1)
+		self.assertEqual(frappe.db.get_value("IB Access Profile", f"{S1}:{PRF(4)}", "missing_in_source"), 1)
 
 	# ---------------------------------------------------------------- 6. extra roles
 
 	def test_extra_roles(self):
 		self.imp()
-		ivanov = frappe.get_doc("ZUP User", f"{S1}:{USR(1)}")
+		ivanov = frappe.get_doc("IB User", f"{S1}:{USR(1)}")
 		self.assertEqual(ivanov.extra_roles, "ИнтерактивноеОткрытиеВнешнихОтчетовИОбработок")
 		self.assertEqual(ivanov.has_extra_roles, 1)
 		in_profiles = {r.role_name: r.in_profiles for r in ivanov.ib_roles}
 		self.assertEqual(in_profiles["ЧтениеКадровыхДанных"], 1)
 		self.assertEqual(in_profiles["ИнтерактивноеОткрытиеВнешнихОтчетовИОбработок"], 0)
 		# The role of a profile received through a user group is not extra
-		self.assertEqual(frappe.db.get_value("ZUP User", f"{S1}:{USR(2)}", "has_extra_roles"), 0)
+		self.assertEqual(frappe.db.get_value("IB User", f"{S1}:{USR(2)}", "has_extra_roles"), 0)
 		# No access groups at all: every role is extra
 		self.assertEqual(
-			frappe.db.get_value("ZUP User", f"{S1}:{USR(4)}", "extra_roles"), "ЧтениеКадровыхДанных"
+			frappe.db.get_value("IB User", f"{S1}:{USR(4)}", "extra_roles"), "ЧтениеКадровыхДанных"
 		)
 
 	def test_profile_role_change_refreshes_users(self):
@@ -249,7 +259,7 @@ class TestAccessCatalog(FrappeTestCase):
 			{"name": "ИнтерактивноеОткрытиеВнешнихОтчетовИОбработок", "title": "Открытие внешних отчётов"}
 		)
 		self.imp(data)
-		ivanov = frappe.get_doc("ZUP User", f"{S1}:{USR(1)}")
+		ivanov = frappe.get_doc("IB User", f"{S1}:{USR(1)}")
 		self.assertEqual(ivanov.has_extra_roles, 0)
 		self.assertEqual(ivanov.extra_roles, "")
 
@@ -257,7 +267,7 @@ class TestAccessCatalog(FrappeTestCase):
 
 	def test_orphans(self):
 		self.imp()
-		orphan = frappe.get_doc("ZUP User", f"{S1}:ib:{IB(9)}")
+		orphan = frappe.get_doc("IB User", f"{S1}:ib:{IB(9)}")
 		self.assertEqual(orphan.is_orphan, 1)
 		self.assertEqual(orphan.user_name, "robot_exchange")  # no full name → login
 		self.assertEqual(orphan.extra_roles, "ПолныеПрава")
@@ -267,10 +277,10 @@ class TestAccessCatalog(FrappeTestCase):
 
 	def test_is_folder(self):
 		self.imp()
-		self.assertEqual(frappe.db.get_value("ZUP Access Profile", f"{S1}:{PRF(4)}", "is_folder"), 1)
+		self.assertEqual(frappe.db.get_value("IB Access Profile", f"{S1}:{PRF(4)}", "is_folder"), 1)
 		# No roles, but a user refers to it: not a folder
-		self.assertEqual(frappe.db.get_value("ZUP Access Profile", f"{S1}:{PRF(5)}", "is_folder"), 0)
-		self.assertEqual(frappe.db.get_value("ZUP Access Profile", f"{S1}:{PRF(1)}", "is_folder"), 0)
+		self.assertEqual(frappe.db.get_value("IB Access Profile", f"{S1}:{PRF(5)}", "is_folder"), 0)
+		self.assertEqual(frappe.db.get_value("IB Access Profile", f"{S1}:{PRF(1)}", "is_folder"), 0)
 
 	# ---------------------------------------------------------------- 8. bases are isolated
 
@@ -280,12 +290,12 @@ class TestAccessCatalog(FrappeTestCase):
 		other["users"] = other["users"][:1]
 		other["ib_orphans"] = []
 		self.imp(other, base=S2)
-		self.assertEqual(frappe.db.count("ZUP User", {"base_code": S1, "missing_in_source": 1}), 0)
-		self.assertEqual(frappe.db.count("ZUP User", {"base_code": S2}), 1)
-		self.assertTrue(frappe.db.exists("ZUP User", f"{S2}:{USR(1)}"))
+		self.assertEqual(frappe.db.count("IB User", {"base_code": S1, "missing_in_source": 1}), 0)
+		self.assertEqual(frappe.db.count("IB User", {"base_code": S2}), 1)
+		self.assertTrue(frappe.db.exists("IB User", f"{S2}:{USR(1)}"))
 		# Emptying base 2 does not touch base 1
 		self.imp({"users": [], "profiles": [], "user_rights": [], "ib_orphans": []}, base=S2)
-		self.assertEqual(frappe.db.count("ZUP User", {"base_code": S1, "missing_in_source": 0}), 7)
+		self.assertEqual(frappe.db.count("IB User", {"base_code": S1, "missing_in_source": 0}), 7)
 
 	def test_base_code_resolution(self):
 		self.assertEqual(importer.resolve_base_code("tst1"), S1)
@@ -293,23 +303,108 @@ class TestAccessCatalog(FrappeTestCase):
 
 	# ---------------------------------------------------------------- person link
 
-	def test_person_link_via_hr_mirror(self):
+	def hr_sync(self):
 		log = run_source_sync(S1, today=TODAY, commit=False, fetch=lambda *a, **k: load("zup1"))
 		self.assertEqual(log.status, "Успех", log.messages)
+
+	def test_person_link_via_hr_mirror(self):
+		self.hr_sync()
 		self.imp()
 		person = frappe.db.get_value("Person Source ID", {"source": S1, "person_guid": FL(1)}, "parent")
-		self.assertEqual(frappe.db.get_value("ZUP User", f"{S1}:{USR(1)}", "person"), person)
-		self.assertFalse(frappe.db.get_value("ZUP User", f"{S1}:{USR(3)}", "person"))
-		# Persons of the other base are not used
+		ivanov = frappe.db.get_value(
+			"IB User", f"{S1}:{USR(1)}", ["person", "person_link_method"], as_dict=True
+		)
+		self.assertEqual((ivanov.person, ivanov.person_link_method), (person, "GUID физлица (ЗУП)"))
+		admin = frappe.db.get_value("IB User", f"{S1}:{USR(3)}", ["person", "person_link_note"], as_dict=True)
+		self.assertFalse(admin.person)
+		self.assertIn("не найден", admin.person_link_note)
+		self.assertEqual(frappe.db.get_value("IB User", f"{S1}:{USR(1)}", "base_configuration"), "ЗУП")
+		# Another ZUP base: its GUIDs are unknown to the HR data of TST1, the full name still matches
 		self.imp(base=S2)
-		self.assertFalse(frappe.db.get_value("ZUP User", f"{S2}:{USR(1)}", "person"))
+		other = frappe.db.get_value(
+			"IB User", f"{S2}:{USR(1)}", ["person", "person_link_method", "person_link_note"], as_dict=True
+		)
+		self.assertEqual((other.person, other.person_link_method), (person, "ФИО"))
 
-		# Report: login allowed although the person does not work (Фёдоров is dismissed in zup1)
-		from access_registry.access_catalog.report.zup_login_not_working.zup_login_not_working import execute
+		# Report: login allowed although the employee does not work (Фёдоров is dismissed in zup1)
+		from access_registry.access_catalog.report.ib_login_not_working.ib_login_not_working import execute
 
 		_columns, rows = execute({"base_code": S1})
 		self.assertEqual([r.name for r in rows], [f"{S1}:{USR(6)}"])
-		self.assertIn("Уволен", rows[0].reason)
+		self.assertEqual(rows[0].person_status, "Уволен")
+
+	def test_accounting_base(self):
+		"""A non-ZUP base: users and rights only, employees are found by full name."""
+		self.hr_sync()
+		data = snapshot()
+		for user in data["users"]:
+			if user.get("person_id"):
+				user["person_id"] = user["person_id"].replace(
+					"e000", "e999"
+				)  # own GUIDs of the accounting base
+		result = self.imp(data, base=BP)
+		self.assertEqual(result["users"], 6)
+		ivanov = frappe.get_doc("IB User", f"{BP}:{USR(1)}")
+		self.assertEqual(ivanov.base_configuration, "Бухгалтерия")
+		self.assertEqual(ivanov.person_link_method, "ФИО")
+		self.assertEqual(
+			ivanov.person,
+			frappe.db.get_value("Person Source ID", {"source": S1, "person_guid": FL(1)}, "parent"),
+		)
+		# Person card shows the user in «Учётные записи»
+		self.assertIn("IB User", [link.link_doctype for link in frappe.get_meta("Person").links])
+
+		# Kadry cannot be synced from an accounting base
+		log = run_source_sync(BP, today=TODAY, commit=False, fetch=lambda *a, **k: load("zup1"))
+		self.assertEqual(log.status, "Ошибка")
+		self.assertIn("только из баз ЗУП", log.messages)
+		with patch("access_registry.sync.engine.enqueue_source_sync") as enqueue:
+			from access_registry.sync.engine import enqueue_all_sources
+
+			enqueue_all_sources()
+		self.assertNotIn(BP, [c.args[0] for c in enqueue.call_args_list])
+		self.assertIn(S1, [c.args[0] for c in enqueue.call_args_list])
+
+	def test_namesakes_and_manual_link(self):
+		self.hr_sync()
+		# A second «Иванов Иван Иванович» who does not work: the working one is chosen
+		namesake = frappe.get_doc(
+			{
+				"doctype": "Person",
+				"last_name": "Иванов",
+				"first_name": "Иван",
+				"middle_name": "Иванович",
+				"status": "Уволен",
+			}
+		).insert()
+		self.imp(base=BP)
+		working = frappe.db.get_value("Person Source ID", {"source": S1, "person_guid": FL(1)}, "parent")
+		self.assertEqual(frappe.db.get_value("IB User", f"{BP}:{USR(1)}", "person"), working)
+		# Two working namesakes: ambiguous, nobody is linked, the reason is shown
+		frappe.db.set_value("Person", namesake.name, "status", "Работает")
+		data = snapshot()
+		data["users"][0]["department_name"] = "Бухгалтерия"  # change the user so that it is re-imported
+		self.imp(data, base=BP)
+		user = frappe.get_doc("IB User", f"{BP}:{USR(1)}")
+		self.assertFalse(user.person)
+		self.assertIn("несколько сотрудников", user.person_link_note)
+
+		# A manual link wins and survives the next import
+		user.manual_person = namesake.name
+		user.save()
+		self.assertEqual((user.person, user.person_link_method), (namesake.name, "Вручную"))
+		data["users"][0]["department_name"] = "Бухгалтерия и налоги"
+		self.imp(data, base=BP)
+		user.reload()
+		self.assertEqual((user.person, user.person_link_method), (namesake.name, "Вручную"))
+
+		from access_registry.access_catalog.report.ib_users_without_employee import (
+			ib_users_without_employee as without,
+		)
+
+		rows = without.execute({"base_code": BP})[1]
+		self.assertNotIn(f"{BP}:{USR(1)}", [r.name for r in rows])
+		self.assertIn(f"{BP}:{USR(3)}", [r.name for r in rows])  # «Администратор» is nobody
 
 	# ---------------------------------------------------------------- guard
 
@@ -328,7 +423,7 @@ class TestAccessCatalog(FrappeTestCase):
 		self.assertEqual(result, {"inserted": 3, "skipped": 0})
 		self.assertEqual(importer.import_log_data(S1, log_payload()), {"inserted": 0, "skipped": 3})
 
-		events = frappe.get_all("ZUP Audit Event", fields=["*"], order_by="event_date")
+		events = frappe.get_all("IB Audit Event", fields=["*"], order_by="event_date")
 		self.assertEqual(events[0].event_title, "Данные изменены")
 		self.assertEqual(events[1].event_title, "Пользователь ИБ изменён")
 		self.assertEqual(events[2].who_user, f"{S1}:{USR(1)}")
@@ -365,7 +460,7 @@ class TestAccessCatalog(FrappeTestCase):
 			self.assertRaises(frappe.PermissionError, api.get_log_cursor, S1)
 		finally:
 			frappe.flags.in_test = True
-		self.assertEqual(frappe.db.count("ZUP User"), 0)
+		self.assertEqual(frappe.db.count("IB User"), 0)
 
 	def test_api_with_sync_role(self):
 		user = "n8n@example.com"
@@ -384,15 +479,15 @@ class TestAccessCatalog(FrappeTestCase):
 
 	def test_pull_snapshot_and_log(self):
 		frappe.db.set_value(
-			"HR Source", S1, {"itaccess_enabled": 1, "itaccess_url": "http://127.0.0.1:9/hs/itaccess"}
+			"Info Base", S1, {"itaccess_enabled": 1, "itaccess_url": "http://127.0.0.1:9/hs/itaccess"}
 		)
 		log = run_snapshot(S1, commit=False, fetch_snapshot=lambda *a, **k: snapshot())
 		self.assertEqual(log.status, "Успех", log.messages)
 		self.assertEqual(log.kind, "Права 1С")
 		self.assertEqual(json.loads(log.stats)["users"], 6)
-		self.assertTrue(frappe.db.get_value("HR Source", S1, "itaccess_last_snapshot"))
+		self.assertTrue(frappe.db.get_value("Info Base", S1, "itaccess_last_snapshot"))
 		self.assertEqual(
-			frappe.db.get_value("ZUP User", f"{S1}:{USR(1)}", "modified_by"), "sync-zup@access.local"
+			frappe.db.get_value("IB User", f"{S1}:{USR(1)}", "modified_by"), "sync-zup@access.local"
 		)
 		self.assertEqual(frappe.session.user, "Administrator")
 
@@ -421,7 +516,7 @@ class TestAccessCatalog(FrappeTestCase):
 		self.assertEqual(log.status, "Ошибка")
 		self.assertIn("Traceback", log.messages)
 		self.assertEqual(
-			frappe.db.get_value("ZUP User", f"{S1}:{USR(1)}", "user_name"), "Иванов Иван Иванович"
+			frappe.db.get_value("IB User", f"{S1}:{USR(1)}", "user_name"), "Иванов Иван Иванович"
 		)
 
 	# ---------------------------------------------------------------- reports
@@ -429,16 +524,16 @@ class TestAccessCatalog(FrappeTestCase):
 	def test_reports_run(self):
 		self.imp()
 		importer.import_log_data(S1, log_payload())
-		from access_registry.access_catalog.report.zup_all_organizations_access import (
-			zup_all_organizations_access as all_orgs,
+		from access_registry.access_catalog.report.ib_all_organizations_access import (
+			ib_all_organizations_access as all_orgs,
 		)
-		from access_registry.access_catalog.report.zup_extra_roles import zup_extra_roles as extra
-		from access_registry.access_catalog.report.zup_ib_orphans import zup_ib_orphans as orphans
-		from access_registry.access_catalog.report.zup_login_without_person import (
-			zup_login_without_person as no_person,
+		from access_registry.access_catalog.report.ib_extra_roles import ib_extra_roles as extra
+		from access_registry.access_catalog.report.ib_orphans import ib_orphans as orphans
+		from access_registry.access_catalog.report.ib_profile_users import ib_profile_users as profile_users
+		from access_registry.access_catalog.report.ib_rights_changes import ib_rights_changes as changes
+		from access_registry.access_catalog.report.ib_users_without_employee import (
+			ib_users_without_employee as no_person,
 		)
-		from access_registry.access_catalog.report.zup_profile_users import zup_profile_users as profile_users
-		from access_registry.access_catalog.report.zup_rights_changes import zup_rights_changes as changes
 
 		# Orphans have no profiles, so all their roles bypass profiles
 		self.assertEqual(
@@ -446,8 +541,10 @@ class TestAccessCatalog(FrappeTestCase):
 			sorted([f"{S1}:{USR(1)}", f"{S1}:{USR(4)}", f"{S1}:ib:{IB(9)}"]),
 		)
 		self.assertEqual([r.name for r in orphans.execute({})[1]], [f"{S1}:ib:{IB(9)}"])
+		# No HR data loaded: every user allowed to log in is without an employee
 		self.assertEqual(
-			sorted(r.name for r in no_person.execute({})[1]), sorted([f"{S1}:{USR(3)}", f"{S1}:ib:{IB(9)}"])
+			sorted(r.name for r in no_person.execute({"configuration": "ЗУП"})[1]),
+			sorted([f"{S1}:{USR(n)}" for n in (1, 2, 3, 6)] + [f"{S1}:ib:{IB(9)}"]),
 		)
 		self.assertEqual(
 			sorted(r.name for r in all_orgs.execute({})[1]), sorted([f"{S1}:{USR(2)}", f"{S1}:{USR(3)}"])
@@ -463,11 +560,11 @@ class TestAccessCatalog(FrappeTestCase):
 			link.link_to for link in ws.links if link.type == "Link"
 		}
 		for name in (
-			"ZUP User",
-			"ZUP Access Profile",
-			"ZUP Audit Event",
-			"ZUP Rights Changes",
-			"ZUP Login Not Working",
+			"IB User",
+			"IB Access Profile",
+			"IB Audit Event",
+			"IB Rights Changes",
+			"IB Login Not Working",
 		):
 			self.assertIn(name, targets)
 		for link in ws.links:

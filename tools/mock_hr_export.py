@@ -3,14 +3,14 @@
 
 Serves <dir>/{meta,organizations,departments,employees,absences}.json under /hs/hr_export and,
 with --itaccess-dir, <dir>/snapshot_sample.json and <dir>/log_sample.json under /hs/itaccess,
-with basic auth, so the whole chain (HR Source → HTTP client → background job → Sync Log) can be
+with basic auth, so the whole chain (Info Base → HTTP client → background job → Sync Log) can be
 tried without a real ZUP. Only synthetic data: never put real exports here.
 
     python3 tools/mock_hr_export.py --dir access_registry/tests/fixtures/zup1 \
         --itaccess-dir access_registry/tests/fixtures/itaccess --port 8765 \
         --user svc_hr_export --password secret
 
-HR Source: base URL http://127.0.0.1:8765/hs/hr_export; ITAccess URL
+Info Base: HR_Export_API URL http://127.0.0.1:8765/hs/hr_export; ITAccess URL
 http://127.0.0.1:8765/hs/itaccess; the same user and password for both.
 """
 

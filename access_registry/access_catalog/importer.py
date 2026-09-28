@@ -1,4 +1,4 @@
-"""Import of the 1C:ZUP rights snapshot (ITAccess /snapshot) and event log (/log).
+"""Import of the 1C users and rights snapshot (ITAccess /snapshot) and event log (/log).
 
 Only reads the source: nothing is ever written back to 1C.
 """
@@ -13,6 +13,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, get_datetime, get_system_timezone, now_datetime
 
+from access_registry.access_catalog.linking import PersonResolver
 from access_registry.settings import get_settings
 
 ORGS_KIND = "Организации"
@@ -40,16 +41,16 @@ class CatalogGuardTripped(frappe.ValidationError):
 
 
 def resolve_base_code(base_code: str) -> str:
-	"""The base code is the code of an existing HR Source; the case does not matter."""
+	"""The base code is the code of an existing Info Base; the case does not matter."""
 	code = (base_code or "").strip()
 	if not code:
 		frappe.throw(_("Не указан base_code"))
-	if frappe.db.exists("HR Source", code):
-		return frappe.db.get_value("HR Source", code, "name")
-	for name in frappe.get_all("HR Source", pluck="name"):
+	if frappe.db.exists("Info Base", code):
+		return frappe.db.get_value("Info Base", code, "name")
+	for name in frappe.get_all("Info Base", pluck="name"):
 		if name.lower() == code.lower():
 			return name
-	frappe.throw(_("Нет источника HR Source с кодом {0}").format(code), frappe.DoesNotExistError)
+	frappe.throw(_("Нет базы 1С (Info Base) с кодом {0}").format(code), frappe.DoesNotExistError)
 
 
 def parse_json_arg(value) -> dict:
@@ -150,6 +151,7 @@ def sync_child_table(doc, fieldname: str, key_fields: tuple, rows: list[dict]) -
 class SnapshotImport:
 	def __init__(self, base_code: str):
 		self.base = resolve_base_code(base_code)
+		self.configuration = frappe.db.get_value("Info Base", self.base, "configuration") or ""
 		self.settings = get_settings()
 		self.counters = Counter()
 		self.warnings: list[str] = []
@@ -169,14 +171,7 @@ class SnapshotImport:
 			if item.get("user_id") in rights:
 				self.warn(f"права пользователя {item.get('user_id')} встречаются в снимке несколько раз")
 			rights[item.get("user_id")] = item
-		self.person_by_guid = dict(
-			frappe.get_all(
-				"Person Source ID",
-				filters={"source": self.base, "parenttype": "Person"},
-				fields=["person_guid", "parent"],
-				as_list=True,
-			)
-		)
+		self.persons = PersonResolver(self.base, self.configuration)
 		seen = set()
 		for user in users:
 			uid = f"{self.base}:{user['id']}"
@@ -187,7 +182,7 @@ class SnapshotImport:
 			seen.add(uid)
 			user = {"name": ib.get("full_name") or ib.get("login"), "ib": ib}
 			self.import_user(uid, user, None, profile_roles, orphan=True)
-		self.counters["missing"] += self.mark_missing("ZUP User", seen)
+		self.counters["missing"] += self.mark_missing("IB User", seen)
 		self.update_folders(profiles, rights)
 
 		self.counters["profiles"] = len(profiles)
@@ -203,7 +198,7 @@ class SnapshotImport:
 
 	def check_guard(self, received: int):
 		threshold = cint(self.settings.shrink_threshold_pct)
-		actual = frappe.db.count("ZUP User", {"base_code": self.base, "missing_in_source": 0})
+		actual = frappe.db.count("IB User", {"base_code": self.base, "missing_in_source": 0})
 		if actual < cint(self.settings.guard_min_records):
 			return
 		if received < actual * (1 - threshold / 100):
@@ -246,7 +241,7 @@ class SnapshotImport:
 			profile_roles[p["id"]] = {name for name, _title in roles}
 			payload = {**p, "roles": [{"name": n, "title": t} for n, t in roles]}
 			h = src_hash(payload)
-			doc = self.load("ZUP Access Profile", uid, h)
+			doc = self.load("IB Access Profile", uid, h)
 			if doc is None:
 				continue
 			doc.base_code = self.base
@@ -260,7 +255,7 @@ class SnapshotImport:
 			doc.src_hash = h
 			doc.missing_in_source = 0
 			self.save(doc)
-		self.counters["missing"] += self.mark_missing("ZUP Access Profile", seen)
+		self.counters["missing"] += self.mark_missing("IB Access Profile", seen)
 		return profile_roles
 
 	def import_user(self, uid, user, rights, profile_roles, orphan):
@@ -269,17 +264,18 @@ class SnapshotImport:
 		expected = set()
 		for p in (rights or {}).get("profiles") or []:
 			expected |= profile_roles.get(p.get("profile_id"), set())
-		person = self.person_by_guid.get(user.get("person_id")) if user.get("person_id") else None
+		person, link_method, link_note = self.persons.resolve(user, ib)
 		payload = {
 			"u": {**user, "ib": ib},
 			"r": rights,
 			# Derived from other records: a change there must also refresh this user.
 			"expected_roles": sorted(expected),
-			"person": person,
+			"person": [person, link_method, link_note],
 			"orphan": orphan,
+			"configuration": self.configuration,
 		}
 		h = src_hash(payload)
-		doc = self.load("ZUP User", uid, h)
+		doc = self.load("IB User", uid, h)
 		if doc is None:
 			return
 		ib = ib or {}
@@ -288,7 +284,10 @@ class SnapshotImport:
 		doc.user_name = user.get("name") or ib.get("full_name") or ib.get("login") or uid
 		doc.person_id = user.get("person_id")
 		doc.person_name = user.get("person_name")
+		doc.base_configuration = self.configuration
 		doc.person = person
+		doc.person_link_method = link_method
+		doc.person_link_note = link_note
 		doc.department_name = user.get("department_name")
 		doc.invalid = cint(user.get("invalid"))
 		doc.service = cint(user.get("service"))
@@ -307,7 +306,7 @@ class SnapshotImport:
 		for p in (rights or {}).get("profiles") or []:
 			text, mode = orgs_text(p.get("restrictions"))
 			profile_uid = f"{self.base}:{p.get('profile_id')}"
-			if not frappe.db.exists("ZUP Access Profile", profile_uid):
+			if not frappe.db.exists("IB Access Profile", profile_uid):
 				self.warn(
 					f"профиль {p.get('profile_id')} ({p.get('profile_name')}) не найден среди профилей снимка"
 				)
@@ -369,8 +368,8 @@ class SnapshotImport:
 		for p in profiles:
 			uid = f"{self.base}:{p['id']}"
 			is_folder = int(not p.get("roles") and p["id"] not in referenced)
-			if cint(frappe.db.get_value("ZUP Access Profile", uid, "is_folder")) != is_folder:
-				doc = frappe.get_doc("ZUP Access Profile", uid)
+			if cint(frappe.db.get_value("IB Access Profile", uid, "is_folder")) != is_folder:
+				doc = frappe.get_doc("IB Access Profile", uid)
 				doc.is_folder = is_folder
 				doc.save(ignore_permissions=True, ignore_version=False)
 
@@ -395,7 +394,7 @@ def import_log_data(base_code: str, payload: dict) -> dict:
 	base = resolve_base_code(base_code)
 	users_by_login = dict(
 		frappe.get_all(
-			"ZUP User",
+			"IB User",
 			filters={"base_code": base, "login": ["is", "set"]},
 			fields=["login", "name"],
 			as_list=True,
@@ -404,13 +403,13 @@ def import_log_data(base_code: str, payload: dict) -> dict:
 	inserted = skipped = 0
 	for event in payload.get("events") or []:
 		uid = event_uid(base, event)
-		if frappe.db.exists("ZUP Audit Event", uid):
+		if frappe.db.exists("IB Audit Event", uid):
 			skipped += 1
 			continue
 		code = event.get("event") or ""
 		frappe.get_doc(
 			{
-				"doctype": "ZUP Audit Event",
+				"doctype": "IB Audit Event",
 				"uid": uid,
 				"base_code": base,
 				"event_date": to_site_datetime(event.get("date")),
@@ -430,7 +429,7 @@ def import_log_data(base_code: str, payload: dict) -> dict:
 
 def log_cursor(base_code: str) -> dict:
 	base = resolve_base_code(base_code)
-	latest = frappe.db.get_value("ZUP Audit Event", {"base_code": base}, "max(event_date)")
+	latest = frappe.db.get_value("IB Audit Event", {"base_code": base}, "max(event_date)")
 	if latest:
 		start = get_datetime(latest) - LOG_CURSOR_OVERLAP
 	else:

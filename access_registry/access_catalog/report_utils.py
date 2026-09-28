@@ -1,4 +1,4 @@
-"""Shared query for the ZUP User list reports."""
+"""Shared query for the IB User list reports."""
 
 import frappe
 from frappe import _
@@ -8,10 +8,11 @@ USER_COLUMNS = [
 		"fieldname": "name",
 		"label": _("Пользователь 1С"),
 		"fieldtype": "Link",
-		"options": "ZUP User",
+		"options": "IB User",
 		"width": 260,
 	},
-	{"fieldname": "base_code", "label": _("База"), "fieldtype": "Link", "options": "HR Source", "width": 80},
+	{"fieldname": "base_code", "label": _("База"), "fieldtype": "Link", "options": "Info Base", "width": 80},
+	{"fieldname": "base_configuration", "label": _("Конфигурация"), "fieldtype": "Data", "width": 110},
 	{"fieldname": "login", "label": _("Логин"), "fieldtype": "Data", "width": 160},
 	{"fieldname": "ad_login", "label": _("Логин AD"), "fieldtype": "Data", "width": 130},
 	{"fieldname": "login_allowed", "label": _("Вход разрешён"), "fieldtype": "Check", "width": 100},
@@ -30,11 +31,14 @@ def user_report(filters, where: str, extra_columns=(), extra_fields="", join="",
 	if filters.get("base_code"):
 		conditions.append("u.base_code = %(base_code)s")
 		params["base_code"] = filters.base_code
+	if filters.get("configuration"):
+		conditions.append("u.base_configuration = %(configuration)s")
+		params["configuration"] = filters.configuration
 	if not filters.get("include_invalid"):
 		conditions.append("u.invalid = 0")
 	fields = USER_FIELDS + (", " + extra_fields if extra_fields else "")
 	data = frappe.db.sql(
-		f"""select {fields} from `tabZUP User` u {join}
+		f"""select {fields} from `tabIB User` u {join}
 		where {" and ".join(conditions)} order by u.user_name""",
 		params,
 		as_dict=True,

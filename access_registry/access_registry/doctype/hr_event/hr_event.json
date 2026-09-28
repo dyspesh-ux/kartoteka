@@ -49,8 +49,8 @@
   {
    "fieldname": "source",
    "fieldtype": "Link",
-   "label": "Источник",
-   "options": "HR Source",
+   "label": "База",
+   "options": "Info Base",
    "read_only": 1
   },
   {

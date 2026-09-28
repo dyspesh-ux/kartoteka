@@ -132,8 +132,8 @@
    "fieldname": "source",
    "fieldtype": "Link",
    "in_standard_filter": 1,
-   "label": "Источник",
-   "options": "HR Source",
+   "label": "База",
+   "options": "Info Base",
    "read_only": 1,
    "search_index": 1
   },

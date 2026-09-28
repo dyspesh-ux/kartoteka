@@ -18,8 +18,8 @@
    "fieldname": "source",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Источник",
-   "options": "HR Source",
+   "label": "База",
+   "options": "Info Base",
    "read_only": 1,
    "reqd": 1
   },

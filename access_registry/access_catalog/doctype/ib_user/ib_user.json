@@ -1,0 +1,342 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:uid",
+ "creation": "2026-09-28 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "user_name",
+  "login",
+  "ad_login",
+  "ad_domain",
+  "login_allowed",
+  "invalid",
+  "service",
+  "deleted",
+  "is_orphan",
+  "missing_in_source",
+  "column_break_1",
+  "person",
+  "person_link_method",
+  "person_link_note",
+  "manual_person",
+  "person_id",
+  "person_name",
+  "department_name",
+  "uid",
+  "base_code",
+  "base_configuration",
+  "user_id",
+  "ib_id",
+  "section_break_2",
+  "all_orgs",
+  "orgs_text",
+  "column_break_2",
+  "has_extra_roles",
+  "extra_roles",
+  "section_break_3",
+  "profiles",
+  "section_break_4",
+  "auth_standard",
+  "auth_os",
+  "auth_openid",
+  "section_break_5",
+  "ib_roles",
+  "src_hash"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "user_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Пользователь",
+   "read_only": 1
+  },
+  {
+   "fieldname": "login",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Логин",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "description": "Из «Пользователь ОС» 1С. По нему пользователь будет связан с учёткой AD",
+   "fieldname": "ad_login",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Логин AD",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "ad_domain",
+   "fieldtype": "Data",
+   "label": "Домен AD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "login_allowed",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Вход разрешён",
+   "read_only": 1
+  },
+  {
+   "fieldname": "invalid",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Недействителен",
+   "read_only": 1
+  },
+  {
+   "fieldname": "service",
+   "fieldtype": "Check",
+   "label": "Служебный",
+   "read_only": 1
+  },
+  {
+   "fieldname": "deleted",
+   "fieldtype": "Check",
+   "label": "Помечен на удаление",
+   "read_only": 1
+  },
+  {
+   "description": "Пользователь ИБ без карточки в справочнике «Пользователи»",
+   "fieldname": "is_orphan",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Сирота ИБ",
+   "read_only": 1
+  },
+  {
+   "description": "Запись была в 1С, но в последнем снимке её нет",
+   "fieldname": "missing_in_source",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Нет в снимке",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Сотрудник",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "person_link_method",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Как найден сотрудник",
+   "options": "\nGUID физлица (ЗУП)\nФИО\nВручную",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person_link_note",
+   "fieldtype": "Data",
+   "label": "Почему не найден",
+   "read_only": 1
+  },
+  {
+   "description": "Если сотрудник не найден автоматически или найден неверно. Загрузка из 1С это поле не меняет",
+   "fieldname": "manual_person",
+   "fieldtype": "Link",
+   "label": "Сотрудник вручную",
+   "options": "Person"
+  },
+  {
+   "fieldname": "person_id",
+   "fieldtype": "Data",
+   "label": "GUID физлица в 1С",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "person_name",
+   "fieldtype": "Data",
+   "label": "Физлицо в 1С",
+   "read_only": 1
+  },
+  {
+   "fieldname": "department_name",
+   "fieldtype": "Data",
+   "label": "Подразделение",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uid",
+   "fieldtype": "Data",
+   "in_list_view": 0,
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "base_code",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "База",
+   "options": "Info Base",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "base_configuration",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Конфигурация базы",
+   "read_only": 1
+  },
+  {
+   "fieldname": "user_id",
+   "fieldtype": "Data",
+   "label": "GUID пользователя в 1С",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ib_id",
+   "fieldtype": "Data",
+   "label": "UUID пользователя ИБ",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Организации и роли в обход профилей"
+  },
+  {
+   "fieldname": "all_orgs",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Все организации",
+   "read_only": 1
+  },
+  {
+   "fieldname": "orgs_text",
+   "fieldtype": "Small Text",
+   "label": "Организации",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "has_extra_roles",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Есть роли в обход профилей",
+   "read_only": 1
+  },
+  {
+   "description": "Роли пользователя ИБ, которых нет ни в одном его профиле",
+   "fieldname": "extra_roles",
+   "fieldtype": "Small Text",
+   "label": "Роли в обход профилей",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Профили доступа"
+  },
+  {
+   "fieldname": "profiles",
+   "fieldtype": "Table",
+   "label": "Профили",
+   "options": "IB User Profile",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break",
+   "label": "Способы входа"
+  },
+  {
+   "fieldname": "auth_standard",
+   "fieldtype": "Check",
+   "label": "Аутентификация 1С",
+   "read_only": 1
+  },
+  {
+   "fieldname": "auth_os",
+   "fieldtype": "Check",
+   "label": "Аутентификация ОС",
+   "read_only": 1
+  },
+  {
+   "fieldname": "auth_openid",
+   "fieldtype": "Check",
+   "label": "Аутентификация OpenID",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_5",
+   "fieldtype": "Section Break",
+   "label": "Фактические роли ИБ"
+  },
+  {
+   "fieldname": "ib_roles",
+   "fieldtype": "Table",
+   "label": "Роли ИБ",
+   "options": "IB User Role",
+   "read_only": 1
+  },
+  {
+   "fieldname": "src_hash",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Хеш исходных данных",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-28 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Catalog",
+ "name": "IB User",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "search_fields": "user_name,login,ad_login",
+ "show_title_field_in_link": 1,
+ "sort_field": "user_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "user_name",
+ "track_changes": 1
+}

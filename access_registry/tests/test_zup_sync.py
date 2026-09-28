@@ -30,7 +30,7 @@ APP_DOCTYPES = [
 	"HR Organization",
 	"Legal Entity",
 	"Sync Log",
-	"HR Source",
+	"Info Base",
 ]
 
 
@@ -89,7 +89,7 @@ class TestZupSync(FrappeTestCase):
 		for code in (S1, S2):
 			frappe.get_doc(
 				{
-					"doctype": "HR Source",
+					"doctype": "Info Base",
 					"source_code": code,
 					"title": code,
 					"base_url": "http://127.0.0.1:9/hs",
@@ -196,8 +196,8 @@ class TestZupSync(FrappeTestCase):
 		self.assertEqual(emp.modified_by, SYNC_USER)
 		self.assertEqual(frappe.db.get_value("Employment", f"{S1}:{EMP(9)}", "status"), "Уволен")
 
-		self.assertTrue(frappe.db.get_value("HR Source", S1, "last_sync"))
-		self.assertIn("Успех", frappe.db.get_value("HR Source", S1, "last_status"))
+		self.assertTrue(frappe.db.get_value("Info Base", S1, "last_sync"))
+		self.assertIn("Успех", frappe.db.get_value("Info Base", S1, "last_status"))
 		# /meta contains a state kind with category «Неизвестно»
 		self.assertIn("Неизвестно", log.messages)
 		self.assertTrue(json.loads(log.meta_snapshot)["ВидыСостояний"])
@@ -416,7 +416,7 @@ class TestZupSync(FrappeTestCase):
 		self.assertEqual(frappe.db.get_value("HR Department", f"{S1}:{DEP(1)}", "title"), "Дирекция")
 		self.assertEqual(self.versions(), versions)
 		self.assertEqual(len(self.events()), events)
-		self.assertIn("Остановлен предохранителем", frappe.db.get_value("HR Source", S1, "last_status"))
+		self.assertIn("Остановлен предохранителем", frappe.db.get_value("Info Base", S1, "last_status"))
 
 		# Raising the threshold lets the same export through
 		frappe.db.set_single_value("Access Registry Settings", "shrink_threshold_pct", 60)
@@ -670,7 +670,7 @@ class TestZupSync(FrappeTestCase):
 		self.assertIn("Traceback", log.messages)
 		self.assertEqual(frappe.db.get_value("HR Department", f"{S1}:{DEP(1)}", "title"), "Дирекция")
 		self.assertEqual(self.versions(), versions)
-		self.assertIn("Ошибка", frappe.db.get_value("HR Source", S1, "last_status"))
+		self.assertIn("Ошибка", frappe.db.get_value("Info Base", S1, "last_status"))
 		self.assertEqual(frappe.session.user, "Administrator")
 
 	def test_settings_defaults_without_saved_single(self):
@@ -730,7 +730,7 @@ class TestZupSync(FrappeTestCase):
 		targets = [(s.type, s.link_to) for s in ws.shortcuts] + [
 			(link.link_type, link.link_to) for link in ws.links if link.type == "Link"
 		]
-		self.assertIn(("DocType", "HR Source"), targets)
+		self.assertIn(("DocType", "Info Base"), targets)
 		self.assertIn(("DocType", "Person Merge Candidate"), targets)
 		for link_type, target in targets:
 			self.assertIn(link_type, ("DocType", "Report"))
@@ -782,4 +782,4 @@ class TestZupSync(FrappeTestCase):
 		self.assertFalse(frappe.db.exists("Workspace", "Кадры ЗУП"))
 		ws = frappe.get_doc("Workspace", "Access Registry")
 		self.assertEqual(ws.title, "Access Registry")
-		self.assertIn("Права 1С", ws.content)
+		self.assertIn("Пользователи 1С и права", ws.content)
