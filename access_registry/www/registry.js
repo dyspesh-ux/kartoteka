@@ -453,7 +453,7 @@
 		const r = d.reconciliation;
 		const total = r.ok + r.missing + r.excess + r.excess_not_working + r.exceptions;
 		const share = (n) => (total ? (100 * n) / total : 0);
-		const bySystem = Object.entries(d.dismissed_access.by_system).map(([s, n]) => `${systemBadge(s)} <span class="small">${n}</span>`).join(" ");
+		const bySystem = Object.entries(d.dismissed_access.by_system).map(([s, n]) => `<span>${systemBadge(s)} ${n}</span>`).join("");
 		const unlinkedTotal = Object.values(d.unlinked).reduce((a, x) => a + x, 0);
 		const hour = new Date().getHours();
 		const greet = hour < 6 ? "Доброй ночи" : hour < 12 ? "Доброе утро" : hour < 18 ? "Добрый день" : "Добрый вечер";
@@ -470,7 +470,7 @@
 					extra: bySystem ? `<div class="split-line">${bySystem}</div>` : "" })}
 				${kpi({ href: "#/control/unlinked", label: "Учётки без сотрудника", value: unlinkedTotal, tone: "tone-amber",
 					hint: "активные, владелец не найден",
-					extra: `<div class="split-line">${Object.entries(d.unlinked).map(([s, n]) => `${systemBadge(s)} <span class="small">${n}</span>`).join(" ")}</div>` })}
+					extra: `<div class="split-line">${Object.entries(d.unlinked).map(([s, n]) => `<span>${systemBadge(s)} ${n}</span>`).join("")}</div>` })}
 				${kpi({ href: "#/control/sod", label: "Конфликты полномочий", value: d.sod, tone: "tone-red", hint: "права, которые нельзя совмещать" })}
 				${kpi({ href: "#/control/privileged", label: "Привилегированный доступ", value: r.privileged + d.quality.extra_roles + d.quality.b24_admins, tone: "tone-violet",
 					hint: `администраторы, роли 1С в обход профилей: ${d.quality.extra_roles}` })}

@@ -101,6 +101,11 @@ def main():
 		action="store_true",
 		help="also write ad/directory.json: Active Directory accounts and groups of the same people",
 	)
+	parser.add_argument(
+		"--bitrix24",
+		action="store_true",
+		help="also write b24/portal.json: a Bitrix24 portal (users, structure, groups, rights) of the same people",
+	)
 	args = parser.parse_args()
 	rng = random.Random(args.seed)
 	os.makedirs(args.out, exist_ok=True)
@@ -275,6 +280,13 @@ def main():
 		with open(os.path.join(folder, "directory.json"), "w", encoding="utf-8") as fh:
 			json.dump(directory, fh, ensure_ascii=False)
 		print(f"{len(directory['users'])} AD accounts, {len(directory['groups'])} groups → {folder}")
+	if args.bitrix24:
+		folder = os.path.join(args.out, "b24")
+		os.makedirs(folder, exist_ok=True)
+		portal = bitrix24_portal(random.Random(args.seed + 2), emps)
+		with open(os.path.join(folder, "portal.json"), "w", encoding="utf-8") as fh:
+			json.dump(portal, fh, ensure_ascii=False)
+		print(f"{len(portal['users'])} Bitrix24 users, {len(portal['departments'])} departments → {folder}")
 
 
 PROFILE_SETS = {
@@ -583,6 +595,255 @@ def ad_user(rng, login, display_name, ou, uac, member_of, last_logon, when, serv
 		"whenCreated": when(rng.randint(200, 3000)),
 		"whenChanged": when(rng.randint(0, 30)),
 		"memberOf": sorted(member_of),
+	}
+
+
+def bitrix24_portal(rng, emps):
+	"""Synthetic result of the Bitrix24 read (the shape of bitrix24.sync.fetch_portal).
+
+	Users have the logins and mail of the AD generator; some middle names and birthdays are empty
+	(the registry fills them in), some dismissed people stay active, department heads differ.
+	"""
+	now = datetime.datetime.now().replace(microsecond=0)
+	stamp = lambda days: (now - datetime.timedelta(days=days)).isoformat() + "+03:00"  # noqa: E731
+	departments = [{"ID": "1", "NAME": "Компания", "SORT": 100, "PARENT": "", "UF_HEAD": ""}]
+	dept_ids = {}
+	for e in emps:
+		name = e["Подразделение"]
+		if name and name not in dept_ids and rng.random() < 0.95:
+			dept_ids[name] = str(len(departments) + 1)
+			departments.append(
+				{"ID": dept_ids[name], "NAME": name, "SORT": 100, "PARENT": "1", "UF_HEAD": ""}
+			)
+	for extra in ("Маркетинг", "Проектный офис"):
+		dept_ids[extra] = str(len(departments) + 1)
+		departments.append({"ID": dept_ids[extra], "NAME": extra, "SORT": 900, "PARENT": "1", "UF_HEAD": ""})
+
+	people = {}
+	for e in emps:
+		current = people.get(e["ФизЛицоGUID"])
+		if current is None or (current["ДатаУвольнения"] and not e["ДатаУвольнения"]):
+			people[e["ФизЛицоGUID"]] = e
+	users, logins, members_of = [], set(), {}
+	for e in people.values():
+		fired = bool(e["ДатаУвольнения"])
+		if fired and rng.random() < 0.5:
+			continue
+		login = base = f"{translit(e['Фамилия'])}.{translit(e['Имя'][0])}"
+		n = 1
+		while login in logins:
+			n += 1
+			login = f"{base}{n}"
+		logins.add(login)
+		birth = e["ДатаРождения"]
+		roll = rng.random()
+		birthday = (
+			""
+			if roll < 0.5 or not birth
+			else (
+				f"{int(birth[:4]) + 1}{birth[4:]}T03:00:00+03:00" if roll < 0.6 else f"{birth}T03:00:00+03:00"
+			)
+		)
+		dept = (
+			dept_ids.get(e["Подразделение"], "1")
+			if rng.random() < 0.9
+			else rng.choice(list(dept_ids.values()))
+		)
+		user_id = str(len(users) + 1)
+		members_of.setdefault(dept, []).append(user_id)
+		users.append(
+			{
+				"ID": user_id,
+				"ACTIVE": (not fired) or rng.random() < 0.35,
+				"NAME": e["Имя"],
+				"LAST_NAME": e["Фамилия"],
+				"SECOND_NAME": "" if rng.random() < 0.3 else e["Отчество"],
+				"EMAIL": f"{login}@example.com",
+				"PERSONAL_BIRTHDAY": birthday,
+				"WORK_POSITION": e["Должность"] if rng.random() < 0.85 else "",
+				"UF_DEPARTMENT": [int(dept)],
+				"USER_TYPE": "employee",
+				"XML_ID": "",
+				"LAST_LOGIN": stamp(rng.randint(0, 200)),
+				"DATE_REGISTER": stamp(rng.randint(200, 2000)),
+				"_login": login,
+			}
+		)
+	for n, (first, last) in enumerate(
+		[("Партнёр", "Внешний"), ("Аудитор", "Приглашённый"), ("Подрядчик", "Сервисный")]
+	):
+		users.append(
+			{
+				"ID": str(len(users) + 1),
+				"ACTIVE": True,
+				"NAME": first,
+				"LAST_NAME": last,
+				"SECOND_NAME": "",
+				"EMAIL": f"guest{n}@partner.example",
+				"PERSONAL_BIRTHDAY": "",
+				"WORK_POSITION": "",
+				"UF_DEPARTMENT": [],
+				"USER_TYPE": "extranet",
+				"XML_ID": "",
+				"LAST_LOGIN": stamp(3),
+				"DATE_REGISTER": stamp(300),
+				"_login": f"guest{n}",
+			}
+		)
+	for dept in departments[1:]:
+		staff = members_of.get(dept["ID"])
+		if staff and rng.random() < 0.8:
+			dept["UF_HEAD"] = rng.choice(staff)
+	employees = [u["ID"] for u in users if u["USER_TYPE"] == "employee" and u["ACTIVE"]]
+	groups, members = [], {}
+	for n, (title, project) in enumerate(
+		[
+			("Внедрение ERP", "Y"),
+			("Закрытие года", "Y"),
+			("Бухгалтерия: обсуждения", "N"),
+			("Кадровая служба", "N"),
+			("Новости компании", "N"),
+			("Тендеры", "Y"),
+		],
+		start=1,
+	):
+		chosen = rng.sample(employees, k=min(len(employees), rng.randint(4, 25)))
+		groups.append(
+			{
+				"ID": str(n),
+				"NAME": title,
+				"ACTIVE": "Y",
+				"VISIBLE": "Y",
+				"OPENED": "N",
+				"CLOSED": "N",
+				"PROJECT": project,
+				"OWNER_ID": chosen[0] if chosen else "",
+			}
+		)
+		members[str(n)] = [
+			{"USER_ID": u, "ROLE": "A" if i == 0 else "E" if i == 1 else "K"} for i, u in enumerate(chosen)
+		]
+	sales = [d["ID"] for d in departments if d["NAME"].startswith("Отдел продаж")]
+	buh = [d["ID"] for d in departments if d["NAME"].startswith("Бухгалтерия")]
+	hr = [d["ID"] for d in departments if d["NAME"].startswith("Отдел кадров")]
+	admins = rng.sample(employees, k=min(3, len(employees)))
+	export = {
+		"version": 1,
+		"generated_at": now.isoformat() + "+03:00",
+		"logins": [
+			{"user_id": int(u["ID"]), "login": u.pop("_login"), "external_auth_id": "LDAP#1", "xml_id": ""}
+			for u in users
+		],
+		"user_groups": [
+			{"id": 1, "name": "Администраторы", "string_id": "", "members": [int(a) for a in admins]},
+			{
+				"id": 12,
+				"name": "Кадровая служба",
+				"string_id": "",
+				"members": [int(u) for u in rng.sample(employees, k=min(4, len(employees)))],
+			},
+		],
+		"crm_roles": [
+			{
+				"id": 1,
+				"name": "Менеджер",
+				"permissions": [
+					{"entity": "DEAL", "action": "READ", "level": "D"},
+					{"entity": "DEAL", "action": "WRITE", "level": "A"},
+					{"entity": "CONTACT", "action": "READ", "level": "X"},
+					{"entity": "DYNAMIC_1032", "action": "READ", "level": "X"},
+				],
+			},
+			{
+				"id": 2,
+				"name": "Руководитель продаж",
+				"permissions": [
+					{"entity": "DEAL", "action": "READ", "level": "X"},
+					{"entity": "DEAL", "action": "WRITE", "level": "X"},
+					{"entity": "DEAL", "action": "EXPORT", "level": "X"},
+				],
+			},
+			{
+				"id": 3,
+				"name": "Администратор CRM",
+				"permissions": [{"entity": "CONFIG", "action": "WRITE", "level": "X"}],
+			},
+			{
+				"id": 4,
+				"name": "Закупщик",
+				"permissions": [
+					{"entity": "DYNAMIC_1032", "action": "READ", "level": "X"},
+					{"entity": "DYNAMIC_1032", "action": "WRITE", "level": "X"},
+					{"entity": "DYNAMIC_1036", "action": "READ", "level": "X"},
+				],
+			},
+		],
+		"crm_role_relations": [{"role_id": 1, "access_code": f"DR{d}"} for d in sales]
+		+ [{"role_id": 2, "access_code": f"U{u}"} for u in rng.sample(employees, k=min(2, len(employees)))]
+		+ [{"role_id": 3, "access_code": "G1"}, {"role_id": 4, "access_code": "SG6_K"}],
+		"disk_rights": [
+			{
+				"storage": "Общий диск",
+				"path": "/",
+				"access_code": "AU",
+				"task": "disk_access_read",
+				"negative": False,
+			}
+		]
+		+ [
+			{
+				"storage": "Общий диск",
+				"path": "/Бухгалтерия",
+				"access_code": f"D{d}",
+				"task": "disk_access_edit",
+				"negative": False,
+			}
+			for d in buh
+		]
+		+ [
+			{
+				"storage": "Общий диск",
+				"path": "/Кадры",
+				"access_code": f"D{d}",
+				"task": "disk_access_full",
+				"negative": False,
+			}
+			for d in hr
+		]
+		+ [
+			{
+				"storage": "Общий диск",
+				"path": "/Кадры",
+				"access_code": "G12",
+				"task": "disk_access_edit",
+				"negative": False,
+			}
+		],
+		"absences": [
+			{
+				"id": 1000 + i,
+				"user_id": int(u),
+				"type": "VACATION",
+				"title": "Отпуск",
+				"date_from": (now + datetime.timedelta(days=d)).date().isoformat(),
+				"date_to": (now + datetime.timedelta(days=d + 13)).date().isoformat(),
+			}
+			for i, (u, d) in enumerate(
+				(u, rng.randint(-20, 60)) for u in rng.sample(employees, k=min(len(employees) // 10, 60))
+			)
+		],
+		"warnings": [],
+	}
+	return {
+		"users": users,
+		"departments": departments,
+		"workgroups": groups,
+		"workgroup_members": members,
+		"crm_types": [
+			{"id": 1, "entityTypeId": 1032, "title": "Закупки"},
+			{"id": 2, "entityTypeId": 1036, "title": "Договоры"},
+		],
+		"export": export,
 	}
 
 
