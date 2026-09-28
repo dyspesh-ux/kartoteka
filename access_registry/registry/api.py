@@ -192,6 +192,9 @@ def _dashboard() -> dict:
 			"entitlements": frappe.db.count("Entitlement", {"active": 1}),
 		},
 		"expiring": expiring,
+		"events": frappe.db.count(
+			"HR Event", {"processed": 0, "event_type": ["in", JML_GRANT + JML_REVOKE + JML_PLAN]}
+		),
 		"quality": {
 			"merge_candidates": frappe.db.count("Person Merge Candidate", {"status": "Открыт"}),
 			"b24_admins": frappe.db.count("B24 User", {"is_admin": 1, "active": 1, "missing_in_source": 0}),
@@ -790,7 +793,11 @@ CONTROLS = {
 	"stale": "Давно не входили",
 	"processes": "Риски процессов",
 	"quality": "Расхождения данных",
+	"events": "Кадровые события: что сделать",
 }
+JML_GRANT = ("Приём", "Перевод", "Выход из отпуска по уходу", "Вернулся в выгрузку")
+JML_REVOKE = ("Увольнение", "Пропал из выгрузки")
+JML_PLAN = ("Предстоящее увольнение", "Уход в отпуск по уходу")
 
 
 @frappe.whitelist()
@@ -1060,6 +1067,61 @@ def _control_quality():
 	], rows
 
 
+def _control_events():
+	"""Joiners, movers, leavers: what to grant and what to revoke after an HR event."""
+	events = frappe.db.sql(
+		"""select ev.name, ev.event_type, ev.event_date, ev.person, ev.details, p.full_name, p.status as person_status
+		from `tabHR Event` ev join `tabPerson` p on p.name = ev.person
+		where ev.processed = 0 and ev.event_type in %(types)s
+		order by ev.event_date desc, p.full_name limit 1000""",
+		{"types": JML_GRANT + JML_REVOKE + JML_PLAN},
+		as_dict=True,
+	)
+	persons = {e.person for e in events}
+	by_person = defaultdict(list)
+	if persons:
+		for row in engine.reconcile(persons):
+			by_person[row["person"]].append(row)
+	accounts = Accounts()
+	for ev in events:
+		recon = by_person.get(ev.person, [])
+		grant = [r["title"] for r in recon if r["status"] == engine.MISSING]
+		revoke = [r["title"] for r in recon if r["status"] in (engine.EXCESS, engine.EXCESS_NOT_WORKING)]
+		active = [
+			f"{system}: {n}" if n > 1 else system for system, n in accounts.active(ev.person).items() if n
+		]
+		todo = []
+		if ev.event_type in JML_GRANT:
+			if grant:
+				todo.append(_("Выдать: {0}").format(", ".join(grant)))
+			if ev.event_type == "Перевод" and revoke:
+				todo.append(_("Отозвать лишнее после перевода: {0}").format(", ".join(revoke)))
+			if not active and ev.person_status == "Работает":
+				todo.append(_("Учёток ещё нет: завести"))
+		elif ev.event_type in JML_REVOKE:
+			if active:
+				todo.append(_("Отключить учётки: {0}").format(", ".join(active)))
+			if revoke:
+				todo.append(_("Отозвать: {0}").format(", ".join(revoke)))
+		elif ev.event_type == "Предстоящее увольнение":
+			if active:
+				todo.append(
+					_("Запланировать отключение в последний рабочий день: {0}").format(", ".join(active))
+				)
+		elif active:
+			todo.append(_("Решить, блокировать ли учётки на время отпуска: {0}").format(", ".join(active)))
+		ev.todo = "; ".join(todo) or _("действий не требуется")
+		ev.event_date = str(ev.event_date) if ev.event_date else None
+		ev.ref, ev.ref_doctype = ev.name, "HR Event"
+	return [
+		_column("event_date", _("Дата"), "date"),
+		_column("event_type", _("Событие"), "badge"),
+		_column("full_name", _("Сотрудник"), "person"),
+		_column("todo", _("Что сделать")),
+		_column("details", _("Подробности")),
+	], events
+
+
 # --------------------------------------------------------------------------- search and actions
 
 
@@ -1218,3 +1280,12 @@ def review(name: str) -> dict:
 		| {"due_date": str(doc.due_date) if doc.due_date else None},
 		"items": results(name),
 	}
+
+
+@frappe.whitelist(methods=["POST"])
+def mark_event_processed(event: str) -> str:
+	"""An HR event is handled: access granted or revoked in the systems."""
+	require(AUDITOR, ROLE_MANAGER)
+	frappe.db.set_value("HR Event", event, "processed", 1)
+	frappe.cache().delete_value(CACHE_KEY)
+	return event

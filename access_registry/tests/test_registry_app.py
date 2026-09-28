@@ -149,3 +149,24 @@ class TestRegistryApp(RoleFixture):
 		html = get_response_content("registry")
 		self.assertIn("access_registry.registry.api.", html)
 		self.assertIn("--accent", html)
+
+	def test_hr_events_to_do(self):
+		for n, kind in ((8, "Увольнение"), (3, "Приём"), (6, "Уход в отпуск по уходу")):
+			frappe.get_doc(
+				{
+					"doctype": "HR Event",
+					"event_type": kind,
+					"person": self.person(n),
+					"event_date": "2026-06-01",
+					"source": "TST1",
+				}
+			).insert(ignore_permissions=True)
+		rows = {r.full_name: r.todo for r in api.control("events")["rows"]}
+		self.assertIn("Отключить учётки: 1С, AD, Битрикс24", rows["Фёдоров Фёдор Фёдорович"])
+		self.assertIn("Выдать: AD: пользователи ЗУП", rows["Сидоров Пётр Алексеевич"])
+		self.assertIn("блокировать", rows["Орлова Елена Павловна"])
+		self.assertEqual(api.dashboard(refresh=1)["events"], 3)
+		event = frappe.db.get_value("HR Event", {"person": self.person(8)}, "name")
+		api.mark_event_processed(event)
+		self.assertEqual(frappe.db.get_value("HR Event", event, "processed"), 1)
+		self.assertNotIn("Фёдоров Фёдор Фёдорович", {r.full_name for r in api.control("events")["rows"]})

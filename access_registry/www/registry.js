@@ -809,12 +809,13 @@
 		stale: "Учётки включены, но ими давно не пользовались (больше 90 дней) или не входили никогда.",
 		processes: "Роли процессов без участников, без заместителя или с неработающими участниками.",
 		quality: "Данные в Битрикс24 и AD, которые не совпадают с кадрами ЗУП.",
+		events: "Необработанные кадровые события: кому после приёма или перевода выдать положенное, у кого после увольнения отключить учётки и отозвать права.",
 	};
-	const CONTROL_ORDER = ["dismissed", "sod", "excess", "privileged", "unlinked", "missing", "exceptions", "stale", "processes", "quality"];
+	const CONTROL_ORDER = ["dismissed", "events", "sod", "excess", "privileged", "unlinked", "missing", "exceptions", "stale", "processes", "quality"];
 	const CONTROL_TITLES = {
 		dismissed: "Доступ у неработающих", unlinked: "Учётки без сотрудника", excess: "Лишние доступы", missing: "Не хватает доступов",
 		sod: "Конфликты полномочий", privileged: "Привилегированный доступ", exceptions: "Исключения и сроки", stale: "Давно не входили",
-		processes: "Риски процессов", quality: "Расхождения с кадрами",
+		processes: "Риски процессов", quality: "Расхождения с кадрами", events: "Кадровые события",
 	};
 
 	async function viewControl(view, kind) {
@@ -828,6 +829,7 @@
 			sod: d.sod,
 			exceptions: d.reconciliation.exceptions,
 			processes: d.processes.risks,
+			events: d.events,
 		};
 		view.innerHTML = `
 			<div class="page-head"><div><h1>Контроль</h1><p>Что требует решения: списки для службы безопасности, ИБ и контролёров прав. Каждый список можно выгрузить в CSV.</p></div></div>
@@ -837,12 +839,24 @@
 			<div class="card"><div class="card-head"><div><h3>${CONTROL_TITLES[kind]}</h3><p class="muted small" style="margin:4px 0 0">${CONTROL_HELP[kind]}</p></div></div>
 			<div class="ctl"><div class="loading"><div class="spinner"></div></div></div></div>`;
 		const data = await api("control", { kind });
-		table(view.querySelector(".ctl"), {
+		const box = view.querySelector(".ctl");
+		const canMark = kind === "events" && (state.boot.can.audit || state.boot.can.roles);
+		table(box, {
 			name: CONTROL_TITLES[kind].toLowerCase(),
 			rows: data.rows,
 			columns: data.columns,
 			empty: "Замечаний нет",
+			actions: canMark ? (r) => `<button class="btn small mark" data-event="${esc(r.name)}">Обработано</button>` : null,
 		});
+		if (canMark)
+			box.addEventListener("click", async (e) => {
+				const btn = e.target.closest(".mark");
+				if (!btn) return;
+				btn.disabled = true;
+				await api("mark_event_processed", { event: btn.dataset.event }, true);
+				btn.closest("tr").style.opacity = ".4";
+				btn.textContent = "✓";
+			});
 	}
 
 	// ------------------------------------------------------------------ access catalog
