@@ -141,6 +141,10 @@ class TestAccessCatalog(FrappeTestCase):
 		self.assertEqual(row.profile, f"{S1}:{PRF(1)}")  # 11. clickable link to the profile
 		self.assertEqual((row.orgs_mode, row.orgs_text), ("only", "Ромашка ООО"))
 		self.assertEqual(
+			row.restrictions_text,
+			"Организации: только: Ромашка ООО\nФизическиеЛица: только: Иванов Иван Иванович",
+		)
+		self.assertEqual(
 			[r["kind"] for r in json.loads(row.restrictions_json)], ["Организации", "ФизическиеЛица"]
 		)
 		self.assertTrue(frappe.db.exists("IB Access Profile", row.profile))

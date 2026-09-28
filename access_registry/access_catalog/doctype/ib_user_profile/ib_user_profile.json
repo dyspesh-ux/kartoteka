@@ -12,6 +12,7 @@
   "via_name",
   "orgs_mode",
   "orgs_text",
+  "restrictions_text",
   "access_group_id",
   "restrictions_json"
  ],
@@ -61,6 +62,13 @@
    "fieldtype": "Small Text",
    "in_list_view": 1,
    "label": "Организации",
+   "read_only": 1
+  },
+  {
+   "description": "Все виды доступа профиля: организации, ЦФО, учётные записи почты и другие",
+   "fieldname": "restrictions_text",
+   "fieldtype": "Small Text",
+   "label": "Ограничения доступа",
    "read_only": 1
   },
   {

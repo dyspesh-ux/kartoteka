@@ -80,6 +80,27 @@ def orgs_text(restrictions: list) -> tuple[str, str]:
 	return "все (без ограничения)", "unrestricted"
 
 
+MODE_TEXT = {"all": "все", "not_configured": "не настроено"}
+# Bump when fields derived from the payload change, so stored records are rebuilt once.
+DERIVED_VERSION = 2
+
+
+def restrictions_text(restrictions: list) -> str:
+	"""All access kinds of a profile in one readable line per kind."""
+	lines = []
+	for r in restrictions or []:
+		mode = r.get("mode") or ""
+		names = ", ".join(v.get("name") or "" for v in r.get("values") or [])
+		if mode == "only":
+			text = f"только: {names}" if names else "ни одного"
+		elif mode == "all_except":
+			text = f"все, кроме: {names}"
+		else:
+			text = MODE_TEXT.get(mode, mode)
+		lines.append(f"{r.get('kind')}: {text}")
+	return "\n".join(lines) if lines else "без ограничений"
+
+
 def canonical_rights(rights: dict | None) -> dict | None:
 	"""Order-independent form of user_rights: 1C may return rows in any order."""
 	if not rights:
@@ -273,6 +294,7 @@ class SnapshotImport:
 			"person": [person, link_method, link_note],
 			"orphan": orphan,
 			"configuration": self.configuration,
+			"v": DERIVED_VERSION,
 		}
 		h = src_hash(payload)
 		doc = self.load("IB User", uid, h)
@@ -321,6 +343,7 @@ class SnapshotImport:
 					"via_name": p.get("via_name"),
 					"orgs_mode": mode,
 					"orgs_text": text,
+					"restrictions_text": restrictions_text(p.get("restrictions")),
 					"restrictions_json": json.dumps(
 						p.get("restrictions") or [], ensure_ascii=False, indent=1
 					),
