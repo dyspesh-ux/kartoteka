@@ -448,6 +448,4 @@ class TestBitrix24(FrappeTestCase):
 		self.assertTrue(not_working)
 		self.assertEqual({r["user_name"] for r in not_working}, {"Фёдоров Фёдор Фёдорович"})
 		disk = reports.section_access({"resource": "Бухгалтерия"})[1]
-		self.assertEqual(
-			[(r["user_name"], r["permission"]) for r in disk], [("Петрова Мария", "Изменение")]
-		)
+		self.assertEqual([(r["user_name"], r["permission"]) for r in disk], [("Петрова Мария", "Изменение")])

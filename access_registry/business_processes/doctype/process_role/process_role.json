@@ -1,0 +1,172 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-10-01 03:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "business_process",
+  "role_name",
+  "raci",
+  "column_break_1",
+  "min_participants",
+  "needs_deputy",
+  "filled_by_access_role",
+  "description",
+  "section_break_2",
+  "entitlements"
+ ],
+ "fields": [
+  {
+   "fieldname": "business_process",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Процесс",
+   "options": "Business Process",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "description": "Например «Согласующий договор», «Казначей»",
+   "fieldname": "role_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Роль в процессе",
+   "reqd": 1
+  },
+  {
+   "default": "Исполнитель (R)",
+   "fieldname": "raci",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Участие (RACI)",
+   "options": "Исполнитель (R)\nОтвечает за результат (A)\nКонсультант (C)\nИнформируется (I)"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "min_participants",
+   "fieldtype": "Int",
+   "label": "Нужно участников не меньше"
+  },
+  {
+   "default": "1",
+   "description": "Без заместителя процесс встанет на время отпуска или болезни",
+   "fieldname": "needs_deputy",
+   "fieldtype": "Check",
+   "label": "Нужен заместитель"
+  },
+  {
+   "description": "Например, все с ролью «Бухгалтер» — исполнители. Можно дополнить участниками вручную",
+   "fieldname": "filled_by_access_role",
+   "fieldtype": "Link",
+   "label": "Участники — все с ролью доступа",
+   "options": "Access Role"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Обязанности"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Какие права нужны для роли"
+  },
+  {
+   "description": "Попадают в «положено» каждому участнику роли",
+   "fieldname": "entitlements",
+   "fieldtype": "Table",
+   "label": "Права доступа",
+   "options": "Process Role Entitlement"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "group": "Участники",
+   "link_doctype": "Process Participant",
+   "link_fieldname": "process_role"
+  }
+ ],
+ "modified": "2026-10-01 03:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Business Processes",
+ "name": "Process Role",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Process Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager"
+  }
+ ],
+ "search_fields": "role_name,business_process",
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "role_name",
+ "track_changes": 1
+}

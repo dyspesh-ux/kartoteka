@@ -1,0 +1,132 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-10-01 03:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "person",
+  "entitlement",
+  "valid_to",
+  "column_break_1",
+  "reason",
+  "approved_by"
+ ],
+ "fields": [
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Сотрудник",
+   "options": "Person",
+   "reqd": 1
+  },
+  {
+   "fieldname": "entitlement",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Право доступа",
+   "options": "Entitlement",
+   "reqd": 1
+  },
+  {
+   "description": "Пусто — бессрочно. По окончании право снова считается лишним",
+   "fieldname": "valid_to",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Действует по"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Почему согласовано",
+   "reqd": 1
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Согласовал",
+   "options": "User",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-01 03:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Roles",
+ "name": "Access Exception",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Process Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "entitlement",
+ "track_changes": 1
+}

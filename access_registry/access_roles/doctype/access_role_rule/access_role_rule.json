@@ -1,0 +1,63 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-10-01 03:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "position_title",
+  "department",
+  "include_subdepartments",
+  "organization",
+  "main_only"
+ ],
+ "fields": [
+  {
+   "description": "Название должности, как в ЗУП (регистр и ё не важны). Совпадает с должностью во всех базах",
+   "fieldname": "position_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Должность"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Подразделение",
+   "options": "HR Department"
+  },
+  {
+   "default": "1",
+   "fieldname": "include_subdepartments",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "С подчинёнными"
+  },
+  {
+   "fieldname": "organization",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Организация",
+   "options": "HR Organization"
+  },
+  {
+   "fieldname": "main_only",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Только основное место работы"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-01 03:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Roles",
+ "name": "Access Role Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

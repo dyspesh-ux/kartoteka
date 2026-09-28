@@ -6,6 +6,7 @@ app_email = "noreply@example.com"
 app_license = "mit"
 required_apps = ["frappe"]
 
+before_install = "access_registry.install.create_roles"
 after_install = "access_registry.install.after_install"
 after_migrate = "access_registry.install.after_migrate"
 
@@ -26,5 +27,7 @@ scheduler_events = {
 		"20 * * * *": ["access_registry.active_directory.sync.scheduled_sync"],
 		# Bitrix24: every hour at :40, after AD (users are linked to employees through AD accounts).
 		"40 * * * *": ["access_registry.bitrix24.sync.scheduled_sync"],
+		# Role model: holders of entitlements and members of roles for list views.
+		"30 4 * * *": ["access_registry.access_roles.api.scheduled_refresh"],
 	}
 }

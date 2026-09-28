@@ -1,0 +1,152 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:title",
+ "creation": "2026-10-01 03:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "severity",
+  "active",
+  "column_break_1",
+  "description",
+  "section_break_1",
+  "side_a",
+  "column_break_2",
+  "side_b"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "description": "Например «Создание и оплата платежей»",
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Конфликт полномочий",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "Высокая",
+   "fieldname": "severity",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Критичность",
+   "options": "Средняя\nВысокая\nКритичная"
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "label": "Действует"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Почему нельзя совмещать"
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Несовместимые права: хотя бы одно слева и хотя бы одно справа"
+  },
+  {
+   "fieldname": "side_a",
+   "fieldtype": "Table",
+   "label": "Первая сторона",
+   "options": "SoD Rule Entitlement",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "side_b",
+   "fieldtype": "Table",
+   "label": "Вторая сторона",
+   "options": "SoD Rule Entitlement",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-01 03:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Roles",
+ "name": "SoD Rule",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Process Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

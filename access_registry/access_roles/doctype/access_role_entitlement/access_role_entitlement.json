@@ -1,0 +1,52 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-10-01 03:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "entitlement",
+  "system",
+  "requirement"
+ ],
+ "fields": [
+  {
+   "fieldname": "entitlement",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Право доступа",
+   "options": "Entitlement",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "entitlement.system",
+   "fieldname": "system",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Система",
+   "read_only": 1
+  },
+  {
+   "default": "Обязательно",
+   "description": "«Обязательно» — должно быть у каждого, иначе «Не хватает». «По необходимости» — допустимо, но не выдаётся автоматически и не считается лишним",
+   "fieldname": "requirement",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Требование",
+   "options": "Обязательно\nПо необходимости"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-01 03:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Roles",
+ "name": "Access Role Entitlement",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

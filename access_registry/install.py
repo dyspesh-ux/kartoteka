@@ -3,9 +3,16 @@ import frappe
 from access_registry.settings import DEFAULT_SYNC_USERS
 from access_registry.sync.departments import ensure_root
 
-# 1C Sync: technical role of the API user (n8n) — only the import methods.
-# Access Catalog Viewer: read access to the catalog of 1C user rights.
-CATALOG_ROLES = ("1C Sync", "Access Catalog Viewer")
+# Roles of the registry users (see docs/roles-and-processes.md → «Кто работает с реестром»).
+REGISTRY_ROLES = {
+	"Registry Admin": "Администратор реестра: источники, загрузки, настройки, все данные",
+	"Registry Auditor": "Аудитор (ИБ, служба безопасности, внутренний аудит): читает всё, включая кадровые данные",
+	"Access Role Manager": "Владелец ролевой модели: права доступа, роли, исключения, конфликты полномочий",
+	"Process Manager": "Методолог процессов: бизнес-процессы, роли процессов, участники",
+	"Access Catalog Viewer": "Контролёр прав (главный бухгалтер, руководители): доступы и отчёты без персональных данных",
+	"1C Sync": "Технический пользователь внешнего транспорта (n8n): только методы импорта",
+}
+CATALOG_ROLES = tuple(REGISTRY_ROLES)
 
 
 def after_install():
@@ -45,7 +52,7 @@ def create_sync_users():
 
 
 def create_roles():
-	for role in CATALOG_ROLES:
+	for role in REGISTRY_ROLES:
 		if not frappe.db.exists("Role", role):
 			frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 1}).insert(
 				ignore_permissions=True

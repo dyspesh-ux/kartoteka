@@ -1,0 +1,235 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "ENT-.#####",
+ "creation": "2026-10-01 03:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "system",
+  "risk",
+  "privileged",
+  "active",
+  "column_break_1",
+  "owner_person",
+  "description",
+  "holders",
+  "section_break_2",
+  "ib_profile",
+  "ad_group",
+  "b24_workgroup",
+  "column_break_2",
+  "b24_portal",
+  "b24_via",
+  "b24_resource",
+  "other_reference"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "description": "Понятное название: «1С Бухгалтерия: Главный бухгалтер», «Папка бухгалтерии: запись»",
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Право доступа",
+   "reqd": 1
+  },
+  {
+   "fieldname": "system",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Система",
+   "options": "1С\nActive Directory\nБитрикс24\nДругое",
+   "reqd": 1
+  },
+  {
+   "default": "Средний",
+   "fieldname": "risk",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Риск",
+   "options": "Низкий\nСредний\nВысокий\nКритичный"
+  },
+  {
+   "description": "Администрирование, полные права, доступ к деньгам и персональным данным",
+   "fieldname": "privileged",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Привилегированное"
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Используется"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Кто согласует выдачу: владелец системы или данных",
+   "fieldname": "owner_person",
+   "fieldtype": "Link",
+   "label": "Владелец права",
+   "options": "Person"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Что даёт"
+  },
+  {
+   "description": "Пересчитывается кнопкой «Пересчитать» и при сверке",
+   "fieldname": "holders",
+   "fieldtype": "Int",
+   "label": "Есть у сотрудников",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Как право выглядит в системе"
+  },
+  {
+   "depends_on": "eval:doc.system=='1С'",
+   "description": "Профиль групп доступа в конкретной базе 1С",
+   "fieldname": "ib_profile",
+   "fieldtype": "Link",
+   "label": "Профиль 1С",
+   "options": "IB Access Profile"
+  },
+  {
+   "depends_on": "eval:doc.system=='Active Directory'",
+   "fieldname": "ad_group",
+   "fieldtype": "Link",
+   "label": "Группа AD",
+   "options": "AD Group"
+  },
+  {
+   "depends_on": "eval:doc.system=='Битрикс24'",
+   "fieldname": "b24_workgroup",
+   "fieldtype": "Link",
+   "label": "Группа или проект Битрикс24",
+   "options": "B24 Workgroup"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.system=='Битрикс24'",
+   "fieldname": "b24_portal",
+   "fieldtype": "Link",
+   "label": "Портал Битрикс24",
+   "options": "B24 Portal"
+  },
+  {
+   "depends_on": "eval:doc.system=='Битрикс24'",
+   "description": "Как в «Права на разделы» → «Через»: «Роль CRM «Менеджер»», «Права на папку», «Группа пользователей 12»",
+   "fieldname": "b24_via",
+   "fieldtype": "Data",
+   "label": "Битрикс24: через"
+  },
+  {
+   "depends_on": "eval:doc.system=='Битрикс24'",
+   "description": "Необязательно: «Сделки», «Общий диск: /Бухгалтерия». Пусто — любой ресурс через указанное",
+   "fieldname": "b24_resource",
+   "fieldtype": "Data",
+   "label": "Битрикс24: ресурс"
+  },
+  {
+   "depends_on": "eval:doc.system=='Другое'",
+   "description": "Для систем, которые реестр не читает: проверяется вручную",
+   "fieldname": "other_reference",
+   "fieldtype": "Data",
+   "label": "Где выдаётся"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "group": "Исключения",
+   "link_doctype": "Access Exception",
+   "link_fieldname": "entitlement"
+  }
+ ],
+ "modified": "2026-10-01 03:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Roles",
+ "name": "Entitlement",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Process Manager"
+  }
+ ],
+ "search_fields": "title,system",
+ "show_title_field_in_link": 1,
+ "sort_field": "title",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

@@ -1,0 +1,185 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:role_name",
+ "creation": "2026-10-01 03:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "role_name",
+  "kind",
+  "status",
+  "column_break_1",
+  "owner_person",
+  "members",
+  "description",
+  "section_break_2",
+  "rules",
+  "section_break_3",
+  "entitlements"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "role_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Роль доступа",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "Должностная",
+   "description": "Базовая — всем работающим (почта, портал). Должностная — по правилам ниже. Дополнительная — только назначением вручную",
+   "fieldname": "kind",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Вид",
+   "options": "Должностная\nБазовая\nДополнительная"
+  },
+  {
+   "default": "Действует",
+   "description": "В сверке участвуют только действующие роли",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Статус",
+   "options": "Действует\nЧерновик\nАрхив"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Кто отвечает за состав прав и согласует изменения",
+   "fieldname": "owner_person",
+   "fieldtype": "Link",
+   "label": "Владелец роли",
+   "options": "Person"
+  },
+  {
+   "fieldname": "members",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Сотрудников",
+   "read_only": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Описание"
+  },
+  {
+   "depends_on": "eval:doc.kind=='Должностная'",
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Кому положена (правила)"
+  },
+  {
+   "description": "Роль получает сотрудник, у которого хотя бы одно активное трудоустройство подходит хотя бы под одно правило. В правиле действуют все заполненные условия",
+   "fieldname": "rules",
+   "fieldtype": "Table",
+   "label": "Правила",
+   "options": "Access Role Rule"
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Что даёт"
+  },
+  {
+   "fieldname": "entitlements",
+   "fieldtype": "Table",
+   "label": "Права доступа",
+   "options": "Access Role Entitlement"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "group": "Назначения",
+   "link_doctype": "Access Role Assignment",
+   "link_fieldname": "access_role"
+  },
+  {
+   "group": "Процессы",
+   "link_doctype": "Process Role",
+   "link_fieldname": "filled_by_access_role"
+  }
+ ],
+ "modified": "2026-10-01 03:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Roles",
+ "name": "Access Role",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Process Manager"
+  }
+ ],
+ "sort_field": "role_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "role_name",
+ "track_changes": 1
+}
