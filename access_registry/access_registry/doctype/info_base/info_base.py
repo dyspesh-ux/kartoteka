@@ -40,7 +40,7 @@ class InfoBase(Document):
 
 	@frappe.whitelist()
 	def sync_now(self):
-		frappe.only_for("System Manager")
+		frappe.only_for(("System Manager", "Registry Admin"))
 		from frappe.utils.background_jobs import is_job_enqueued
 
 		from access_registry.sync.engine import enqueue_source_sync, job_id_for
@@ -63,7 +63,7 @@ class InfoBase(Document):
 		return self._enqueue_catalog("log", _("Загрузка журнала изменений прав"))
 
 	def _enqueue_catalog(self, kind, title):
-		frappe.only_for("System Manager")
+		frappe.only_for(("System Manager", "Registry Admin"))
 		from frappe.utils.background_jobs import is_job_enqueued
 
 		from access_registry.access_catalog.pull import enqueue, job_id_for

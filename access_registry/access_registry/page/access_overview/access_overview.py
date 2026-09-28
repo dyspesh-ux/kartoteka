@@ -6,6 +6,7 @@ import frappe
 from frappe import _
 
 from access_registry.access_catalog.access_report import load_profiles, main_places
+from access_registry.permissions import READERS
 
 ACTIVE_USER = "u.login_allowed = 1 and u.invalid = 0 and u.missing_in_source = 0"
 # Service accounts and IB users without a card are not people: they have their own place.
@@ -17,7 +18,7 @@ AD_OFF_1C_ON = f"{ACTIVE_USER} and (a.enabled = 0 or a.missing_in_source = 1)"
 
 
 def _check():
-	frappe.only_for("System Manager")
+	frappe.only_for(READERS)
 
 
 def _scalar(sql, params=None):

@@ -33,7 +33,7 @@ class B24Portal(Document):
 
 	@frappe.whitelist()
 	def sync_now(self):
-		frappe.only_for("System Manager")
+		frappe.only_for(("System Manager", "Registry Admin"))
 		from frappe.utils.background_jobs import is_job_enqueued
 
 		from access_registry.bitrix24.sync import enqueue
@@ -47,7 +47,7 @@ class B24Portal(Document):
 
 	@frappe.whitelist()
 	def test_connection(self):
-		frappe.only_for("System Manager")
+		frappe.only_for(("System Manager", "Registry Admin"))
 		from access_registry.bitrix24.sync import fetch_export, make_client
 
 		lines = []

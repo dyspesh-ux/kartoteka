@@ -205,7 +205,7 @@ def load_portal_file(portal: str, path: str):
 	For a dev site and synthetic data (tools/generate_synthetic.py --bitrix24). Writes are not
 	sent anywhere: without a client the write step only reports what it would change.
 	"""
-	frappe.only_for("System Manager")
+	frappe.only_for(("System Manager", "Registry Admin"))
 	with open(path, encoding="utf-8") as fh:
 		data = json.load(fh)
 	log = run_portal_sync(portal, fetch=lambda _portal: data, client=DryRunClient())

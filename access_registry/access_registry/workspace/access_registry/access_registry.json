@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Слои реестра.</b> 1) Кадры из баз ЗУП — источник правды о сотрудниках, подразделениях и организациях. 2) Active Directory — учётки и группы, привязаны к сотрудникам (employeeNumber или ФИО). 3) Пользователи 1С (ЗУП, Бухгалтерия и другие базы) — привязаны к сотрудникам и к учёткам AD. 4) Bitrix24. 5) Свои процессы и роли. <br><b>Подключить базу:</b> «Базы 1С» → новая база, код (например BP1), конфигурация, URL сервисов и пароли → «Загрузить». Кадры грузятся только из баз ЗУП. <b>Подключить домен:</b> «Домены AD» → сервер LDAP, Base DN, учётка только на чтение → «Проверить подключение» → «Загрузить».\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Кадры — источник правды (базы ЗУП)</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сотрудники\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Трудоустройства\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Дерево подразделений\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Длительное отсутствие\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000009\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Разбор кадров</b></span>\", \"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты на склейку\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Новые кадровые события\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Только совместительство\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Расхождения руководителей\", \"col\": 4}}, {\"id\": \"ar00000014\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты в руководители\", \"col\": 4}}, {\"id\": \"ar00000015\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Нет в выгрузке\", \"col\": 4}}, {\"id\": \"ar00000016\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000017\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Пользователи 1С и права (все базы)</b></span>\", \"col\": 12}}, {\"id\": \"ar00000018\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Обзор доступа\", \"col\": 4}}, {\"id\": \"ar00000019\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Полный отчёт по доступам\", \"col\": 4}}, {\"id\": \"ar00000020\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пользователи 1С\", \"col\": 4}}, {\"id\": \"ar00000021\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Не привязаны к сотруднику\", \"col\": 4}}, {\"id\": \"ar00000022\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Вход у неработающих\", \"col\": 4}}, {\"id\": \"ar00000023\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли в обход профилей\", \"col\": 4}}, {\"id\": \"ar00000024\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сироты ИБ\", \"col\": 4}}, {\"id\": \"ar00000025\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Доступ ко всем организациям\", \"col\": 4}}, {\"id\": \"ar00000026\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Профили доступа\", \"col\": 4}}, {\"id\": \"ar00000027\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал изменений прав\", \"col\": 4}}, {\"id\": \"ar00000028\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000029\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Active Directory</b></span>\", \"col\": 12}}, {\"id\": \"ar00000030\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Учётки AD\", \"col\": 4}}, {\"id\": \"ar00000031\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Включены у уволенных\", \"col\": 4}}, {\"id\": \"ar00000032\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Учётки без сотрудника\", \"col\": 4}}, {\"id\": \"ar00000033\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Давно не входили\", \"col\": 4}}, {\"id\": \"ar00000034\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Отключены в AD, вход в 1С есть\", \"col\": 4}}, {\"id\": \"ar00000035\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Группы AD\", \"col\": 4}}, {\"id\": \"ar00000036\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Группы на контроле\", \"col\": 4}}, {\"id\": \"ar00000037\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Проставить employeeNumber\", \"col\": 4}}, {\"id\": \"ar00000038\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000039\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Базы 1С, домены и загрузка</b></span>\", \"col\": 12}}, {\"id\": \"ar00000040\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Базы 1С\", \"col\": 4}}, {\"id\": \"ar00000041\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Домены AD\", \"col\": 4}}, {\"id\": \"ar00000042\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал синхронизаций\", \"col\": 4}}, {\"id\": \"ar00000043\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Неудачные синхронизации\", \"col\": 4}}, {\"id\": \"ar00000044\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000045\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000046\", \"type\": \"card\", \"data\": {\"card_name\": \"Кадры (ЗУП)\", \"col\": 4}}, {\"id\": \"ar00000047\", \"type\": \"card\", \"data\": {\"card_name\": \"Разбор кадров\", \"col\": 4}}, {\"id\": \"ar00000048\", \"type\": \"card\", \"data\": {\"card_name\": \"Active Directory\", \"col\": 4}}, {\"id\": \"ar00000049\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по AD\", \"col\": 4}}, {\"id\": \"ar00000050\", \"type\": \"card\", \"data\": {\"card_name\": \"Пользователи 1С и права\", \"col\": 4}}, {\"id\": \"ar00000051\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по правам\", \"col\": 4}}, {\"id\": \"ar00000052\", \"type\": \"card\", \"data\": {\"card_name\": \"Источники и загрузка\", \"col\": 4}}]",
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Реестр «кто есть кто и у кого какой доступ».</b> Для ежедневной работы — <a href=\\\"/registry\\\">приложение реестра</a>: сотрудники, доступы, роли, процессы и нарушения на одном экране. <br><b>Слои.</b> 1) Кадры из баз ЗУП — источник правды. 2) Active Directory. 3) Пользователи и права 1С. 4) Битрикс24: пользователи, структура, отсутствия, доступ к разделам; отчество и дата рождения дописываются из кадров. 5) Ролевая модель (положено по должности и процессам ↔ есть в системах) и бизнес-процессы. <br><b>Подключить:</b> базу 1С — «Базы 1С»; домен — «Домены AD»; портал — «Порталы Битрикс24» → «Проверить подключение» → «Загрузить».\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Кадры — источник правды (базы ЗУП)</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сотрудники\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Трудоустройства\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Дерево подразделений\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Длительное отсутствие\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000009\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Разбор кадров</b></span>\", \"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты на склейку\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Новые кадровые события\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Только совместительство\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Расхождения руководителей\", \"col\": 4}}, {\"id\": \"ar00000014\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты в руководители\", \"col\": 4}}, {\"id\": \"ar00000015\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Нет в выгрузке\", \"col\": 4}}, {\"id\": \"ar00000016\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000017\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Пользователи 1С и права (все базы)</b></span>\", \"col\": 12}}, {\"id\": \"ar00000018\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Приложение реестра\", \"col\": 4}}, {\"id\": \"ar00000019\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Обзор доступа\", \"col\": 4}}, {\"id\": \"ar00000020\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Полный отчёт по доступам\", \"col\": 4}}, {\"id\": \"ar00000021\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пользователи 1С\", \"col\": 4}}, {\"id\": \"ar00000022\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Не привязаны к сотруднику\", \"col\": 4}}, {\"id\": \"ar00000023\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Вход у неработающих\", \"col\": 4}}, {\"id\": \"ar00000024\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли в обход профилей\", \"col\": 4}}, {\"id\": \"ar00000025\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сироты ИБ\", \"col\": 4}}, {\"id\": \"ar00000026\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Доступ ко всем организациям\", \"col\": 4}}, {\"id\": \"ar00000027\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Профили доступа\", \"col\": 4}}, {\"id\": \"ar00000028\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал изменений прав\", \"col\": 4}}, {\"id\": \"ar00000029\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000030\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Active Directory</b></span>\", \"col\": 12}}, {\"id\": \"ar00000031\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Учётки AD\", \"col\": 4}}, {\"id\": \"ar00000032\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Включены у уволенных\", \"col\": 4}}, {\"id\": \"ar00000033\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Учётки без сотрудника\", \"col\": 4}}, {\"id\": \"ar00000034\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Давно не входили\", \"col\": 4}}, {\"id\": \"ar00000035\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Отключены в AD, вход в 1С есть\", \"col\": 4}}, {\"id\": \"ar00000036\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Группы AD\", \"col\": 4}}, {\"id\": \"ar00000037\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Группы на контроле\", \"col\": 4}}, {\"id\": \"ar00000038\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Проставить employeeNumber\", \"col\": 4}}, {\"id\": \"ar00000039\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000040\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Битрикс24</b></span>\", \"col\": 12}}, {\"id\": \"ar00000041\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пользователи Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000042\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Активны у неработающих\", \"col\": 4}}, {\"id\": \"ar00000043\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Профиль не как в кадрах\", \"col\": 4}}, {\"id\": \"ar00000044\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Руководители: Битрикс24 и кадры\", \"col\": 4}}, {\"id\": \"ar00000045\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Структура: расхождения\", \"col\": 4}}, {\"id\": \"ar00000046\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Отсутствия: расхождения\", \"col\": 4}}, {\"id\": \"ar00000047\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Доступ к разделам Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000048\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Записано в Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000049\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000050\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Ролевая модель: положено и есть</b></span>\", \"col\": 12}}, {\"id\": \"ar00000051\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сверка доступа\", \"col\": 4}}, {\"id\": \"ar00000052\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Конфликты полномочий\", \"col\": 4}}, {\"id\": \"ar00000053\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли доступа\", \"col\": 4}}, {\"id\": \"ar00000054\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Черновики ролей\", \"col\": 4}}, {\"id\": \"ar00000055\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Каталог прав доступа\", \"col\": 4}}, {\"id\": \"ar00000056\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Подбор ролей\", \"col\": 4}}, {\"id\": \"ar00000057\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Доступы вне каталога\", \"col\": 4}}, {\"id\": \"ar00000058\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Исключения\", \"col\": 4}}, {\"id\": \"ar00000059\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000060\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Бизнес-процессы</b></span>\", \"col\": 12}}, {\"id\": \"ar00000061\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Бизнес-процессы\", \"col\": 4}}, {\"id\": \"ar00000062\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли процессов\", \"col\": 4}}, {\"id\": \"ar00000063\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Участники процессов\", \"col\": 4}}, {\"id\": \"ar00000064\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Риски процессов\", \"col\": 4}}, {\"id\": \"ar00000065\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000066\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Базы 1С, домены, порталы и загрузка</b></span>\", \"col\": 12}}, {\"id\": \"ar00000067\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Базы 1С\", \"col\": 4}}, {\"id\": \"ar00000068\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Домены AD\", \"col\": 4}}, {\"id\": \"ar00000069\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Порталы Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000070\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал синхронизаций\", \"col\": 4}}, {\"id\": \"ar00000071\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Неудачные синхронизации\", \"col\": 4}}, {\"id\": \"ar00000072\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000073\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000074\", \"type\": \"card\", \"data\": {\"card_name\": \"Кадры (ЗУП)\", \"col\": 4}}, {\"id\": \"ar00000075\", \"type\": \"card\", \"data\": {\"card_name\": \"Разбор кадров\", \"col\": 4}}, {\"id\": \"ar00000076\", \"type\": \"card\", \"data\": {\"card_name\": \"Active Directory\", \"col\": 4}}, {\"id\": \"ar00000077\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по AD\", \"col\": 4}}, {\"id\": \"ar00000078\", \"type\": \"card\", \"data\": {\"card_name\": \"Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000079\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000080\", \"type\": \"card\", \"data\": {\"card_name\": \"Ролевая модель\", \"col\": 4}}, {\"id\": \"ar00000081\", \"type\": \"card\", \"data\": {\"card_name\": \"Бизнес-процессы\", \"col\": 4}}, {\"id\": \"ar00000082\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты: роли и процессы\", \"col\": 4}}, {\"id\": \"ar00000083\", \"type\": \"card\", \"data\": {\"card_name\": \"Пользователи 1С и права\", \"col\": 4}}, {\"id\": \"ar00000084\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по правам\", \"col\": 4}}, {\"id\": \"ar00000085\", \"type\": \"card\", \"data\": {\"card_name\": \"Источники и загрузка\", \"col\": 4}}]",
  "creation": "2026-09-30 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -260,6 +260,370 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Битрикс24",
+   "link_count": 6,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Пользователи Битрикс24",
+   "link_count": 0,
+   "link_to": "B24 User",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Подразделения Битрикс24",
+   "link_count": 0,
+   "link_to": "B24 Department",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Группы и проекты",
+   "link_count": 0,
+   "link_to": "B24 Workgroup",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Права на разделы",
+   "link_count": 0,
+   "link_to": "B24 Access Grant",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Отсутствия в Битрикс24",
+   "link_count": 0,
+   "link_to": "B24 Absence",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Журнал записи в Битрикс24",
+   "link_count": 0,
+   "link_to": "B24 Write Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Отчёты по Битрикс24",
+   "link_count": 8,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Активны у неработающих",
+   "link_count": 0,
+   "link_to": "B24 Active Not Working",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Не привязаны к сотруднику (Битрикс24)",
+   "link_count": 0,
+   "link_to": "B24 Users Without Employee",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Профиль не как в кадрах",
+   "link_count": 0,
+   "link_to": "B24 Profile Differences",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Руководители: Битрикс24 и кадры",
+   "link_count": 0,
+   "link_to": "B24 Department Heads",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Структура: расхождения",
+   "link_count": 0,
+   "link_to": "B24 Structure",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Отсутствия: расхождения",
+   "link_count": 0,
+   "link_to": "B24 Absence Differences",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Доступ к разделам Битрикс24",
+   "link_count": 0,
+   "link_to": "B24 Section Access",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Участники групп и проектов",
+   "link_count": 0,
+   "link_to": "B24 Workgroup Members",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Ролевая модель",
+   "link_count": 5,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Каталог прав доступа",
+   "link_count": 0,
+   "link_to": "Entitlement",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Роли доступа",
+   "link_count": 0,
+   "link_to": "Access Role",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Назначения ролей",
+   "link_count": 0,
+   "link_to": "Access Role Assignment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Исключения",
+   "link_count": 0,
+   "link_to": "Access Exception",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Правила SoD",
+   "link_count": 0,
+   "link_to": "SoD Rule",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Бизнес-процессы",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Бизнес-процессы",
+   "link_count": 0,
+   "link_to": "Business Process",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Роли процессов",
+   "link_count": 0,
+   "link_to": "Process Role",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Участники",
+   "link_count": 0,
+   "link_to": "Process Participant",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Отчёты: роли и процессы",
+   "link_count": 7,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Сверка доступа",
+   "link_count": 0,
+   "link_to": "Access Reconciliation",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Конфликты полномочий",
+   "link_count": 0,
+   "link_to": "SoD Conflicts",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Состав ролей",
+   "link_count": 0,
+   "link_to": "Access Role Members",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Подбор ролей",
+   "link_count": 0,
+   "link_to": "Role Mining",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Доступы вне каталога",
+   "link_count": 0,
+   "link_to": "Unmanaged Access",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Участники процессов",
+   "link_count": 0,
+   "link_to": "Process Participants",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Риски процессов",
+   "link_count": 0,
+   "link_to": "Process Continuity",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Пользователи 1С и права",
    "link_count": 3,
    "link_type": "DocType",
@@ -400,7 +764,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Источники и загрузка",
-   "link_count": 4,
+   "link_count": 5,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -423,6 +787,17 @@
    "label": "Домены AD",
    "link_count": 0,
    "link_to": "AD Domain",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Порталы Битрикс24",
+   "link_count": 0,
+   "link_to": "B24 Portal",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -463,6 +838,21 @@
  "roles": [
   {
    "role": "System Manager"
+  },
+  {
+   "role": "Registry Admin"
+  },
+  {
+   "role": "Registry Auditor"
+  },
+  {
+   "role": "Access Role Manager"
+  },
+  {
+   "role": "Process Manager"
+  },
+  {
+   "role": "Access Catalog Viewer"
   }
  ],
  "sequence_id": 1.0,
@@ -544,6 +934,11 @@
    "stats_filter": "[[\"Employment\", \"missing\", \"=\", 1]]",
    "color": "Grey",
    "format": "{} трудоустройств"
+  },
+  {
+   "label": "Приложение реестра",
+   "url": "/registry",
+   "type": "URL"
   },
   {
    "label": "Обзор доступа",
@@ -672,6 +1067,136 @@
    "report_ref_doctype": "AD Account"
   },
   {
+   "label": "Пользователи Битрикс24",
+   "link_to": "B24 User",
+   "type": "DocType",
+   "stats_filter": "[[\"B24 User\", \"active\", \"=\", 1], [\"B24 User\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Blue",
+   "format": "{} активных"
+  },
+  {
+   "label": "Активны у неработающих",
+   "link_to": "B24 Active Not Working",
+   "type": "Report",
+   "report_ref_doctype": "B24 User"
+  },
+  {
+   "label": "Профиль не как в кадрах",
+   "link_to": "B24 Profile Differences",
+   "type": "Report",
+   "report_ref_doctype": "B24 User"
+  },
+  {
+   "label": "Руководители: Битрикс24 и кадры",
+   "link_to": "B24 Department Heads",
+   "type": "Report",
+   "report_ref_doctype": "B24 Department"
+  },
+  {
+   "label": "Структура: расхождения",
+   "link_to": "B24 Structure",
+   "type": "Report",
+   "report_ref_doctype": "B24 Department"
+  },
+  {
+   "label": "Отсутствия: расхождения",
+   "link_to": "B24 Absence Differences",
+   "type": "Report",
+   "report_ref_doctype": "B24 Absence"
+  },
+  {
+   "label": "Доступ к разделам Битрикс24",
+   "link_to": "B24 Section Access",
+   "type": "Report",
+   "report_ref_doctype": "B24 Access Grant"
+  },
+  {
+   "label": "Записано в Битрикс24",
+   "link_to": "B24 Write Log",
+   "type": "DocType",
+   "stats_filter": "[[\"B24 Write Log\", \"status\", \"=\", \"Ошибка\"]]",
+   "color": "Red",
+   "format": "{} ошибок записи"
+  },
+  {
+   "label": "Сверка доступа",
+   "link_to": "Access Reconciliation",
+   "type": "Report",
+   "report_ref_doctype": "Entitlement"
+  },
+  {
+   "label": "Конфликты полномочий",
+   "link_to": "SoD Conflicts",
+   "type": "Report",
+   "report_ref_doctype": "SoD Rule"
+  },
+  {
+   "label": "Роли доступа",
+   "link_to": "Access Role",
+   "type": "DocType",
+   "stats_filter": "[[\"Access Role\", \"status\", \"=\", \"Действует\"]]",
+   "color": "Blue",
+   "format": "{} действуют"
+  },
+  {
+   "label": "Черновики ролей",
+   "link_to": "Access Role",
+   "type": "DocType",
+   "stats_filter": "[[\"Access Role\", \"status\", \"=\", \"Черновик\"]]",
+   "color": "Orange",
+   "format": "{} на проверку"
+  },
+  {
+   "label": "Каталог прав доступа",
+   "link_to": "Entitlement",
+   "type": "DocType",
+   "stats_filter": "[[\"Entitlement\", \"active\", \"=\", 1]]",
+   "color": "Blue",
+   "format": "{} прав"
+  },
+  {
+   "label": "Подбор ролей",
+   "link_to": "Role Mining",
+   "type": "Report",
+   "report_ref_doctype": "Access Role"
+  },
+  {
+   "label": "Доступы вне каталога",
+   "link_to": "Unmanaged Access",
+   "type": "Report",
+   "report_ref_doctype": "Entitlement"
+  },
+  {
+   "label": "Исключения",
+   "link_to": "Access Exception",
+   "type": "DocType"
+  },
+  {
+   "label": "Бизнес-процессы",
+   "link_to": "Business Process",
+   "type": "DocType",
+   "stats_filter": "[[\"Business Process\", \"status\", \"=\", \"Действует\"]]",
+   "color": "Blue",
+   "format": "{} действуют"
+  },
+  {
+   "label": "Роли процессов",
+   "link_to": "Process Role",
+   "type": "DocType"
+  },
+  {
+   "label": "Участники процессов",
+   "link_to": "Process Participants",
+   "type": "Report",
+   "report_ref_doctype": "Process Participant"
+  },
+  {
+   "label": "Риски процессов",
+   "link_to": "Process Continuity",
+   "type": "Report",
+   "report_ref_doctype": "Process Role"
+  },
+  {
    "label": "Базы 1С",
    "link_to": "Info Base",
    "type": "DocType",
@@ -684,6 +1209,14 @@
    "link_to": "AD Domain",
    "type": "DocType",
    "stats_filter": "[[\"AD Domain\", \"enabled\", \"=\", 1]]",
+   "color": "Blue",
+   "format": "{} включено"
+  },
+  {
+   "label": "Порталы Битрикс24",
+   "link_to": "B24 Portal",
+   "type": "DocType",
+   "stats_filter": "[[\"B24 Portal\", \"enabled\", \"=\", 1]]",
    "color": "Blue",
    "format": "{} включено"
   },

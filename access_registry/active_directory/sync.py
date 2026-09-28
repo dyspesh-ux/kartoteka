@@ -115,7 +115,7 @@ def load_directory_file(domain: str, path: str):
 	bench --site dev.localhost execute access_registry.active_directory.sync.load_directory_file \
 		--kwargs "{'domain': 'CORP', 'path': '/path/to/ad/directory.json'}"
 	"""
-	frappe.only_for("System Manager")
+	frappe.only_for(("System Manager", "Registry Admin"))
 	with open(path, encoding="utf-8") as fh:
 		data = json.load(fh)
 	log = run_domain_sync(domain, fetch=lambda _domain: data)

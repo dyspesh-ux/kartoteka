@@ -727,7 +727,8 @@ class TestZupSync(FrappeTestCase):
 		self.assertEqual(ws.title, ws.name)
 		self.assertFalse(frappe.db.exists("Workspace", "Кадры ЗУП"))
 		self.assertEqual(ws.public, 1)
-		targets = [(s.type, s.link_to) for s in ws.shortcuts] + [
+		self.assertIn("/registry", [s.url for s in ws.shortcuts if s.type == "URL"])
+		targets = [(s.type, s.link_to) for s in ws.shortcuts if s.type != "URL"] + [
 			(link.link_type, link.link_to) for link in ws.links if link.type == "Link"
 		]
 		self.assertIn(("DocType", "Info Base"), targets)

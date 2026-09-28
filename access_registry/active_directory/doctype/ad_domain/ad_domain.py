@@ -22,7 +22,7 @@ class ADDomain(Document):
 
 	@frappe.whitelist()
 	def sync_now(self):
-		frappe.only_for("System Manager")
+		frappe.only_for(("System Manager", "Registry Admin"))
 		from frappe.utils.background_jobs import is_job_enqueued
 
 		from access_registry.active_directory.sync import enqueue, job_id_for
@@ -36,7 +36,7 @@ class ADDomain(Document):
 
 	@frappe.whitelist()
 	def test_connection(self):
-		frappe.only_for("System Manager")
+		frappe.only_for(("System Manager", "Registry Admin"))
 		from access_registry.active_directory.ldap_client import test_connection
 
 		return test_connection(self)

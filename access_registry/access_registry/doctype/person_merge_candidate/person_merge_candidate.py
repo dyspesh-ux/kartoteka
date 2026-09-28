@@ -15,7 +15,7 @@ class PersonMergeCandidate(Document):
 
 	@frappe.whitelist()
 	def merge(self):
-		frappe.only_for("System Manager")
+		frappe.only_for(("System Manager", "Registry Admin"))
 		if self.status != "Открыт":
 			frappe.throw(_("Кандидат уже разобран: {0}").format(self.status))
 		if not (self.person_a and self.person_b):
@@ -25,7 +25,7 @@ class PersonMergeCandidate(Document):
 
 	@frappe.whitelist()
 	def mark_different(self):
-		frappe.only_for("System Manager")
+		frappe.only_for(("System Manager", "Registry Admin"))
 		if self.status != "Открыт":
 			frappe.throw(_("Кандидат уже разобран: {0}").format(self.status))
 		self.status = "Разные люди"

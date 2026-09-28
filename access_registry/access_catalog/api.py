@@ -7,7 +7,7 @@ import frappe
 
 from access_registry.access_catalog import importer
 
-IMPORT_ROLES = ["System Manager", "1C Sync"]
+IMPORT_ROLES = ["System Manager", "Registry Admin", "1C Sync"]
 
 
 def _commit():
