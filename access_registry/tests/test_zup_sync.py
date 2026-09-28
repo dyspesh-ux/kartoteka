@@ -77,7 +77,13 @@ class TestZupSync(FrappeTestCase):
 			frappe.db.delete(doctype)
 		frappe.db.delete("Version", {"ref_doctype": ["in", APP_DOCTYPES]})
 		frappe.db.delete("Deleted Document", {"deleted_doctype": "Person"})
-		for key in ("shrink_threshold_pct", "guard_min_records", "head_keywords", "sync_user"):
+		for key in (
+			"shrink_threshold_pct",
+			"guard_min_records",
+			"head_keywords",
+			"sync_user",
+			"acknowledged_state_kinds",
+		):
 			frappe.db.set_single_value("Access Registry Settings", key, None)
 		ensure_root()
 		for code in (S1, S2):
@@ -721,13 +727,14 @@ class TestZupSync(FrappeTestCase):
 		self.assertEqual(ws.title, ws.name)
 		self.assertFalse(frappe.db.exists("Workspace", "Кадры ЗУП"))
 		self.assertEqual(ws.public, 1)
-		targets = [s.link_to for s in ws.shortcuts] + [
-			link.link_to for link in ws.links if link.type == "Link"
+		targets = [(s.type, s.link_to) for s in ws.shortcuts] + [
+			(link.link_type, link.link_to) for link in ws.links if link.type == "Link"
 		]
-		self.assertIn("HR Source", targets)
-		self.assertIn("Person Merge Candidate", targets)
-		for doctype in targets:
-			self.assertTrue(frappe.db.exists("DocType", doctype), doctype)
+		self.assertIn(("DocType", "HR Source"), targets)
+		self.assertIn(("DocType", "Person Merge Candidate"), targets)
+		for link_type, target in targets:
+			self.assertIn(link_type, ("DocType", "Report"))
+			self.assertTrue(frappe.db.exists(link_type, target), target)
 		for shortcut in ws.shortcuts:
 			if shortcut.stats_filter:
 				filters = [f[1:] for f in json.loads(shortcut.stats_filter)]
@@ -747,3 +754,19 @@ class TestZupSync(FrappeTestCase):
 		self.assertIn("Фамилия: … | …", line)
 		self.assertNotIn("Сидор", log.messages)
 		self.assertEqual(frappe.db.get_value("Employment", f"{S1}:{EMP(3)}", "category"), "Отпуск")
+
+	def test_acknowledged_state_kinds_silence_meta_warning(self):
+		log = self.sync(S1, load("zup1"))
+		self.assertIn("Отсутствие по невыясненным причинам → Отсутствует", log.messages)
+		self.assertIn("Проверенные виды состояний", log.messages)
+
+		# By name or by code, case-insensitive; «Неизвестно» is always reported
+		frappe.db.set_single_value(
+			"Access Registry Settings",
+			"acknowledged_state_kinds",
+			"отсутствие по невыясненным причинам\nПростойПоВинеРаботодателя",
+		)
+		log = self.sync(S1, load("zup1"))
+		self.assertNotIn("Отсутствие по невыясненным причинам", log.messages)
+		self.assertIn("Простой по вине работодателя → Неизвестно", log.messages)
+		self.assertEqual(json.loads(log.stats)["meta"]["acknowledged"], 1)

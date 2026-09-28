@@ -12,6 +12,7 @@
   "column_break_1",
   "http_timeout",
   "job_timeout",
+  "acknowledged_state_kinds",
   "section_break_2",
   "shrink_threshold_pct",
   "column_break_2",
@@ -61,6 +62,12 @@
    "fieldname": "job_timeout",
    "fieldtype": "Int",
    "label": "Таймаут фоновой задачи синка, сек"
+  },
+  {
+   "description": "Виды состояний с категорией «Отсутствует», которые проверены и не должны давать предупреждение в Sync Log. По одному на строку: наименование или код, как в предупреждении. На категорию «Неизвестно» предупреждение выдаётся всегда",
+   "fieldname": "acknowledged_state_kinds",
+   "fieldtype": "Small Text",
+   "label": "Проверенные виды состояний"
   },
   {
    "fieldname": "section_break_2",

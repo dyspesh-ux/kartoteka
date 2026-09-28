@@ -422,14 +422,23 @@ class SourceSync:
 		if meta is None:
 			return
 		suspicious = []
+		acknowledged = self.settings.acknowledged_state_kinds_set
 
 		def walk(node):
 			if isinstance(node, dict):
 				for key, value in node.items():
 					if "Категория" in key and value in SUSPICIOUS_CATEGORIES:
-						label = first(
-							node, "Наименование", "Представление", "Состояние", "Код"
-						) or json.dumps(node, ensure_ascii=False)
+						names = [
+							str(node[k])
+							for k in ("Наименование", "Представление", "Состояние", "Код")
+							if node.get(k)
+						]
+						if value == "Отсутствует" and any(
+							n.lower().replace("ё", "е") in acknowledged for n in names
+						):
+							self.stats["meta"]["acknowledged"] += 1
+							continue
+						label = names[0] if names else json.dumps(node, ensure_ascii=False)
 						suspicious.append(f"{label} → {value}")
 					walk(value)
 			elif isinstance(node, list):
@@ -438,7 +447,13 @@ class SourceSync:
 
 		walk(meta)
 		for item in sorted(set(suspicious)):
-			self.warn(f"вид состояния с категорией «Неизвестно/Отсутствует» в /meta: {item}")
+			hint = ""
+			if item.endswith("→ Отсутствует"):
+				hint = (
+					". Если сопоставление верное, добавьте вид в «Проверенные виды состояний» "
+					"в Access Registry Settings"
+				)
+			self.warn(f"вид состояния с категорией «Неизвестно/Отсутствует» в /meta: {item}{hint}")
 
 	def index_rows(self, rows, key_names, label) -> dict:
 		result = {}

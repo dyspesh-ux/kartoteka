@@ -17,7 +17,16 @@
   "verify_ssl",
   "column_break_2",
   "username",
-  "password"
+  "password",
+  "section_break_3",
+  "itaccess_enabled",
+  "itaccess_url",
+  "itaccess_username",
+  "itaccess_password",
+  "column_break_3",
+  "itaccess_last_snapshot",
+  "itaccess_last_status",
+  "itaccess_last_log"
  ],
  "fields": [
   {
@@ -95,6 +104,67 @@
    "fieldtype": "Password",
    "label": "Пароль",
    "no_copy": 1
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Права пользователей 1С (расширение ВыгрузкаПрав_ИТ)"
+  },
+  {
+   "description": "Ночной снимок пользователей, профилей и прав и журнал изменений каждые 15 минут",
+   "fieldname": "itaccess_enabled",
+   "fieldtype": "Check",
+   "label": "Загружать права пользователей"
+  },
+  {
+   "depends_on": "itaccess_enabled",
+   "description": "Например http://1c.example.local/zup/hs/itaccess",
+   "fieldname": "itaccess_url",
+   "fieldtype": "Data",
+   "label": "URL сервиса ITAccess",
+   "mandatory_depends_on": "itaccess_enabled"
+  },
+  {
+   "default": "svc_itaccess",
+   "depends_on": "itaccess_enabled",
+   "fieldname": "itaccess_username",
+   "fieldtype": "Data",
+   "label": "Пользователь"
+  },
+  {
+   "depends_on": "itaccess_enabled",
+   "fieldname": "itaccess_password",
+   "fieldtype": "Password",
+   "label": "Пароль",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "itaccess_enabled",
+   "fieldname": "itaccess_last_snapshot",
+   "fieldtype": "Datetime",
+   "label": "Последний успешный снимок прав",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "depends_on": "itaccess_enabled",
+   "fieldname": "itaccess_last_status",
+   "fieldtype": "Data",
+   "label": "Статус последней загрузки прав",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "depends_on": "itaccess_enabled",
+   "fieldname": "itaccess_last_log",
+   "fieldtype": "Datetime",
+   "label": "Последняя загрузка журнала 1С",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 0,

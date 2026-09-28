@@ -17,6 +17,7 @@ DEFAULTS = {
 	"absence_days_ahead": 180,
 	"http_timeout": 300,
 	"job_timeout": 7200,
+	"acknowledged_state_kinds": "",
 }
 
 INT_FIELDS = {
@@ -42,6 +43,9 @@ def get_settings() -> frappe._dict:
 			continue
 		values[key] = cint(value) if key in INT_FIELDS else value
 	values.head_keywords_list = parse_keywords(values.head_keywords)
+	values.acknowledged_state_kinds_set = {
+		k.lower().replace("ё", "е") for k in parse_lines(values.acknowledged_state_kinds)
+	}
 	return values
 
 
@@ -52,3 +56,7 @@ def parse_keywords(text: str | None) -> list[str]:
 		if chunk:
 			result.append(chunk)
 	return result
+
+
+def parse_lines(text: str | None) -> list[str]:
+	return [line.strip() for line in (text or "").splitlines() if line.strip()]

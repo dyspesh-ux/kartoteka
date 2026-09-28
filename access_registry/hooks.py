@@ -19,5 +19,8 @@ scheduler_events = {
 	"cron": {
 		"*/30 7-20 * * *": ["access_registry.sync.engine.scheduled_sync_day"],
 		"0 21-23,0-6 * * *": ["access_registry.sync.engine.scheduled_sync_night"],
+		# Rights of 1C users: nightly snapshot and the event log every 15 minutes.
+		"0 3 * * *": ["access_registry.access_catalog.pull.scheduled_snapshot"],
+		"*/15 * * * *": ["access_registry.access_catalog.pull.scheduled_log"],
 	}
 }

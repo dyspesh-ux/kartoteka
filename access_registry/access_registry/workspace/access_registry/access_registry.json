@@ -1,7 +1,7 @@
 {
  "charts": [],
- "content": "[{\"id\": \"ar00000001\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Кадры</b></span>\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Люди\", \"col\": 4}}, {\"id\": \"ar00000003\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Трудоустройства\", \"col\": 4}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Дерево подразделений\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Длительное отсутствие\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Источники ЗУП\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал синхронизаций\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000009\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Требует внимания</b></span>\", \"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты на склейку\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Новые кадровые события\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Только совместительство\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Расхождения руководителей\", \"col\": 4}}, {\"id\": \"ar00000014\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты в руководители\", \"col\": 4}}, {\"id\": \"ar00000015\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Нет в выгрузке\", \"col\": 4}}, {\"id\": \"ar00000016\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Неудачные синки\", \"col\": 4}}, {\"id\": \"ar00000017\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000018\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и настройки</b></span>\", \"col\": 12}}, {\"id\": \"ar00000019\", \"type\": \"card\", \"data\": {\"card_name\": \"Кадры ЗУП\", \"col\": 3}}, {\"id\": \"ar00000020\", \"type\": \"card\", \"data\": {\"card_name\": \"Организации\", \"col\": 3}}, {\"id\": \"ar00000021\", \"type\": \"card\", \"data\": {\"card_name\": \"Разбор\", \"col\": 3}}, {\"id\": \"ar00000022\", \"type\": \"card\", \"data\": {\"card_name\": \"Синхронизация\", \"col\": 3}}]",
- "creation": "2026-09-25 12:00:00.000000",
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Кадры</b></span>\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Люди\", \"col\": 4}}, {\"id\": \"ar00000003\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Трудоустройства\", \"col\": 4}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Дерево подразделений\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Длительное отсутствие\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Источники ЗУП\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал синхронизаций\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000009\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Требует внимания</b></span>\", \"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты на склейку\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Новые кадровые события\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Только совместительство\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Расхождения руководителей\", \"col\": 4}}, {\"id\": \"ar00000014\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты в руководители\", \"col\": 4}}, {\"id\": \"ar00000015\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Нет в выгрузке\", \"col\": 4}}, {\"id\": \"ar00000016\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Неудачные синки\", \"col\": 4}}, {\"id\": \"ar00000017\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000018\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Права 1С</b></span>\", \"col\": 12}}, {\"id\": \"ar00000019\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пользователи 1С\", \"col\": 4}}, {\"id\": \"ar00000020\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Профили доступа\", \"col\": 4}}, {\"id\": \"ar00000021\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли в обход профилей\", \"col\": 4}}, {\"id\": \"ar00000022\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сироты ИБ\", \"col\": 4}}, {\"id\": \"ar00000023\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Вход без физлица\", \"col\": 4}}, {\"id\": \"ar00000024\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Доступ ко всем организациям\", \"col\": 4}}, {\"id\": \"ar00000025\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Вход у неработающих\", \"col\": 4}}, {\"id\": \"ar00000026\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал изменений прав\", \"col\": 4}}, {\"id\": \"ar00000027\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000028\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и настройки</b></span>\", \"col\": 12}}, {\"id\": \"ar00000029\", \"type\": \"card\", \"data\": {\"card_name\": \"Кадры ЗУП\", \"col\": 4}}, {\"id\": \"ar00000030\", \"type\": \"card\", \"data\": {\"card_name\": \"Организации\", \"col\": 4}}, {\"id\": \"ar00000031\", \"type\": \"card\", \"data\": {\"card_name\": \"Разбор\", \"col\": 4}}, {\"id\": \"ar00000032\", \"type\": \"card\", \"data\": {\"card_name\": \"Права 1С\", \"col\": 4}}, {\"id\": \"ar00000033\", \"type\": \"card\", \"data\": {\"card_name\": \"Синхронизация\", \"col\": 4}}, {\"id\": \"ar00000034\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по правам\", \"col\": 4}}]",
+ "creation": "2026-09-28 18:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -141,6 +141,48 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Права 1С",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Пользователи 1С",
+   "link_count": 0,
+   "link_to": "ZUP User",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Профили доступа",
+   "link_count": 0,
+   "link_to": "ZUP Access Profile",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Журнал изменений прав",
+   "link_count": 0,
+   "link_to": "ZUP Audit Event",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Синхронизация",
    "link_count": 3,
    "link_type": "DocType",
@@ -179,9 +221,95 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Отчёты по правам",
+   "link_count": 7,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Роли в обход профилей",
+   "link_count": 0,
+   "link_to": "ZUP Extra Roles",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Вход разрешён, физлицо не указано",
+   "link_count": 0,
+   "link_to": "ZUP Login Without Person",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Вход разрешён, человек не работает",
+   "link_count": 0,
+   "link_to": "ZUP Login Not Working",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Сироты ИБ",
+   "link_count": 0,
+   "link_to": "ZUP IB Orphans",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Доступ ко всем организациям",
+   "link_count": 0,
+   "link_to": "ZUP All Organizations Access",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Пользователи профиля",
+   "link_count": 0,
+   "link_to": "ZUP Profile Users",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Кто менял права",
+   "link_count": 0,
+   "link_to": "ZUP Rights Changes",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-09-25 20:00:00.000000",
+ "modified": "2026-09-28 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Access Registry",
@@ -296,6 +424,65 @@
    "stats_filter": "[[\"Sync Log\", \"status\", \"in\", [\"Ошибка\", \"Остановлен предохранителем\"]]]",
    "color": "Red",
    "format": "{} запусков"
+  },
+  {
+   "label": "Пользователи 1С",
+   "link_to": "ZUP User",
+   "type": "DocType",
+   "stats_filter": "[[\"ZUP User\", \"login_allowed\", \"=\", 1], [\"ZUP User\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Blue",
+   "format": "{} со входом"
+  },
+  {
+   "label": "Профили доступа",
+   "link_to": "ZUP Access Profile",
+   "type": "DocType",
+   "stats_filter": "[[\"ZUP Access Profile\", \"missing_in_source\", \"=\", 0], [\"ZUP Access Profile\", \"is_folder\", \"=\", 0]]",
+   "color": "Blue",
+   "format": "{} профилей"
+  },
+  {
+   "label": "Роли в обход профилей",
+   "link_to": "ZUP User",
+   "type": "DocType",
+   "stats_filter": "[[\"ZUP User\", \"has_extra_roles\", \"=\", 1], [\"ZUP User\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Red",
+   "format": "{} пользователей"
+  },
+  {
+   "label": "Сироты ИБ",
+   "link_to": "ZUP User",
+   "type": "DocType",
+   "stats_filter": "[[\"ZUP User\", \"is_orphan\", \"=\", 1], [\"ZUP User\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Orange",
+   "format": "{} пользователей ИБ"
+  },
+  {
+   "label": "Вход без физлица",
+   "link_to": "ZUP User",
+   "type": "DocType",
+   "stats_filter": "[[\"ZUP User\", \"login_allowed\", \"=\", 1], [\"ZUP User\", \"person_id\", \"is\", \"not set\"], [\"ZUP User\", \"invalid\", \"=\", 0], [\"ZUP User\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Yellow",
+   "format": "{} пользователей"
+  },
+  {
+   "label": "Доступ ко всем организациям",
+   "link_to": "ZUP User",
+   "type": "DocType",
+   "stats_filter": "[[\"ZUP User\", \"all_orgs\", \"=\", 1], [\"ZUP User\", \"login_allowed\", \"=\", 1], [\"ZUP User\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Grey",
+   "format": "{} пользователей"
+  },
+  {
+   "label": "Вход у неработающих",
+   "link_to": "ZUP Login Not Working",
+   "type": "Report",
+   "report_ref_doctype": "ZUP User"
+  },
+  {
+   "label": "Журнал изменений прав",
+   "link_to": "ZUP Audit Event",
+   "type": "DocType"
   }
  ],
  "title": "Access Registry"

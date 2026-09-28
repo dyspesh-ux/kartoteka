@@ -1,0 +1,370 @@
+{
+ "base": "Srvr=\"srv1c-test\";Ref=\"zup_test\";",
+ "generated_at": "2026-09-28T03:00:00+03:00",
+ "users": [
+  {
+   "id": "00000000-0000-4000-f100-000000000001",
+   "name": "Иванов Иван Иванович",
+   "invalid": false,
+   "service": false,
+   "deleted": false,
+   "person_id": "00000000-0000-4000-e000-000000000001",
+   "person_name": "Иванов Иван Иванович",
+   "department_id": "00000000-0000-4000-b000-000000000001",
+   "department_name": "Дирекция",
+   "ib": {
+    "ib_id": "00000000-0000-4000-f200-000000000001",
+    "login": "Иванов ИИ",
+    "full_name": "Иванов Иван Иванович",
+    "auth_standard": false,
+    "auth_os": true,
+    "auth_openid": false,
+    "os_user": "\\\\CORP\\Ivanov",
+    "ad_domain": "corp",
+    "ad_login": "ivanov",
+    "login_allowed": true,
+    "roles": [
+     "ДобавлениеИзменениеКадровыхДанных",
+     "ЧтениеКадровыхДанных",
+     "ИнтерактивноеОткрытиеВнешнихОтчетовИОбработок"
+    ]
+   }
+  },
+  {
+   "id": "00000000-0000-4000-f100-000000000002",
+   "name": "Петрова Мария Сергеевна",
+   "invalid": false,
+   "service": false,
+   "deleted": false,
+   "person_id": "00000000-0000-4000-e000-000000000002",
+   "person_name": "Петрова Мария Сергеевна",
+   "department_id": "00000000-0000-4000-b000-000000000001",
+   "department_name": "Дирекция",
+   "ib": {
+    "ib_id": "00000000-0000-4000-f200-000000000002",
+    "login": "Петрова МС",
+    "full_name": "Петрова Мария Сергеевна",
+    "auth_standard": true,
+    "auth_os": false,
+    "auth_openid": false,
+    "os_user": "",
+    "ad_domain": null,
+    "ad_login": null,
+    "login_allowed": true,
+    "roles": [
+     "ЧтениеНачислений",
+     "ДобавлениеИзменениеНачислений",
+     "ЧтениеКадровыхДанных"
+    ]
+   }
+  },
+  {
+   "id": "00000000-0000-4000-f100-000000000003",
+   "name": "Администратор",
+   "invalid": false,
+   "service": false,
+   "deleted": false,
+   "person_id": null,
+   "person_name": "",
+   "department_id": null,
+   "department_name": "",
+   "ib": {
+    "ib_id": "00000000-0000-4000-f200-000000000003",
+    "login": "Администратор",
+    "full_name": "Администратор",
+    "auth_standard": true,
+    "auth_os": false,
+    "auth_openid": false,
+    "os_user": "",
+    "ad_domain": null,
+    "ad_login": null,
+    "login_allowed": true,
+    "roles": [
+     "ПолныеПрава",
+     "АдминистраторСистемы"
+    ]
+   }
+  },
+  {
+   "id": "00000000-0000-4000-f100-000000000004",
+   "name": "Сидоров Пётр Алексеевич",
+   "invalid": false,
+   "service": false,
+   "deleted": false,
+   "person_id": "00000000-0000-4000-e000-000000000003",
+   "person_name": "Сидоров Пётр Алексеевич",
+   "department_id": "00000000-0000-4000-b000-000000000001",
+   "department_name": "Дирекция",
+   "ib": {
+    "ib_id": "00000000-0000-4000-f200-000000000004",
+    "login": "Сидоров ПА",
+    "full_name": "Сидоров Пётр Алексеевич",
+    "auth_standard": false,
+    "auth_os": false,
+    "auth_openid": false,
+    "os_user": "",
+    "ad_domain": null,
+    "ad_login": null,
+    "login_allowed": false,
+    "roles": [
+     "ЧтениеКадровыхДанных"
+    ]
+   }
+  },
+  {
+   "id": "00000000-0000-4000-f100-000000000005",
+   "name": "Карточка без пользователя ИБ",
+   "invalid": true,
+   "service": false,
+   "deleted": false,
+   "person_id": null,
+   "person_name": "",
+   "department_id": null,
+   "department_name": "",
+   "ib": null
+  },
+  {
+   "id": "00000000-0000-4000-f100-000000000006",
+   "name": "Фёдоров Фёдор Фёдорович",
+   "invalid": false,
+   "service": false,
+   "deleted": false,
+   "person_id": "00000000-0000-4000-e000-000000000008",
+   "person_name": "Фёдоров Фёдор Фёдорович",
+   "department_id": "00000000-0000-4000-b000-000000000001",
+   "department_name": "Дирекция",
+   "ib": {
+    "ib_id": "00000000-0000-4000-f200-000000000006",
+    "login": "Федоров ФФ",
+    "full_name": "Фёдоров Фёдор Фёдорович",
+    "auth_standard": true,
+    "auth_os": false,
+    "auth_openid": false,
+    "os_user": "",
+    "ad_domain": null,
+    "ad_login": null,
+    "login_allowed": true,
+    "roles": []
+   }
+  }
+ ],
+ "ib_orphans": [
+  {
+   "ib_id": "00000000-0000-4000-f200-000000000009",
+   "login": "robot_exchange",
+   "full_name": "",
+   "auth_standard": true,
+   "auth_os": false,
+   "auth_openid": false,
+   "os_user": "",
+   "ad_domain": null,
+   "ad_login": null,
+   "login_allowed": true,
+   "roles": [
+    "ПолныеПрава"
+   ]
+  }
+ ],
+ "profiles": [
+  {
+   "id": "00000000-0000-4000-f300-000000000001",
+   "name": "Кадровик",
+   "deleted": false,
+   "supplied": true,
+   "roles": [
+    {
+     "name": "ДобавлениеИзменениеКадровыхДанных",
+     "title": "Добавление и изменение кадровых данных"
+    },
+    {
+     "name": "ЧтениеКадровыхДанных",
+     "title": "Чтение кадровых данных"
+    }
+   ]
+  },
+  {
+   "id": "00000000-0000-4000-f300-000000000002",
+   "name": "Бухгалтер",
+   "deleted": false,
+   "supplied": true,
+   "roles": [
+    {
+     "name": "ЧтениеНачислений",
+     "title": "Чтение начислений"
+    },
+    {
+     "name": "ДобавлениеИзменениеНачислений",
+     "title": "Добавление и изменение начислений"
+    }
+   ]
+  },
+  {
+   "id": "00000000-0000-4000-f300-000000000003",
+   "name": "Администратор",
+   "deleted": false,
+   "supplied": true,
+   "roles": [
+    {
+     "name": "ПолныеПрава",
+     "title": "Полные права"
+    },
+    {
+     "name": "АдминистраторСистемы",
+     "title": "Администратор системы"
+    }
+   ]
+  },
+  {
+   "id": "00000000-0000-4000-f300-000000000004",
+   "name": "Кадры (папка)",
+   "deleted": false,
+   "supplied": false,
+   "roles": []
+  },
+  {
+   "id": "00000000-0000-4000-f300-000000000005",
+   "name": "Пустой профиль",
+   "deleted": false,
+   "supplied": false,
+   "roles": []
+  }
+ ],
+ "user_rights": [
+  {
+   "user_id": "00000000-0000-4000-f100-000000000001",
+   "user_name": "Иванов Иван Иванович",
+   "profiles": [
+    {
+     "profile_id": "00000000-0000-4000-f300-000000000001",
+     "profile_name": "Кадровик",
+     "access_group_id": "00000000-0000-4000-f400-000000000001",
+     "access_group_name": "Кадровик",
+     "direct": true,
+     "via_name": "Иванов Иван Иванович",
+     "restrictions": [
+      {
+       "kind": "Организации",
+       "source": "access_group",
+       "mode": "only",
+       "values": [
+        {
+         "id": "00000000-0000-4000-a000-000000000001",
+         "name": "Ромашка ООО"
+        }
+       ]
+      },
+      {
+       "kind": "ФизическиеЛица",
+       "source": "access_group",
+       "mode": "only",
+       "values": [
+        {
+         "id": "00000000-0000-4000-e000-000000000001",
+         "name": "Иванов Иван Иванович"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "organizations": {
+    "all": false,
+    "list": [
+     "Ромашка ООО"
+    ]
+   }
+  },
+  {
+   "user_id": "00000000-0000-4000-f100-000000000002",
+   "user_name": "Петрова Мария Сергеевна",
+   "profiles": [
+    {
+     "profile_id": "00000000-0000-4000-f300-000000000002",
+     "profile_name": "Бухгалтер",
+     "access_group_id": "00000000-0000-4000-f400-000000000002",
+     "access_group_name": "Бухгалтер",
+     "direct": true,
+     "via_name": "Петрова Мария Сергеевна",
+     "restrictions": [
+      {
+       "kind": "Организации",
+       "source": "access_group",
+       "mode": "all_except",
+       "values": [
+        {
+         "id": "00000000-0000-4000-a000-000000000002",
+         "name": "Ромашка Сервис ООО"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "profile_id": "00000000-0000-4000-f300-000000000001",
+     "profile_name": "Кадровик",
+     "access_group_id": "00000000-0000-4000-f400-000000000003",
+     "access_group_name": "Отдел кадров",
+     "direct": false,
+     "via_name": "Отдел кадров",
+     "restrictions": [
+      {
+       "kind": "Организации",
+       "source": "access_group",
+       "mode": "not_configured",
+       "values": []
+      }
+     ]
+    }
+   ],
+   "organizations": {
+    "all": true,
+    "list": []
+   }
+  },
+  {
+   "user_id": "00000000-0000-4000-f100-000000000003",
+   "user_name": "Администратор",
+   "profiles": [
+    {
+     "profile_id": "00000000-0000-4000-f300-000000000003",
+     "profile_name": "Администратор",
+     "access_group_id": "00000000-0000-4000-f400-000000000004",
+     "access_group_name": "Администраторы",
+     "direct": true,
+     "via_name": "Администратор",
+     "restrictions": []
+    }
+   ],
+   "organizations": {
+    "all": true,
+    "list": []
+   }
+  },
+  {
+   "user_id": "00000000-0000-4000-f100-000000000006",
+   "user_name": "Фёдоров Фёдор Фёдорович",
+   "profiles": [
+    {
+     "profile_id": "00000000-0000-4000-f300-000000000005",
+     "profile_name": "Пустой профиль",
+     "access_group_id": "00000000-0000-4000-f400-000000000005",
+     "access_group_name": "Пустой профиль",
+     "direct": true,
+     "via_name": "Фёдоров Фёдор Фёдорович",
+     "restrictions": [
+      {
+       "kind": "Организации",
+       "source": "access_group",
+       "mode": "only",
+       "values": []
+      }
+     ]
+    }
+   ],
+   "organizations": {
+    "all": false,
+    "list": []
+   }
+  }
+ ]
+}

@@ -3,14 +3,20 @@ import frappe
 from access_registry.settings import DEFAULT_SYNC_USERS
 from access_registry.sync.departments import ensure_root
 
+# 1C Sync: technical role of the API user (n8n) — only the import methods.
+# Access Catalog Viewer: read access to the catalog of 1C user rights.
+CATALOG_ROLES = ("1C Sync", "Access Catalog Viewer")
+
 
 def after_install():
+	create_roles()
 	create_sync_users()
 	ensure_root()
 	frappe.db.commit()
 
 
 def after_migrate():
+	create_roles()
 	create_sync_users()
 	ensure_root()
 
@@ -35,3 +41,11 @@ def create_sync_users():
 		user.user_type = "Website User"
 		user.flags.no_welcome_mail = True
 		user.insert(ignore_permissions=True)
+
+
+def create_roles():
+	for role in CATALOG_ROLES:
+		if not frappe.db.exists("Role", role):
+			frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 1}).insert(
+				ignore_permissions=True
+			)

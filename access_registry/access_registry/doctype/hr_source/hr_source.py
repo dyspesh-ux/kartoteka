@@ -37,3 +37,24 @@ class HRSource(Document):
 		return _("Синхронизация источника {0} поставлена в очередь long. Результат — в Sync Log.").format(
 			self.name
 		)
+
+	@frappe.whitelist()
+	def load_rights_now(self):
+		return self._enqueue_catalog("snapshot", _("Загрузка прав пользователей 1С"))
+
+	@frappe.whitelist()
+	def load_log_now(self):
+		return self._enqueue_catalog("log", _("Загрузка журнала 1С"))
+
+	def _enqueue_catalog(self, kind, title):
+		frappe.only_for("System Manager")
+		from frappe.utils.background_jobs import is_job_enqueued
+
+		from access_registry.access_catalog.pull import enqueue, job_id_for
+
+		if not self.itaccess_enabled:
+			frappe.throw(_("Загрузка прав 1С для источника {0} выключена").format(self.name))
+		if is_job_enqueued(job_id_for(self.name, kind)):
+			return _("{0} для {1} уже в очереди или выполняется.").format(title, self.name)
+		enqueue(self.name, kind)
+		return _("{0} для {1} поставлена в очередь long. Результат — в Sync Log.").format(title, self.name)

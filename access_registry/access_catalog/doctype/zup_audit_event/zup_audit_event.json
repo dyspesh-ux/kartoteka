@@ -1,0 +1,149 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:uid",
+ "creation": "2026-09-28 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "event_date",
+  "who",
+  "who_user",
+  "event_title",
+  "event",
+  "column_break_1",
+  "object_type",
+  "object",
+  "host",
+  "uid",
+  "base_code",
+  "section_break_2",
+  "comment"
+ ],
+ "fields": [
+  {
+   "fieldname": "event_date",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Когда",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "who",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Кто",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "who_user",
+   "fieldtype": "Link",
+   "label": "Пользователь 1С",
+   "options": "ZUP User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "event_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Событие",
+   "read_only": 1
+  },
+  {
+   "fieldname": "event",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Код события",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "object_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Тип объекта",
+   "read_only": 1
+  },
+  {
+   "fieldname": "object",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Объект",
+   "read_only": 1
+  },
+  {
+   "fieldname": "host",
+   "fieldtype": "Data",
+   "label": "Компьютер",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uid",
+   "fieldtype": "Data",
+   "in_list_view": 0,
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "base_code",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "База",
+   "options": "HR Source",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "comment",
+   "fieldtype": "Small Text",
+   "label": "Комментарий",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-28 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Catalog",
+ "name": "ZUP Audit Event",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sort_field": "event_date",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "event_title",
+ "track_changes": 0
+}
