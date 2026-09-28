@@ -1,0 +1,148 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:uid",
+ "creation": "2026-10-01 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "person",
+  "date_from",
+  "date_to",
+  "absence_type",
+  "title",
+  "missing_in_source",
+  "section_break_1",
+  "uid",
+  "portal",
+  "b24_id",
+  "src_hash"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Пользователь",
+   "options": "B24 User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "label": "Сотрудник",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "date_from",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "С",
+   "read_only": 1
+  },
+  {
+   "fieldname": "date_to",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "По",
+   "read_only": 1
+  },
+  {
+   "fieldname": "absence_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Тип",
+   "read_only": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Запись",
+   "read_only": 1
+  },
+  {
+   "description": "Запись была в Битрикс24, но при последней загрузке её не нашли",
+   "fieldname": "missing_in_source",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Нет в Битрикс24",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Источник"
+  },
+  {
+   "description": "<код портала>:<ID в Битрикс24>",
+   "fieldname": "uid",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "portal",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Портал",
+   "options": "B24 Portal",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "b24_id",
+   "fieldtype": "Data",
+   "label": "ID в Битрикс24",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "src_hash",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Хеш исходных данных",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-01 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bitrix24",
+ "name": "B24 Absence",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sort_field": "date_from",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title"
+}

@@ -1,0 +1,420 @@
+{
+ "users": [
+  {
+   "ID": "1",
+   "ACTIVE": true,
+   "NAME": "Иван",
+   "LAST_NAME": "Иванов",
+   "SECOND_NAME": "Иванович",
+   "EMAIL": "ivanov@example.com",
+   "PERSONAL_BIRTHDAY": "1980-01-15T03:00:00+03:00",
+   "WORK_POSITION": "Генеральный директор",
+   "UF_DEPARTMENT": [
+    1
+   ],
+   "USER_TYPE": "employee",
+   "XML_ID": "",
+   "LAST_LOGIN": "2026-05-30T09:00:00+03:00",
+   "DATE_REGISTER": "2024-01-10T09:00:00+03:00"
+  },
+  {
+   "ID": "2",
+   "ACTIVE": true,
+   "NAME": "Мария",
+   "LAST_NAME": "Петрова",
+   "SECOND_NAME": "",
+   "EMAIL": "petrova@corp.example",
+   "PERSONAL_BIRTHDAY": "",
+   "WORK_POSITION": "Бухгалтер",
+   "UF_DEPARTMENT": [
+    2
+   ],
+   "USER_TYPE": "employee",
+   "XML_ID": "",
+   "LAST_LOGIN": "2026-05-30T09:00:00+03:00",
+   "DATE_REGISTER": "2024-01-10T09:00:00+03:00"
+  },
+  {
+   "ID": "3",
+   "ACTIVE": true,
+   "NAME": "Пётр",
+   "LAST_NAME": "Сидоров",
+   "SECOND_NAME": "Алексеевич",
+   "EMAIL": "sidorov@corp.example",
+   "PERSONAL_BIRTHDAY": "1991-07-20T03:00:00+03:00",
+   "WORK_POSITION": "Менеджер",
+   "UF_DEPARTMENT": [
+    3
+   ],
+   "USER_TYPE": "employee",
+   "XML_ID": "",
+   "LAST_LOGIN": "2026-05-30T09:00:00+03:00",
+   "DATE_REGISTER": "2024-01-10T09:00:00+03:00"
+  },
+  {
+   "ID": "4",
+   "ACTIVE": true,
+   "NAME": "Фёдор",
+   "LAST_NAME": "Фёдоров",
+   "SECOND_NAME": "Фёдорович",
+   "EMAIL": "fedorov@corp.example",
+   "PERSONAL_BIRTHDAY": "",
+   "WORK_POSITION": "Кладовщик",
+   "UF_DEPARTMENT": [
+    4
+   ],
+   "USER_TYPE": "employee",
+   "XML_ID": "",
+   "LAST_LOGIN": "2026-05-30T09:00:00+03:00",
+   "DATE_REGISTER": "2024-01-10T09:00:00+03:00"
+  },
+  {
+   "ID": "5",
+   "ACTIVE": true,
+   "NAME": "Елена",
+   "LAST_NAME": "Орлова",
+   "SECOND_NAME": "",
+   "EMAIL": "orlova@corp.example",
+   "PERSONAL_BIRTHDAY": "",
+   "WORK_POSITION": "Кладовщик",
+   "UF_DEPARTMENT": [
+    4
+   ],
+   "USER_TYPE": "employee",
+   "XML_ID": "",
+   "LAST_LOGIN": "2026-05-30T09:00:00+03:00",
+   "DATE_REGISTER": "2024-01-10T09:00:00+03:00"
+  },
+  {
+   "ID": "6",
+   "ACTIVE": true,
+   "NAME": "Внешний",
+   "LAST_NAME": "Гостев",
+   "SECOND_NAME": "",
+   "EMAIL": "partner@partner.example",
+   "PERSONAL_BIRTHDAY": "",
+   "WORK_POSITION": "",
+   "UF_DEPARTMENT": [],
+   "USER_TYPE": "extranet",
+   "XML_ID": "",
+   "LAST_LOGIN": "2026-05-30T09:00:00+03:00",
+   "DATE_REGISTER": "2024-01-10T09:00:00+03:00"
+  },
+  {
+   "ID": "7",
+   "ACTIVE": true,
+   "NAME": "Олег",
+   "LAST_NAME": "Смирнов",
+   "SECOND_NAME": "",
+   "EMAIL": "smirnov@corp.example",
+   "PERSONAL_BIRTHDAY": "",
+   "WORK_POSITION": "Маркетолог",
+   "UF_DEPARTMENT": [
+    5
+   ],
+   "USER_TYPE": "employee",
+   "XML_ID": "",
+   "LAST_LOGIN": "2026-05-30T09:00:00+03:00",
+   "DATE_REGISTER": "2024-01-10T09:00:00+03:00"
+  },
+  {
+   "ID": "8",
+   "ACTIVE": false,
+   "NAME": "Анна",
+   "LAST_NAME": "Кузнецова",
+   "SECOND_NAME": "Викторовна",
+   "EMAIL": "kuznetsova@corp.example",
+   "PERSONAL_BIRTHDAY": "",
+   "WORK_POSITION": "",
+   "UF_DEPARTMENT": [
+    3
+   ],
+   "USER_TYPE": "employee",
+   "XML_ID": "",
+   "LAST_LOGIN": "2026-05-30T09:00:00+03:00",
+   "DATE_REGISTER": "2024-01-10T09:00:00+03:00"
+  }
+ ],
+ "departments": [
+  {
+   "ID": "1",
+   "NAME": "Дирекция",
+   "SORT": 100,
+   "UF_HEAD": "1"
+  },
+  {
+   "ID": "2",
+   "NAME": "Бухгалтерия",
+   "SORT": 200,
+   "PARENT": "1",
+   "UF_HEAD": "2"
+  },
+  {
+   "ID": "3",
+   "NAME": "Отдел продаж",
+   "SORT": 300,
+   "PARENT": "1",
+   "UF_HEAD": "3"
+  },
+  {
+   "ID": "4",
+   "NAME": "Склад",
+   "SORT": 400,
+   "PARENT": "1",
+   "UF_HEAD": ""
+  },
+  {
+   "ID": "5",
+   "NAME": "Маркетинг",
+   "SORT": 500,
+   "PARENT": "1",
+   "UF_HEAD": "7"
+  }
+ ],
+ "workgroups": [
+  {
+   "ID": "10",
+   "NAME": "Проект «Внедрение»",
+   "ACTIVE": "Y",
+   "VISIBLE": "Y",
+   "OPENED": "N",
+   "CLOSED": "N",
+   "PROJECT": "Y",
+   "OWNER_ID": "1"
+  },
+  {
+   "ID": "11",
+   "NAME": "Бухгалтерия: обсуждения",
+   "ACTIVE": "Y",
+   "VISIBLE": "N",
+   "OPENED": "N",
+   "CLOSED": "N",
+   "PROJECT": "N",
+   "OWNER_ID": "2"
+  }
+ ],
+ "workgroup_members": {
+  "10": [
+   {
+    "USER_ID": "1",
+    "ROLE": "A"
+   },
+   {
+    "USER_ID": "2",
+    "ROLE": "K"
+   },
+   {
+    "USER_ID": "4",
+    "ROLE": "K"
+   }
+  ],
+  "11": [
+   {
+    "USER_ID": "2",
+    "ROLE": "A"
+   },
+   {
+    "USER_ID": "5",
+    "ROLE": "E"
+   }
+  ]
+ },
+ "crm_types": [
+  {
+   "id": 1,
+   "entityTypeId": 1032,
+   "title": "Закупки"
+  }
+ ],
+ "export": {
+  "version": 1,
+  "generated_at": "2026-06-01T03:00:00+03:00",
+  "logins": [
+   {
+    "user_id": 1,
+    "login": "Ivanov",
+    "external_auth_id": "LDAP#1",
+    "xml_id": ""
+   },
+   {
+    "user_id": 2,
+    "login": "petrova",
+    "external_auth_id": "LDAP#1",
+    "xml_id": ""
+   },
+   {
+    "user_id": 3,
+    "login": "sidorov",
+    "external_auth_id": "LDAP#1",
+    "xml_id": ""
+   },
+   {
+    "user_id": 4,
+    "login": "fedorov",
+    "external_auth_id": "LDAP#1",
+    "xml_id": ""
+   },
+   {
+    "user_id": 5,
+    "login": "orlova",
+    "external_auth_id": "LDAP#1",
+    "xml_id": ""
+   },
+   {
+    "user_id": 6,
+    "login": "partner",
+    "external_auth_id": "LDAP#1",
+    "xml_id": ""
+   },
+   {
+    "user_id": 7,
+    "login": "smirnov",
+    "external_auth_id": "LDAP#1",
+    "xml_id": ""
+   },
+   {
+    "user_id": 8,
+    "login": "kuznetsova",
+    "external_auth_id": "LDAP#1",
+    "xml_id": ""
+   }
+  ],
+  "user_groups": [
+   {
+    "id": 1,
+    "name": "Администраторы",
+    "string_id": "",
+    "members": [
+     1
+    ]
+   },
+   {
+    "id": 2,
+    "name": "Все пользователи",
+    "string_id": "",
+    "members": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8
+    ]
+   },
+   {
+    "id": 11,
+    "name": "Сотрудники",
+    "string_id": "EMPLOYEES_s1",
+    "members": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     7,
+     8
+    ]
+   },
+   {
+    "id": 12,
+    "name": "Кадровая служба",
+    "string_id": "",
+    "members": [
+     2
+    ]
+   }
+  ],
+  "crm_roles": [
+   {
+    "id": 1,
+    "name": "Менеджер",
+    "permissions": [
+     {
+      "entity": "DEAL",
+      "action": "READ",
+      "level": "X"
+     },
+     {
+      "entity": "DEAL",
+      "action": "WRITE",
+      "level": "A"
+     },
+     {
+      "entity": "DYNAMIC_1032",
+      "action": "READ",
+      "level": "X"
+     }
+    ]
+   },
+   {
+    "id": 2,
+    "name": "Администратор CRM",
+    "permissions": [
+     {
+      "entity": "CONFIG",
+      "action": "WRITE",
+      "level": "X"
+     }
+    ]
+   }
+  ],
+  "crm_role_relations": [
+   {
+    "role_id": 1,
+    "access_code": "DR3"
+   },
+   {
+    "role_id": 1,
+    "access_code": "U4"
+   },
+   {
+    "role_id": 2,
+    "access_code": "G12"
+   }
+  ],
+  "disk_rights": [
+   {
+    "storage": "Общий диск",
+    "path": "/Бухгалтерия",
+    "access_code": "D2",
+    "task": "disk_access_edit",
+    "negative": false
+   },
+   {
+    "storage": "Общий диск",
+    "path": "/Проекты",
+    "access_code": "SG10_K",
+    "task": "disk_access_read",
+    "negative": false
+   },
+   {
+    "storage": "Общий диск",
+    "path": "/",
+    "access_code": "AU",
+    "task": "disk_access_read",
+    "negative": false
+   }
+  ],
+  "absences": [
+   {
+    "id": 100,
+    "user_id": 3,
+    "date_from": "2026-06-10",
+    "date_to": "2026-06-23",
+    "type": "VACATION",
+    "title": "Отпуск"
+   },
+   {
+    "id": 101,
+    "user_id": 1,
+    "date_from": "2026-07-01",
+    "date_to": "2026-07-10",
+    "type": "VACATION",
+    "title": "Отпуск"
+   }
+  ],
+  "warnings": []
+ }
+}

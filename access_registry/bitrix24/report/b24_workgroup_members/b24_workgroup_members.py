@@ -1,0 +1,8 @@
+# Copyright (c) 2026, Access Registry contributors
+# For license information, please see license.txt
+
+from access_registry.bitrix24.reports import workgroup_members
+
+
+def execute(filters=None):
+	return workgroup_members(filters)

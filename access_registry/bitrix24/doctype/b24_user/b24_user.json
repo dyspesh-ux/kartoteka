@@ -1,0 +1,314 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:uid",
+ "creation": "2026-10-01 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "full_name",
+  "last_name",
+  "first_name",
+  "second_name",
+  "birthday",
+  "email",
+  "login",
+  "column_break_1",
+  "active",
+  "user_type",
+  "is_admin",
+  "work_position",
+  "last_login",
+  "date_register",
+  "missing_in_source",
+  "section_break_2",
+  "person",
+  "person_link_method",
+  "person_link_note",
+  "manual_person",
+  "column_break_2",
+  "ad_account",
+  "uuid_in_portal",
+  "section_break_3",
+  "departments",
+  "section_break_4",
+  "uid",
+  "portal",
+  "b24_id",
+  "xml_id",
+  "external_auth_id",
+  "src_hash"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "ФИО",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "label": "Фамилия",
+   "read_only": 1
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "label": "Имя",
+   "read_only": 1
+  },
+  {
+   "fieldname": "second_name",
+   "fieldtype": "Data",
+   "label": "Отчество",
+   "read_only": 1
+  },
+  {
+   "fieldname": "birthday",
+   "fieldtype": "Date",
+   "label": "Дата рождения",
+   "permlevel": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Почта",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "description": "Из скрипта выгрузки (REST логин не отдаёт)",
+   "fieldname": "login",
+   "fieldtype": "Data",
+   "label": "Логин",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Активен",
+   "read_only": 1
+  },
+  {
+   "description": "employee — сотрудник, extranet — внешний, email/bot — служебные",
+   "fieldname": "user_type",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Тип",
+   "read_only": 1
+  },
+  {
+   "fieldname": "is_admin",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Администратор портала",
+   "read_only": 1
+  },
+  {
+   "fieldname": "work_position",
+   "fieldtype": "Data",
+   "label": "Должность в Битрикс24",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_login",
+   "fieldtype": "Datetime",
+   "label": "Последний вход",
+   "read_only": 1
+  },
+  {
+   "fieldname": "date_register",
+   "fieldtype": "Datetime",
+   "label": "Зарегистрирован",
+   "read_only": 1
+  },
+  {
+   "description": "Запись была в Битрикс24, но при последней загрузке её не нашли",
+   "fieldname": "missing_in_source",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Нет в Битрикс24",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Сотрудник"
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Сотрудник",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "person_link_method",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Как найден сотрудник",
+   "options": "\nUUID в Битрикс24\nУчётка AD\nФИО\nФамилия и имя\nВручную",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person_link_note",
+   "fieldtype": "Data",
+   "label": "Почему не найден",
+   "read_only": 1
+  },
+  {
+   "description": "Если сотрудник не найден автоматически или найден неверно. Загрузка это поле не меняет",
+   "fieldname": "manual_person",
+   "fieldtype": "Link",
+   "label": "Сотрудник вручную",
+   "options": "Person"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ad_account",
+   "fieldtype": "Link",
+   "label": "Учётка AD",
+   "options": "AD Account",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uuid_in_portal",
+   "fieldtype": "Data",
+   "label": "UUID сотрудника в Битрикс24",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Подразделения"
+  },
+  {
+   "fieldname": "departments",
+   "fieldtype": "Table",
+   "label": "Подразделения",
+   "options": "B24 User Department",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break",
+   "label": "Источник"
+  },
+  {
+   "description": "<код портала>:<ID в Битрикс24>",
+   "fieldname": "uid",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "portal",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Портал",
+   "options": "B24 Portal",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "b24_id",
+   "fieldtype": "Data",
+   "label": "ID в Битрикс24",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "xml_id",
+   "fieldtype": "Data",
+   "label": "XML_ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "external_auth_id",
+   "fieldtype": "Data",
+   "label": "Внешняя авторизация",
+   "read_only": 1
+  },
+  {
+   "fieldname": "src_hash",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Хеш исходных данных",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "group": "Журнал",
+   "link_doctype": "B24 Write Log",
+   "link_fieldname": "b24_user"
+  },
+  {
+   "group": "Журнал",
+   "link_doctype": "B24 Absence",
+   "link_fieldname": "user"
+  }
+ ],
+ "modified": "2026-10-01 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bitrix24",
+ "name": "B24 User",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "export": 1,
+   "permlevel": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager"
+  }
+ ],
+ "search_fields": "full_name,email,login",
+ "show_title_field_in_link": 1,
+ "sort_field": "full_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "full_name",
+ "track_changes": 1
+}

@@ -159,6 +159,11 @@
   },
   {
    "group": "Учётные записи",
+   "link_doctype": "B24 User",
+   "link_fieldname": "person"
+  },
+  {
+   "group": "Учётные записи",
    "link_doctype": "IB User",
    "link_fieldname": "person"
   }

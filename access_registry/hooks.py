@@ -24,5 +24,7 @@ scheduler_events = {
 		"*/15 * * * *": ["access_registry.access_catalog.pull.scheduled_log"],
 		# Active Directory: every hour at :20 (away from the HR runs at :00 and :30).
 		"20 * * * *": ["access_registry.active_directory.sync.scheduled_sync"],
+		# Bitrix24: every hour at :40, after AD (users are linked to employees through AD accounts).
+		"40 * * * *": ["access_registry.bitrix24.sync.scheduled_sync"],
 	}
 }

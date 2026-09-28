@@ -1,0 +1,249 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:portal_code",
+ "creation": "2026-10-01 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "portal_code",
+  "title",
+  "enabled",
+  "verify_ssl",
+  "column_break_1",
+  "portal_url",
+  "request_interval",
+  "section_break_2",
+  "webhook",
+  "section_break_3",
+  "exporter_url",
+  "column_break_3",
+  "exporter_token",
+  "section_break_4",
+  "write_enabled",
+  "write_mode",
+  "max_writes",
+  "column_break_4",
+  "write_middle_name",
+  "write_birthday",
+  "person_uuid_field",
+  "section_break_5",
+  "last_sync",
+  "column_break_5",
+  "last_status"
+ ],
+ "fields": [
+  {
+   "description": "Короткий постоянный код, например B24. Входит в ключи всех записей портала",
+   "fieldname": "portal_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Код портала",
+   "reqd": 1,
+   "set_only_once": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Название"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Включён"
+  },
+  {
+   "default": "1",
+   "fieldname": "verify_ssl",
+   "fieldtype": "Check",
+   "label": "Проверять сертификат HTTPS"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Берётся из адреса вебхука",
+   "fieldname": "portal_url",
+   "fieldtype": "Data",
+   "label": "Адрес портала",
+   "read_only": 1
+  },
+  {
+   "default": "0.5",
+   "description": "Облако Битрикс24 допускает около 2 запросов в секунду. Для коробки можно 0",
+   "fieldname": "request_interval",
+   "fieldtype": "Float",
+   "label": "Пауза между запросами, сек"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "REST API (входящий вебхук)"
+  },
+  {
+   "description": "https://b24.example.local/rest/1/<ключ>/ — вебхук пользователя-администратора с правами user, department, sonet_group, crm. Хранится зашифрованным",
+   "fieldname": "webhook",
+   "fieldtype": "Password",
+   "label": "Адрес входящего вебхука",
+   "no_copy": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Скрипт выгрузки прав (коробка)"
+  },
+  {
+   "description": "https://b24.example.local/local/registry/export.php — скрипт bitrix24/registry_export.php из репозитория. Даёт права ролей CRM и смарт-процессов, права общих дисков, группы пользователей, логины и график отсутствий. Пусто — только REST",
+   "fieldname": "exporter_url",
+   "fieldtype": "Data",
+   "label": "Адрес скрипта выгрузки"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Та же строка, что в REGISTRY_TOKEN в скрипте",
+   "fieldname": "exporter_token",
+   "fieldtype": "Password",
+   "label": "Ключ скрипта выгрузки",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break",
+   "label": "Запись в Битрикс24"
+  },
+  {
+   "default": "0",
+   "description": "После каждой загрузки реестр дописывает в профили сотрудников отчество, дату рождения и UUID сотрудника (если указано поле). Каждая запись — в журнале «B24 Write Log»",
+   "fieldname": "write_enabled",
+   "fieldtype": "Check",
+   "label": "Записывать данные из кадров"
+  },
+  {
+   "default": "Только пустые",
+   "description": "«Только пустые» — дописывать, не трогая заполненное. «Пустые и отличающиеся» — исправлять по кадрам",
+   "fieldname": "write_mode",
+   "fieldtype": "Select",
+   "label": "Что записывать",
+   "options": "Только пустые\nПустые и отличающиеся"
+  },
+  {
+   "default": "300",
+   "description": "Предохранитель: если нужно больше, запись не выполняется, причина — в журнале синхронизации",
+   "fieldname": "max_writes",
+   "fieldtype": "Int",
+   "label": "Не больше изменений за загрузку"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "write_middle_name",
+   "fieldtype": "Check",
+   "label": "Отчество"
+  },
+  {
+   "default": "1",
+   "description": "Записывается полная дата. Скрыть год в профиле — настройкой портала",
+   "fieldname": "write_birthday",
+   "fieldtype": "Check",
+   "label": "Дата рождения"
+  },
+  {
+   "description": "Пользовательское поле Битрикс24 (например UF_USR_REGISTRY_ID). По нему связь с сотрудником не зависит от ФИО. Пусто — не записывать",
+   "fieldname": "person_uuid_field",
+   "fieldtype": "Data",
+   "label": "Поле для UUID сотрудника"
+  },
+  {
+   "fieldname": "section_break_5",
+   "fieldtype": "Section Break",
+   "label": "Последняя загрузка"
+  },
+  {
+   "fieldname": "last_sync",
+   "fieldtype": "Datetime",
+   "label": "Последняя успешная загрузка",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Статус последней загрузки",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "group": "Данные",
+   "link_doctype": "B24 User",
+   "link_fieldname": "portal"
+  },
+  {
+   "group": "Данные",
+   "link_doctype": "B24 Department",
+   "link_fieldname": "portal"
+  },
+  {
+   "group": "Данные",
+   "link_doctype": "B24 Workgroup",
+   "link_fieldname": "portal"
+  },
+  {
+   "group": "Журнал",
+   "link_doctype": "B24 Write Log",
+   "link_fieldname": "portal"
+  }
+ ],
+ "modified": "2026-10-01 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bitrix24",
+ "name": "B24 Portal",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

@@ -1,0 +1,202 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:uid",
+ "creation": "2026-10-01 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "group_name",
+  "is_project",
+  "active",
+  "closed",
+  "visible",
+  "opened",
+  "owner_user",
+  "member_count",
+  "missing_in_source",
+  "column_break_1",
+  "under_control",
+  "owner_person",
+  "purpose",
+  "section_break_2",
+  "members",
+  "section_break_3",
+  "uid",
+  "portal",
+  "b24_id",
+  "src_hash"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "group_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Группа или проект",
+   "read_only": 1
+  },
+  {
+   "fieldname": "is_project",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Проект",
+   "read_only": 1
+  },
+  {
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Активна",
+   "read_only": 1
+  },
+  {
+   "fieldname": "closed",
+   "fieldtype": "Check",
+   "label": "В архиве",
+   "read_only": 1
+  },
+  {
+   "fieldname": "visible",
+   "fieldtype": "Check",
+   "label": "Видна всем",
+   "read_only": 1
+  },
+  {
+   "fieldname": "opened",
+   "fieldtype": "Check",
+   "label": "Вступление свободное",
+   "read_only": 1
+  },
+  {
+   "fieldname": "owner_user",
+   "fieldtype": "Link",
+   "label": "Владелец",
+   "options": "B24 User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "member_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Участников",
+   "read_only": 1
+  },
+  {
+   "description": "Запись была в Битрикс24, но при последней загрузке её не нашли",
+   "fieldname": "missing_in_source",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Нет в Битрикс24",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "under_control",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Под контролем"
+  },
+  {
+   "fieldname": "owner_person",
+   "fieldtype": "Link",
+   "label": "Ответственный",
+   "options": "Person"
+  },
+  {
+   "fieldname": "purpose",
+   "fieldtype": "Small Text",
+   "label": "Назначение"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Участники"
+  },
+  {
+   "fieldname": "members",
+   "fieldtype": "Table",
+   "label": "Участники",
+   "options": "B24 Workgroup Member",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Источник"
+  },
+  {
+   "description": "<код портала>:<ID в Битрикс24>",
+   "fieldname": "uid",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "portal",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Портал",
+   "options": "B24 Portal",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "b24_id",
+   "fieldtype": "Data",
+   "label": "ID в Битрикс24",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "src_hash",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Хеш исходных данных",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-01 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bitrix24",
+ "name": "B24 Workgroup",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "search_fields": "group_name",
+ "show_title_field_in_link": 1,
+ "sort_field": "group_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "group_name",
+ "track_changes": 1
+}

@@ -1,0 +1,124 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-10-01 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "portal",
+  "b24_user",
+  "person",
+  "field",
+  "status",
+  "column_break_1",
+  "old_value",
+  "new_value",
+  "error",
+  "sync_log"
+ ],
+ "fields": [
+  {
+   "fieldname": "portal",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Портал",
+   "options": "B24 Portal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "b24_user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Пользователь",
+   "options": "B24 User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "label": "Сотрудник",
+   "options": "Person",
+   "read_only": 1
+  },
+  {
+   "fieldname": "field",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Поле",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Результат",
+   "options": "Записано\nОшибка",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "old_value",
+   "fieldtype": "Data",
+   "label": "Было",
+   "permlevel": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "new_value",
+   "fieldtype": "Data",
+   "label": "Стало",
+   "permlevel": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "error",
+   "fieldtype": "Small Text",
+   "label": "Ошибка",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sync_log",
+   "fieldtype": "Link",
+   "label": "Запуск",
+   "options": "Sync Log",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-01 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bitrix24",
+ "name": "B24 Write Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "export": 1,
+   "permlevel": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
