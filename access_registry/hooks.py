@@ -1,7 +1,7 @@
 app_name = "access_registry"
 app_title = "Access Registry"
 app_publisher = "Access Registry contributors"
-app_description = "Реестр «кто есть кто и у кого какой доступ»: зеркало кадровых данных 1С:ЗУП"
+app_description = "Реестр «кто есть кто и у кого какой доступ»: кадры 1С:ЗУП, права 1С, Active Directory, Битрикс24, роли доступа и бизнес-процессы"
 app_email = "noreply@example.com"
 app_license = "mit"
 required_apps = ["frappe"]
