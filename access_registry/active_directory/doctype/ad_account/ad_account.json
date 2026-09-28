@@ -1,0 +1,330 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:uid",
+ "creation": "2026-09-30 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "display_name",
+  "sam_account_name",
+  "user_principal_name",
+  "mail",
+  "enabled",
+  "locked",
+  "password_never_expires",
+  "missing_in_source",
+  "column_break_1",
+  "person",
+  "person_link_method",
+  "person_link_note",
+  "manual_person",
+  "employee_number",
+  "employee_id",
+  "section_break_2",
+  "given_name",
+  "surname",
+  "title",
+  "department",
+  "company",
+  "manager",
+  "column_break_2",
+  "last_logon",
+  "password_last_set",
+  "account_expires",
+  "uid",
+  "domain",
+  "object_guid",
+  "distinguished_name",
+  "ou",
+  "when_created",
+  "when_changed",
+  "section_break_3",
+  "group_count",
+  "groups",
+  "src_hash"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "display_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Отображаемое имя",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sam_account_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Логин (sAMAccountName)",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "user_principal_name",
+   "fieldtype": "Data",
+   "label": "UPN",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "mail",
+   "fieldtype": "Data",
+   "label": "Почта",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Включена",
+   "read_only": 1
+  },
+  {
+   "fieldname": "locked",
+   "fieldtype": "Check",
+   "label": "Заблокирована",
+   "read_only": 1
+  },
+  {
+   "fieldname": "password_never_expires",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Пароль не истекает",
+   "read_only": 1
+  },
+  {
+   "description": "Объект был в AD, но при последней загрузке его не нашли (удалён или вне области поиска)",
+   "fieldname": "missing_in_source",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Нет в AD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Сотрудник",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "person_link_method",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Как найден сотрудник",
+   "options": "\nemployeeNumber\nФИО\nВручную",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person_link_note",
+   "fieldtype": "Data",
+   "label": "Почему не найден",
+   "read_only": 1
+  },
+  {
+   "description": "Если сотрудник не найден автоматически или найден неверно. Загрузка из AD это поле не меняет",
+   "fieldname": "manual_person",
+   "fieldtype": "Link",
+   "label": "Сотрудник вручную",
+   "options": "Person"
+  },
+  {
+   "description": "Должен содержать UUID сотрудника. Скрипт простановки — в отчёте «AD employeeNumber»",
+   "fieldname": "employee_number",
+   "fieldtype": "Data",
+   "label": "employeeNumber",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employee_id",
+   "fieldtype": "Data",
+   "label": "employeeID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Из AD"
+  },
+  {
+   "fieldname": "given_name",
+   "fieldtype": "Data",
+   "label": "Имя (givenName)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "surname",
+   "fieldtype": "Data",
+   "label": "Фамилия (sn)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Должность в AD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Отдел в AD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Data",
+   "label": "Организация в AD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "manager",
+   "fieldtype": "Link",
+   "label": "Руководитель в AD",
+   "options": "AD Account",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_logon",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Последний вход",
+   "read_only": 1
+  },
+  {
+   "fieldname": "password_last_set",
+   "fieldtype": "Datetime",
+   "label": "Пароль сменён",
+   "read_only": 1
+  },
+  {
+   "fieldname": "account_expires",
+   "fieldtype": "Datetime",
+   "label": "Учётка истекает",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uid",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "domain",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Домен",
+   "options": "AD Domain",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "object_guid",
+   "fieldtype": "Data",
+   "label": "objectGUID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "distinguished_name",
+   "fieldtype": "Small Text",
+   "label": "Distinguished Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ou",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Подразделение AD (OU)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "when_created",
+   "fieldtype": "Datetime",
+   "label": "Создан в AD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "when_changed",
+   "fieldtype": "Datetime",
+   "label": "Изменён в AD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Группы (прямое членство)"
+  },
+  {
+   "fieldname": "group_count",
+   "fieldtype": "Int",
+   "label": "Групп",
+   "read_only": 1
+  },
+  {
+   "fieldname": "groups",
+   "fieldtype": "Table",
+   "label": "Группы",
+   "options": "AD Account Group",
+   "read_only": 1
+  },
+  {
+   "fieldname": "src_hash",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Хеш исходных данных",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-30 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Active Directory",
+ "name": "AD Account",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "search_fields": "display_name,sam_account_name,mail",
+ "show_title_field_in_link": 1,
+ "sort_field": "display_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "display_name",
+ "track_changes": 1
+}

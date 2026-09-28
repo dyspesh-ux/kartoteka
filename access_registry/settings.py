@@ -18,6 +18,7 @@ DEFAULTS = {
 	"http_timeout": 300,
 	"job_timeout": 7200,
 	"acknowledged_state_kinds": "",
+	"ad_inactive_days": 90,
 }
 
 INT_FIELDS = {
@@ -27,6 +28,7 @@ INT_FIELDS = {
 	"absence_days_ahead",
 	"http_timeout",
 	"job_timeout",
+	"ad_inactive_days",
 }
 
 

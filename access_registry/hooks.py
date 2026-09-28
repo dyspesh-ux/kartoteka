@@ -22,5 +22,7 @@ scheduler_events = {
 		# Rights of 1C users: nightly snapshot and the event log every 15 minutes.
 		"0 3 * * *": ["access_registry.access_catalog.pull.scheduled_snapshot"],
 		"*/15 * * * *": ["access_registry.access_catalog.pull.scheduled_log"],
+		# Active Directory: every hour at :20 (away from the HR runs at :00 and :30).
+		"20 * * * *": ["access_registry.active_directory.sync.scheduled_sync"],
 	}
 }

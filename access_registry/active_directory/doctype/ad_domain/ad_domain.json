@@ -1,0 +1,205 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:domain_code",
+ "creation": "2026-09-30 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "domain_code",
+  "title",
+  "netbios_name",
+  "dns_name",
+  "enabled",
+  "section_break_2",
+  "ldap_url",
+  "base_dn",
+  "verify_ssl",
+  "column_break_2",
+  "bind_user",
+  "bind_password",
+  "section_break_3",
+  "user_filter",
+  "group_filter",
+  "column_break_3",
+  "user_search_bases",
+  "group_search_bases",
+  "section_break_4",
+  "last_sync",
+  "column_break_4",
+  "last_status"
+ ],
+ "fields": [
+  {
+   "description": "Короткий постоянный код, например CORP. Входит в ключи всех записей домена",
+   "fieldname": "domain_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Код домена",
+   "reqd": 1,
+   "set_only_once": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Название"
+  },
+  {
+   "description": "Как домен пишется в «Пользователь ОС» 1С: \\\\CORP\\login → CORP",
+   "fieldname": "netbios_name",
+   "fieldtype": "Data",
+   "label": "NetBIOS-имя",
+   "reqd": 1
+  },
+  {
+   "description": "Например corp.example.local",
+   "fieldname": "dns_name",
+   "fieldtype": "Data",
+   "label": "DNS-имя"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Включён"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Подключение по LDAP (только чтение)"
+  },
+  {
+   "description": "ldaps://dc1.corp.example.local:636 или ldap://dc1.corp.example.local:389. Несколько серверов — через пробел",
+   "fieldname": "ldap_url",
+   "fieldtype": "Data",
+   "label": "Сервер LDAP",
+   "reqd": 1
+  },
+  {
+   "description": "Например DC=corp,DC=example,DC=local",
+   "fieldname": "base_dn",
+   "fieldtype": "Data",
+   "label": "Base DN",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "verify_ssl",
+   "fieldtype": "Check",
+   "label": "Проверять сертификат LDAPS"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Сервисная учётка без прав на запись, например svc_registry@corp.example.local",
+   "fieldname": "bind_user",
+   "fieldtype": "Data",
+   "label": "Учётка для чтения",
+   "reqd": 1
+  },
+  {
+   "fieldname": "bind_password",
+   "fieldtype": "Password",
+   "label": "Пароль",
+   "no_copy": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Что загружать"
+  },
+  {
+   "default": "(&(objectCategory=person)(objectClass=user))",
+   "fieldname": "user_filter",
+   "fieldtype": "Small Text",
+   "label": "Фильтр учёток"
+  },
+  {
+   "default": "(objectClass=group)",
+   "fieldname": "group_filter",
+   "fieldtype": "Small Text",
+   "label": "Фильтр групп"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "По одному DN на строку. Пусто — весь Base DN",
+   "fieldname": "user_search_bases",
+   "fieldtype": "Small Text",
+   "label": "OU учёток"
+  },
+  {
+   "description": "По одному DN на строку. Пусто — весь Base DN",
+   "fieldname": "group_search_bases",
+   "fieldtype": "Small Text",
+   "label": "OU групп"
+  },
+  {
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break",
+   "label": "Последняя загрузка"
+  },
+  {
+   "fieldname": "last_sync",
+   "fieldtype": "Datetime",
+   "label": "Последняя успешная загрузка",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Статус последней загрузки",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-30 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Active Directory",
+ "name": "AD Domain",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

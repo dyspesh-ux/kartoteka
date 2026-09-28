@@ -10,6 +10,7 @@
   "login",
   "ad_login",
   "ad_domain",
+  "ad_account",
   "login_allowed",
   "invalid",
   "service",
@@ -78,6 +79,15 @@
    "read_only": 1
   },
   {
+   "description": "По «Пользователь ОС» 1С: домен и логин",
+   "fieldname": "ad_account",
+   "fieldtype": "Link",
+   "label": "Учётка AD",
+   "options": "AD Account",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
    "fieldname": "login_allowed",
    "fieldtype": "Check",
    "in_standard_filter": 1,
@@ -137,7 +147,7 @@
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Как найден сотрудник",
-   "options": "\nGUID физлица (ЗУП)\nФИО\nВручную",
+   "options": "\nGUID физлица (ЗУП)\nУчётка AD\nФИО\nВручную",
    "read_only": 1
   },
   {

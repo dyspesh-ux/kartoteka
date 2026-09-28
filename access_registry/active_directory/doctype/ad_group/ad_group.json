@@ -1,0 +1,214 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:uid",
+ "creation": "2026-09-30 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "group_name",
+  "sam_account_name",
+  "description",
+  "scope",
+  "security",
+  "member_count",
+  "managed_by",
+  "missing_in_source",
+  "column_break_1",
+  "under_control",
+  "owner_person",
+  "purpose",
+  "section_break_2",
+  "uid",
+  "domain",
+  "object_guid",
+  "distinguished_name",
+  "ou",
+  "when_created",
+  "when_changed",
+  "src_hash"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "group_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Группа",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sam_account_name",
+   "fieldtype": "Data",
+   "label": "sAMAccountName",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Описание в AD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "scope",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Область",
+   "options": "\nЛокальная в домене\nГлобальная\nУниверсальная",
+   "read_only": 1
+  },
+  {
+   "fieldname": "security",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Группа безопасности",
+   "read_only": 1
+  },
+  {
+   "fieldname": "member_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Прямых участников-учёток",
+   "read_only": 1
+  },
+  {
+   "fieldname": "managed_by",
+   "fieldtype": "Link",
+   "label": "managedBy",
+   "options": "AD Account",
+   "read_only": 1
+  },
+  {
+   "description": "Объект был в AD, но при последней загрузке его не нашли (удалён или вне области поиска)",
+   "fieldname": "missing_in_source",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Нет в AD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Изменения состава группы проверяются и согласуются",
+   "fieldname": "under_control",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Под контролем"
+  },
+  {
+   "description": "Кто согласует включение в группу",
+   "fieldname": "owner_person",
+   "fieldtype": "Link",
+   "label": "Владелец",
+   "options": "Person"
+  },
+  {
+   "description": "Что даёт членство в группе — простыми словами",
+   "fieldname": "purpose",
+   "fieldtype": "Small Text",
+   "label": "Назначение"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Из AD"
+  },
+  {
+   "fieldname": "uid",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "domain",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Домен",
+   "options": "AD Domain",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "object_guid",
+   "fieldtype": "Data",
+   "label": "objectGUID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "distinguished_name",
+   "fieldtype": "Small Text",
+   "label": "Distinguished Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ou",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Подразделение AD (OU)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "when_created",
+   "fieldtype": "Datetime",
+   "label": "Создан в AD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "when_changed",
+   "fieldtype": "Datetime",
+   "label": "Изменён в AD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "src_hash",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Хеш исходных данных",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-30 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Active Directory",
+ "name": "AD Group",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "search_fields": "group_name,sam_account_name",
+ "show_title_field_in_link": 1,
+ "sort_field": "group_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "group_name",
+ "track_changes": 1
+}

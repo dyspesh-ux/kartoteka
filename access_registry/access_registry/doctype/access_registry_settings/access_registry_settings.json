@@ -13,6 +13,7 @@
   "http_timeout",
   "job_timeout",
   "acknowledged_state_kinds",
+  "ad_inactive_days",
   "section_break_2",
   "shrink_threshold_pct",
   "column_break_2",
@@ -68,6 +69,13 @@
    "fieldname": "acknowledged_state_kinds",
    "fieldtype": "Small Text",
    "label": "Проверенные виды состояний"
+  },
+  {
+   "default": "90",
+   "description": "Для отчёта «AD Inactive Accounts» и отметки в обзоре",
+   "fieldname": "ad_inactive_days",
+   "fieldtype": "Int",
+   "label": "AD: не входили дольше, дней"
   },
   {
    "fieldname": "section_break_2",

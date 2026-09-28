@@ -148,6 +148,31 @@ def to_iso_with_offset(value: datetime) -> str:
 	return value.replace(tzinfo=ZoneInfo(get_system_timezone())).isoformat(timespec="seconds")
 
 
+def only_hash_changed(doc) -> bool:
+	"""True when the loaded source differs only in its hash (e.g. the link was already set by a
+	relink): then the hash is written directly, so that no empty version appears."""
+	from frappe.core.doctype.version.version import get_diff
+
+	diff = get_diff(frappe.get_doc(doc.doctype, doc.name), doc)
+	if not diff:
+		return True
+	return not (diff.added or diff.removed or diff.row_changed) and all(
+		change[0] == "src_hash" for change in diff.changed
+	)
+
+
+def save_changed(doc) -> bool:
+	"""Inserts or saves with a version; returns False when only the source hash was refreshed."""
+	if doc.is_new():
+		doc.insert(ignore_permissions=True)
+		return True
+	if only_hash_changed(doc):
+		frappe.db.set_value(doc.doctype, doc.name, "src_hash", doc.src_hash, update_modified=False)
+		return False
+	doc.save(ignore_permissions=True, ignore_version=False)
+	return True
+
+
 def sync_child_table(doc, fieldname: str, key_fields: tuple, rows: list[dict]) -> None:
 	"""Updates a child table in place so that Version shows only rows really added/removed/changed."""
 	existing = {tuple(row.get(k) or "" for k in key_fields): row for row in doc.get(fieldname)}
@@ -233,11 +258,8 @@ class SnapshotImport:
 
 	def save(self, doc):
 		doc.flags.ignore_permissions = True
-		if doc.is_new():
-			doc.insert(ignore_permissions=True)
-		else:
-			doc.save(ignore_permissions=True, ignore_version=False)
-		self.counters["changed"] += 1
+		if save_changed(doc):
+			self.counters["changed"] += 1
 
 	def load(self, doctype, uid, payload_hash):
 		"""Returns the document to fill, or None when nothing changed."""
@@ -286,12 +308,13 @@ class SnapshotImport:
 		for p in (rights or {}).get("profiles") or []:
 			expected |= profile_roles.get(p.get("profile_id"), set())
 		person, link_method, link_note = self.persons.resolve(user, ib)
+		ad_account, _ad_person = self.persons.ad_account(ib)
 		payload = {
 			"u": {**user, "ib": ib},
 			"r": rights,
 			# Derived from other records: a change there must also refresh this user.
 			"expected_roles": sorted(expected),
-			"person": [person, link_method, link_note],
+			"person": [person, link_method, link_note, ad_account],
 			"orphan": orphan,
 			"configuration": self.configuration,
 			"v": DERIVED_VERSION,
@@ -310,6 +333,7 @@ class SnapshotImport:
 		doc.person = person
 		doc.person_link_method = link_method
 		doc.person_link_note = link_note
+		doc.ad_account = ad_account
 		doc.department_name = user.get("department_name")
 		doc.invalid = cint(user.get("invalid"))
 		doc.service = cint(user.get("service"))

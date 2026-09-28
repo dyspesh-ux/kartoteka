@@ -154,6 +154,11 @@
   },
   {
    "group": "Учётные записи",
+   "link_doctype": "AD Account",
+   "link_fieldname": "person"
+  },
+  {
+   "group": "Учётные записи",
    "link_doctype": "IB User",
    "link_fieldname": "person"
   }
