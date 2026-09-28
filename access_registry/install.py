@@ -16,6 +16,7 @@ def after_install():
 
 
 def after_migrate():
+	sync_workspace()
 	create_roles()
 	create_sync_users()
 	ensure_root()
@@ -49,3 +50,23 @@ def create_roles():
 			frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 1}).insert(
 				ignore_permissions=True
 			)
+
+
+WORKSPACE = "Access Registry"
+LEGACY_WORKSPACES = ("Кадры ЗУП",)
+
+
+def sync_workspace():
+	"""Keeps the app's workspace exactly as shipped in the repository.
+
+	Frappe re-imports a workspace file only when the database copy is older than the file, so a copy
+	touched on the site (or left from an earlier version) silently stays. The workspace is part of the
+	app: it is re-imported on every migrate, and earlier interim names are removed.
+	"""
+	from frappe.modules.import_file import import_file
+
+	for name in LEGACY_WORKSPACES:
+		if frappe.db.exists("Workspace", name):
+			frappe.delete_doc("Workspace", name, ignore_permissions=True, force=True)
+	import_file("Access Registry", "Workspace", WORKSPACE, force=True)
+	frappe.clear_cache()

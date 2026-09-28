@@ -770,3 +770,16 @@ class TestZupSync(FrappeTestCase):
 		self.assertNotIn("Отсутствие по невыясненным причинам", log.messages)
 		self.assertIn("Простой по вине работодателя → Неизвестно", log.messages)
 		self.assertEqual(json.loads(log.stats)["meta"]["acknowledged"], 1)
+
+	def test_migrate_restores_shipped_workspace(self):
+		from access_registry.install import sync_workspace
+
+		frappe.get_doc(
+			{"doctype": "Workspace", "label": "Кадры ЗУП", "title": "Кадры ЗУП", "public": 1, "content": "[]"}
+		).insert(ignore_permissions=True)
+		frappe.db.set_value("Workspace", "Access Registry", {"title": "Кадры ЗУП", "content": "[]"})
+		sync_workspace()
+		self.assertFalse(frappe.db.exists("Workspace", "Кадры ЗУП"))
+		ws = frappe.get_doc("Workspace", "Access Registry")
+		self.assertEqual(ws.title, "Access Registry")
+		self.assertIn("Права 1С", ws.content)
