@@ -1,7 +1,7 @@
 {
  "charts": [],
- "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Слои реестра.</b> 1) Кадры из баз ЗУП — источник правды о сотрудниках, подразделениях и организациях. 2) Active Directory — учётки и группы (следующий этап). 3) Пользователи 1С (ЗУП, Бухгалтерия и другие базы) — привязаны к сотрудникам, позже и к учёткам AD. 4) Bitrix24. 5) Свои процессы и роли. <br><b>Подключить базу:</b> «Базы 1С» → новая база, код (например BP1), конфигурация, URL сервисов и пароли → «Загрузить». Кадры грузятся только из баз ЗУП.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Кадры — источник правды (базы ЗУП)</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сотрудники\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Трудоустройства\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Дерево подразделений\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Длительное отсутствие\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000009\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Разбор кадров</b></span>\", \"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты на склейку\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Новые кадровые события\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Только совместительство\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Расхождения руководителей\", \"col\": 4}}, {\"id\": \"ar00000014\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты в руководители\", \"col\": 4}}, {\"id\": \"ar00000015\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Нет в выгрузке\", \"col\": 4}}, {\"id\": \"ar00000016\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000017\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Пользователи 1С и права (все базы)</b></span>\", \"col\": 12}}, {\"id\": \"ar00000018\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пользователи 1С\", \"col\": 4}}, {\"id\": \"ar00000019\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Не привязаны к сотруднику\", \"col\": 4}}, {\"id\": \"ar00000020\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Вход у неработающих\", \"col\": 4}}, {\"id\": \"ar00000021\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли в обход профилей\", \"col\": 4}}, {\"id\": \"ar00000022\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сироты ИБ\", \"col\": 4}}, {\"id\": \"ar00000023\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Доступ ко всем организациям\", \"col\": 4}}, {\"id\": \"ar00000024\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Профили доступа\", \"col\": 4}}, {\"id\": \"ar00000025\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал изменений прав\", \"col\": 4}}, {\"id\": \"ar00000026\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000027\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Базы 1С и загрузка</b></span>\", \"col\": 12}}, {\"id\": \"ar00000028\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Базы 1С\", \"col\": 4}}, {\"id\": \"ar00000029\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал синхронизаций\", \"col\": 4}}, {\"id\": \"ar00000030\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Неудачные синхронизации\", \"col\": 4}}, {\"id\": \"ar00000031\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000032\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000033\", \"type\": \"card\", \"data\": {\"card_name\": \"Кадры (ЗУП)\", \"col\": 4}}, {\"id\": \"ar00000034\", \"type\": \"card\", \"data\": {\"card_name\": \"Разбор кадров\", \"col\": 4}}, {\"id\": \"ar00000035\", \"type\": \"card\", \"data\": {\"card_name\": \"Пользователи 1С и права\", \"col\": 4}}, {\"id\": \"ar00000036\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по правам\", \"col\": 4}}, {\"id\": \"ar00000037\", \"type\": \"card\", \"data\": {\"card_name\": \"Базы 1С и загрузка\", \"col\": 4}}]",
- "creation": "2026-09-29 12:00:00.000000",
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Слои реестра.</b> 1) Кадры из баз ЗУП — источник правды о сотрудниках, подразделениях и организациях. 2) Active Directory — учётки и группы (следующий этап). 3) Пользователи 1С (ЗУП, Бухгалтерия и другие базы) — привязаны к сотрудникам, позже и к учёткам AD. 4) Bitrix24. 5) Свои процессы и роли. <br><b>Подключить базу:</b> «Базы 1С» → новая база, код (например BP1), конфигурация, URL сервисов и пароли → «Загрузить». Кадры грузятся только из баз ЗУП.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Кадры — источник правды (базы ЗУП)</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сотрудники\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Трудоустройства\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Дерево подразделений\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Длительное отсутствие\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000009\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Разбор кадров</b></span>\", \"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты на склейку\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Новые кадровые события\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Только совместительство\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Расхождения руководителей\", \"col\": 4}}, {\"id\": \"ar00000014\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты в руководители\", \"col\": 4}}, {\"id\": \"ar00000015\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Нет в выгрузке\", \"col\": 4}}, {\"id\": \"ar00000016\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000017\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Пользователи 1С и права (все базы)</b></span>\", \"col\": 12}}, {\"id\": \"ar00000018\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Полный отчёт по доступам\", \"col\": 4}}, {\"id\": \"ar00000019\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пользователи 1С\", \"col\": 4}}, {\"id\": \"ar00000020\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Не привязаны к сотруднику\", \"col\": 4}}, {\"id\": \"ar00000021\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Вход у неработающих\", \"col\": 4}}, {\"id\": \"ar00000022\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли в обход профилей\", \"col\": 4}}, {\"id\": \"ar00000023\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сироты ИБ\", \"col\": 4}}, {\"id\": \"ar00000024\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Доступ ко всем организациям\", \"col\": 4}}, {\"id\": \"ar00000025\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Профили доступа\", \"col\": 4}}, {\"id\": \"ar00000026\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал изменений прав\", \"col\": 4}}, {\"id\": \"ar00000027\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000028\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Базы 1С и загрузка</b></span>\", \"col\": 12}}, {\"id\": \"ar00000029\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Базы 1С\", \"col\": 4}}, {\"id\": \"ar00000030\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал синхронизаций\", \"col\": 4}}, {\"id\": \"ar00000031\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Неудачные синхронизации\", \"col\": 4}}, {\"id\": \"ar00000032\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000033\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000034\", \"type\": \"card\", \"data\": {\"card_name\": \"Кадры (ЗУП)\", \"col\": 4}}, {\"id\": \"ar00000035\", \"type\": \"card\", \"data\": {\"card_name\": \"Разбор кадров\", \"col\": 4}}, {\"id\": \"ar00000036\", \"type\": \"card\", \"data\": {\"card_name\": \"Пользователи 1С и права\", \"col\": 4}}, {\"id\": \"ar00000037\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по правам\", \"col\": 4}}, {\"id\": \"ar00000038\", \"type\": \"card\", \"data\": {\"card_name\": \"Базы 1С и загрузка\", \"col\": 4}}]",
+ "creation": "2026-09-29 18:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -175,10 +175,21 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Отчёты по правам",
-   "link_count": 7,
+   "link_count": 8,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Полный отчёт по доступам 1С",
+   "link_count": 0,
+   "link_to": "IB Access Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
   },
   {
    "dependencies": "",
@@ -300,7 +311,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-09-29 12:00:00.000000",
+ "modified": "2026-09-29 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Access Registry",
@@ -394,6 +405,12 @@
    "stats_filter": "[[\"Employment\", \"missing\", \"=\", 1]]",
    "color": "Grey",
    "format": "{} трудоустройств"
+  },
+  {
+   "label": "Полный отчёт по доступам",
+   "link_to": "IB Access Report",
+   "type": "Report",
+   "report_ref_doctype": "IB User"
   },
   {
    "label": "Пользователи 1С",

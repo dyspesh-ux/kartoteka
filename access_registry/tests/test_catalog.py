@@ -574,3 +574,39 @@ class TestAccessCatalog(FrappeTestCase):
 		for link in ws.links:
 			if link.type == "Link" and link.link_type == "Report":
 				self.assertTrue(frappe.db.exists("Report", link.link_to), link.link_to)
+
+	def test_full_access_report(self):
+		from access_registry.access_catalog.access_report import execute
+
+		self.hr_sync()
+		self.imp()
+		self.imp(base=BP)
+		_columns, rows = execute({})
+		by_key = {(r["user"]): r for r in rows}
+		ivanov = by_key[f"{S1}:{USR(1)}"]
+		self.assertEqual(ivanov["employee"], "Иванов Иван Иванович")
+		self.assertEqual(ivanov["position"], "Генеральный директор")
+		self.assertEqual(ivanov["department_title"], "Дирекция")
+		self.assertEqual(ivanov["organization_title"], "Ромашка ООО")
+		self.assertEqual(ivanov["employment_kind"], "Основное место работы")
+		self.assertEqual(ivanov["profiles"], "Кадровик")
+		self.assertEqual(ivanov["base_configuration"], "ЗУП")
+		# The same employee in the accounting base, found by full name
+		self.assertEqual(by_key[f"{BP}:{USR(1)}"]["organization_title"], "Ромашка ООО")
+		self.assertEqual(by_key[f"{BP}:{USR(1)}"]["base_configuration"], "Бухгалтерия")
+		# Users without the right to log in are hidden by default
+		self.assertNotIn(f"{S1}:{USR(4)}", by_key)
+		self.assertIn(f"{S1}:{USR(4)}", {r["user"] for r in execute({"include_disabled": 1})[1]})
+
+		# One row per profile with its restrictions
+		petrova = [r for r in execute({"by_profile": 1, "base_code": S1})[1] if r["user"] == f"{S1}:{USR(2)}"]
+		self.assertEqual(sorted(r["access_group"] for r in petrova), ["Бухгалтер", "Отдел кадров"])
+		self.assertIn(
+			"все, кроме", next(r for r in petrova if r["access_group"] == "Бухгалтер")["restrictions"]
+		)
+
+		# Filters by HR context and unlinked users
+		org = frappe.db.get_value("HR Organization", {"source": S1, "title": "Ромашка ООО"}, "name")
+		self.assertTrue(all(r["organization"] == org for r in execute({"organization": org})[1]))
+		unlinked = execute({"only_unlinked": 1})[1]
+		self.assertTrue(unlinked and all(not r["person"] for r in unlinked))
