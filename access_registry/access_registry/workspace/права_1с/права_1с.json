@@ -1,7 +1,7 @@
 {
  "charts": [],
  "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Пользователи 1С всех баз:</b> профили, организации, роли в обход профилей и журнал изменений прав.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Пользователи и права</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Полный отчёт по доступам\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пользователи 1С\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Не привязаны к сотруднику\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Вход у неработающих\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли в обход профилей\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сироты ИБ\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Доступ ко всем организациям\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Профили доступа\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал изменений прав\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000014\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000015\", \"type\": \"card\", \"data\": {\"card_name\": \"Пользователи 1С и права\", \"col\": 4}}, {\"id\": \"ar00000016\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по правам\", \"col\": 4}}]",
- "creation": "2026-10-04 10:00:00.000000",
+ "creation": "2026-10-06 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -152,7 +152,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-04 10:00:00.000000",
+ "modified": "2026-10-06 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Права 1С",

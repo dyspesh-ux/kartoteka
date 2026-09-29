@@ -31,5 +31,7 @@ scheduler_events = {
 		"30 4 * * *": ["access_registry.access_roles.api.scheduled_refresh"],
 		# Suppressed alerts whose date has passed show again.
 		"5 0 * * *": ["access_registry.access_roles.suppression.expire"],
+		# Morning digest: checked hourly at :05, sent once a day in the hour chosen in its settings.
+		"5 * * * *": ["access_registry.access_roles.digest.scheduled"],
 	}
 }

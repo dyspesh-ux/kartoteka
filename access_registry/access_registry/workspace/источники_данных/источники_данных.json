@@ -1,7 +1,7 @@
 {
  "charts": [],
- "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Откуда берутся данные:</b> базы 1С, домены, порталы, файловые серверы и журнал загрузок. Подключить: базу 1С — «Базы 1С»; домен — «Домены AD»; портал — «Порталы Битрикс24»; NAS — «Файловые серверы».\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Подключения и загрузка</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Базы 1С\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Домены AD\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Порталы Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал синхронизаций\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Неудачные синхронизации\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000011\", \"type\": \"card\", \"data\": {\"card_name\": \"Источники и загрузка\", \"col\": 4}}]",
- "creation": "2026-10-04 10:00:00.000000",
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Откуда берутся данные:</b> базы 1С, домены, порталы, файловые серверы и журнал загрузок. Подключить: базу 1С — «Базы 1С»; домен — «Домены AD»; портал — «Порталы Битрикс24»; NAS — «Файловые серверы».\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Подключения и загрузка</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Базы 1С\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Домены AD\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Порталы Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал синхронизаций\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Неудачные синхронизации\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Утренняя сводка\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000011\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000012\", \"type\": \"card\", \"data\": {\"card_name\": \"Источники и загрузка\", \"col\": 4}}]",
+ "creation": "2026-10-06 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -16,7 +16,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Источники и загрузка",
-   "link_count": 6,
+   "link_count": 8,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -86,9 +86,31 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Утренняя сводка",
+   "link_count": 0,
+   "link_to": "Registry Digest",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Журнал сводок",
+   "link_count": 0,
+   "link_to": "Registry Digest Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-10-04 10:00:00.000000",
+ "modified": "2026-10-06 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Источники данных",
@@ -156,6 +178,11 @@
    "stats_filter": "[[\"Sync Log\", \"status\", \"in\", [\"Ошибка\", \"Остановлен предохранителем\"]]]",
    "color": "Grey",
    "format": "{} запусков"
+  },
+  {
+   "label": "Утренняя сводка",
+   "link_to": "Registry Digest",
+   "type": "DocType"
   }
  ],
  "title": "Источники данных"
