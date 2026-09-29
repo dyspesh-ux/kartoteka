@@ -106,6 +106,7 @@
 	}
 
 	const ICONS = {
+		lock: '<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
 		home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/>',
 		people: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14.7c1.9.7 3.1 2.4 3.5 5.3"/>',
 		key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9"/><path d="m17 6 3 3"/><path d="m14 9 2 2"/>',
@@ -279,6 +280,14 @@
 		["check", "#/reviews", "Пересмотр доступа", "reviews"],
 		["db", "#/sources", "Источники"],
 	];
+	// menu item → section of the app (app_access.SECTIONS)
+	const NAV_SECTION = { "#/": "overview", "#/people": "people", "#/control": "control", "#/access": "access",
+		"#/roles": "roles", "#/processes": "processes", "#/sources": "sources" };
+	const canSee = (section) => ((state.boot.can.sections || {})[section] || 0) > 0;
+	const firstPage = () => {
+		const href = Object.keys(NAV_SECTION).find((h) => canSee(NAV_SECTION[h]));
+		return href ? href.slice(1) : "/reviews";
+	};
 
 	function renderShell() {
 		const b = state.boot;
@@ -288,14 +297,15 @@
 					<div class="brand"><div class="brand-mark">${icon("shield").replace("<svg", '<svg style="width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2"')}</div>
 						<div>Реестр доступа<small>кто есть кто и у кого что</small></div></div>
 					<nav class="nav">
-						${NAV.filter(([, href]) => b.can.read || href === "#/reviews").map(
+						${[...NAV, ...(b.can.admin ? [["lock", "#/app-access", "Доступ к приложению"]] : [])].filter(([, href]) =>
+							href === "#/reviews" ? b.can.reviewer || b.pending_reviews || canSee("reviews") || !b.can.read : href === "#/app-access" ? b.can.admin : canSee(NAV_SECTION[href])).map(
 							([ic, href, label, badge]) =>
 								`<a href="${href}" data-nav="${href}">${icon(ic)}<span>${label}</span>${badge ? `<span class="count" data-badge="${badge}" hidden></span>` : ""}</a>`
 						).join("")}
 					</nav>
 					<div class="sidebar-foot">
 						<div class="user"><span class="avatar">${esc(initials(b.user.full_name))}</span><div><b>${esc(b.user.full_name)}</b><span class="muted small">${esc(
-							b.can.admin ? "администратор" : b.can.audit ? "аудитор" : b.can.roles ? "ролевая модель" : b.can.processes ? "процессы" : "просмотр"
+							b.can.admin ? "администратор" : (b.can.via || []).join(", ") || "свои задания пересмотра"
 						)}</span></div></div>
 						<div class="links">${DESK || b.can.roles || b.can.processes ? `<a href="/app/access-registry">Рабочее пространство</a>` : ""}<a href="/?cmd=web_logout">Выйти</a></div>
 					</div>
@@ -303,7 +313,7 @@
 				<div class="main">
 					<header class="topbar">
 						<button class="icon-btn menu-toggle" aria-label="Меню">${icon("menu")}</button>
-						<div class="search" ${b.can.read ? "" : "hidden"}>
+						<div class="search" ${b.can.search ? "" : "hidden"}>
 							<svg class="icon" viewBox="0 0 24 24">${ICONS.search}</svg>
 							<input type="search" placeholder="Сотрудник, учётка, логин, роль, процесс…" autocomplete="off" aria-label="Поиск">
 							<kbd>/</kbd>
@@ -412,11 +422,13 @@
 		[/^\/sources$/, viewSources],
 		[/^\/reviews$/, viewReviews],
 		[/^\/review\/(.+)$/, viewReview],
+		[/^\/app-access$/, viewAppAccess],
 	];
 
 	async function route() {
 		let path = decodeURIComponent((location.hash || "#/").slice(1)) || "/";
 		if (!state.boot.can.read && !path.startsWith("/review")) path = "/reviews";
+		else if (path === "/" && !canSee("overview")) path = firstPage();
 		const view = document.getElementById("view");
 		$app.querySelector(".shell").classList.remove("nav-open");
 		$app.querySelectorAll("[data-nav]").forEach((a) => {
@@ -445,7 +457,7 @@
 	async function loadDashboard(refresh) {
 		state.dashboard = await api("dashboard", refresh ? { refresh: 1 } : {});
 		const d = state.dashboard;
-		const alarms = d.dismissed_access.people + d.sod;
+		const alarms = (d.dismissed_access ? d.dismissed_access.people : 0) + (d.sod || 0);
 		const badge = $app.querySelector('[data-badge="control"]');
 		if (badge) {
 			badge.hidden = !alarms;
@@ -772,7 +784,7 @@
 				{ key: "expected_by", label: "Положено по" },
 				{ key: "evidence", label: "Где есть" },
 			],
-			actions: can.roles
+			actions: can.exceptions
 				? (r) =>
 						r.status === "Лишнее"
 							? `<button class="btn small exc" data-ent="${esc(r.entitlement)}" data-title="${esc(r.title)}">Согласовать</button>`
@@ -863,24 +875,26 @@
 	};
 
 	async function viewControl(view, kind, showSuppressed) {
-		kind = kind || "dismissed";
-		const d = state.dashboard || (await loadDashboard());
 		const can = state.boot.can;
+		const allowed = can.control_lists || [];
+		kind = kind && allowed.includes(kind) ? kind : CONTROL_ORDER.find((k) => allowed.includes(k)) || kind || "dismissed";
+		const d = state.dashboard || (await loadDashboard());
+		const r = d.reconciliation;
 		const counts = {
-			dismissed: d.dismissed_access.people,
-			unlinked: Object.values(d.unlinked).reduce((a, x) => a + x, 0),
-			excess: d.reconciliation.excess + d.reconciliation.excess_not_working,
-			missing: d.reconciliation.missing,
+			dismissed: d.dismissed_access ? d.dismissed_access.people : undefined,
+			unlinked: d.unlinked ? Object.values(d.unlinked).reduce((a, x) => a + x, 0) : undefined,
+			excess: r ? r.excess + r.excess_not_working : undefined,
+			missing: r ? r.missing : undefined,
 			sod: d.sod,
-			exceptions: d.reconciliation.exceptions,
-			processes: d.processes.risks,
+			exceptions: r ? r.exceptions : undefined,
+			processes: d.processes ? d.processes.risks : undefined,
 			events: d.events,
 			journal: d.suppressed,
 		};
 		view.innerHTML = `
 			<div class="page-head"><div><h1>Контроль</h1><p>Что требует решения: списки для службы безопасности, ИБ и контролёров прав. Каждый список можно выгрузить в CSV.
 				Замечание, которое разобрали и приняли (например, учётка подрядчика без сотрудника), можно погасить с комментарием — оно попадёт в журнал.</p></div></div>
-			<div class="chip-groups">${CONTROL_GROUPS.map(
+			<div class="chip-groups">${CONTROL_GROUPS.map(([title, keys]) => [title, keys.filter((k) => allowed.includes(k))]).filter(([, keys]) => keys.length).map(
 				([title, keys]) => `<div><div class="group-title">${title}</div><div class="chips">${keys
 					.map(
 						(k) => `<a class="chip ${k === kind ? "on" : ""}" href="#/control/${k}">${CONTROL_TITLES[k]}${
@@ -894,7 +908,7 @@
 		const box = view.querySelector(".ctl");
 		const bar = view.querySelector(".suppress-bar");
 		const reload = () => loadDashboard(true).then(() => viewControl(view, kind, showSuppressed));
-		const canMark = kind === "events" && (can.audit || can.roles);
+		const canMark = kind === "events" && can.suppress;
 		const canSuppress = data.suppressible && can.suppress && !showSuppressed;
 		const canRestore = can.suppress && (showSuppressed || kind === "journal");
 		const selected = new Set();
@@ -916,7 +930,7 @@
 				${canSuppress ? `<button class="btn primary do-suppress" ${selected.size ? "" : "disabled"}>Погасить выбранные${selected.size ? ` · ${selected.size}` : ""}</button>
 					<button class="btn pick-all">Отметить все</button>` : ""}
 				${data.suppressible ? `<button class="btn toggle-suppressed">${showSuppressed ? "← Открытые замечания" : `Показать погашенные · ${fmtNum(data.suppressed)}`}</button>` : ""}
-				${kind !== "journal" ? `<a class="btn" href="#/control/journal">Журнал гашений</a>` : ""}
+				${kind !== "journal" && allowed.includes("journal") ? `<a class="btn" href="#/control/journal">Журнал гашений</a>` : ""}
 			</div>`;
 			bar.querySelector(".do-suppress")?.addEventListener("click", () =>
 				modal({
@@ -1218,7 +1232,8 @@
 
 	async function viewReviews(view) {
 		const can = state.boot.can;
-		const [items, campaigns] = await Promise.all([api("my_reviews"), can.read ? api("reviews") : Promise.resolve([])]);
+		const campaignsOk = canSee("reviews");
+		const [items, campaigns] = await Promise.all([api("my_reviews"), campaignsOk ? api("reviews") : Promise.resolve([])]);
 		const byReview = {};
 		items.forEach((i) => ((byReview[i.access_review] = byReview[i.access_review] || { title: i.review_title, due: i.due_date, text: i.review_description, people: {} }),
 			(byReview[i.access_review].people[i.person] = byReview[i.access_review].people[i.person] || []).push(i)));
@@ -1231,7 +1246,7 @@
 				<div><b>Мои задания</b><div class="muted small">решено ${done} из ${items.length}</div></div>
 				<div class="meter" style="flex:1;max-width:420px"><i class="my-progress" style="width:${(100 * done) / items.length}%;background:var(--green)"></i></div></div></div>
 				<div class="my-tasks"></div>` : `<div class="card empty"><b>Заданий нет</b>Когда начнётся пересмотр доступа, здесь появятся сотрудники, чьи доступы нужно подтвердить.</div>`)}
-			${can.read ? block(2, "Кампании", "Все пересмотры: сроки, ход и сколько доступов отмечено на отзыв.", `<div class="card campaigns"></div>`) : ""}`;
+			${campaignsOk ? block(2, "Кампании", "Все пересмотры: сроки, ход и сколько доступов отмечено на отзыв.", `<div class="card campaigns"></div>`) : ""}`;
 		const box = view.querySelector(".my-tasks");
 		if (box) {
 			const refresh = () => {
@@ -1277,7 +1292,7 @@
 				}
 			});
 		}
-		if (can.read)
+		if (campaignsOk)
 			table(view.querySelector(".campaigns"), {
 				name: "пересмотры",
 				rows: campaigns,
@@ -1382,6 +1397,160 @@
 		});
 	}
 
+	// ------------------------------------------------------------------ access to the app (administrators)
+
+	const LEVEL_NAMES = ["нет", "просмотр", "работа"];
+
+	async function viewAppAccess(view) {
+		const d = await api("access_admin");
+		const sectionPills = (sections, personal, lists) =>
+			Object.entries(d.sections)
+				.filter(([code]) => sections[code])
+				.map(([code, title]) => pill(`${title}${sections[code] > 1 ? " · работа" : ""}`, sections[code] > 1 ? "t-green" : ""))
+				.join(" ") +
+			(personal ? " " + pill("персональные данные", "t-amber") : "") +
+			(sections.control && lists && lists.length ? `<div class="muted small" style="margin-top:6px">Списки «Контроля»: ${esc(lists.map((k) => d.controls[k]).join(", "))}</div>` : "");
+		const profiles = d.profiles
+			.map(
+				(p, i) => `<div class="card card-pad ${p.enabled ? "" : "acct off"}">
+					<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+						<div><b style="font-size:16px">${esc(p.profile_name)}</b> ${p.enabled ? "" : pill("выключен", "")}
+						${p.description ? `<div class="muted small" style="margin-top:4px">${esc(p.description)}</div>` : ""}</div>
+						<div style="display:flex;gap:6px"><button class="btn small edit" data-i="${i}">Изменить</button><button class="btn small hist" data-name="${esc(p.name)}">История</button></div></div>
+					<div class="tags" style="margin-top:12px">${sectionPills(p.sections, p.personal, p.control_lists) || `<span class="muted">разделы не выбраны</span>`}</div>
+					<div class="group-title" style="margin:16px 0 8px">Пользователи · ${p.members.length}</div>
+					<div class="tags">${p.members.map((m) => `<span class="tag">${esc(m.full_name)}</span>`).join("") || `<span class="muted small">никому не выдан</span>`}</div>
+				</div>`
+			)
+			.join("");
+		view.innerHTML = `
+			<div class="page-head"><div><h1>Доступ к приложению</h1><p>Кто какие разделы видит. Профиль — набор разделов с уровнем («просмотр» или «работа»); выдайте его людям,
+				и приложение откроется им без ролей desk. Доступы из нескольких профилей и ролей складываются. Все изменения профилей сохраняются в истории.</p></div>
+				<button class="btn primary new">Новый профиль</button></div>
+			${block(1, "Профили доступа", "Разделы, уровень и кому выдан профиль.", profiles ? `<div class="grid grid-2">${profiles}</div>` : `<div class="card empty"><b>Профилей пока нет</b>Создайте первый: например «Главный бухгалтер» — сотрудники, права доступа и роли на просмотр.</div>`)}
+			${block(2, "Кто что видит", "Итоговый доступ каждого пользователя и откуда он: из ролей реестра или из профилей.", `<div class="card who"></div>`)}
+			${block(3, "Роли реестра", "Роли desk по-прежнему дают доступ к приложению — как встроенные профили. Назначаются в карточке пользователя Frappe.",
+				`<div class="card list">${d.roles.map((r) => `<div class="list-item"><div class="grow"><b>${esc(r.role)}</b><small>${esc(r.gives)}</small></div></div>`).join("")}</div>`)}`;
+		const short = (level) => (level > 1 ? "работа" : level ? "✓" : "");
+		table(view.querySelector(".who"), {
+			name: "доступ-к-приложению",
+			rows: d.users.map((u) => ({ ...u, ...Object.fromEntries(Object.keys(d.sections).map((k) => ["s_" + k, short(u.sections[k])])),
+				pd: u.personal ? "✓" : "", via_text: u.via.join(", "), lists_text: u.lists ? u.lists.map((k) => d.controls[k]).join(", ") : "" })),
+			empty: "Доступа пока ни у кого нет",
+			columns: [
+				{ key: "full_name", label: "Пользователь" },
+				...Object.entries(d.sections).map(([k, title]) => ({ key: "s_" + k, label: title.replace("Пересмотр доступа: кампании", "Пересмотр") })),
+				{ key: "pd", label: "Перс. данные" },
+				{ key: "lists_text", label: "Только списки" },
+				{ key: "via_text", label: "Через" },
+			],
+		});
+		view.querySelector(".new").addEventListener("click", () => editProfile(d, null, () => viewAppAccess(view)));
+		view.querySelectorAll(".edit").forEach((b) => b.addEventListener("click", () => editProfile(d, d.profiles[+b.dataset.i], () => viewAppAccess(view))));
+		view.querySelectorAll(".hist").forEach((b) =>
+			b.addEventListener("click", async () => {
+				const rows = await api("profile_history", { name: b.dataset.name });
+				const back = document.createElement("div");
+				back.className = "modal-back";
+				back.innerHTML = `<div class="modal wide"><h3>История: ${esc(b.dataset.name)}</h3>
+					<div class="list" style="max-height:60vh;overflow:auto">${rows.map((r) => `<div class="list-item"><div class="grow"><b>${esc(r.who)}</b> <span class="muted small">${esc(fmtDateTime(r.when))}</span><small>${esc(r.what)}</small></div></div>`).join("") || `<div class="empty">Изменений нет</div>`}</div>
+					<div class="actions"><button class="btn close">Закрыть</button></div></div>`;
+				document.body.appendChild(back);
+				back.querySelector(".close").addEventListener("click", () => back.remove());
+				back.addEventListener("click", (e) => e.target === back && back.remove());
+			})
+		);
+	}
+
+	function editProfile(d, profile, done) {
+		const p = profile || { profile_name: "", description: "", enabled: 1, sections: {}, personal: false, control_lists: [], members: [] };
+		const members = new Map(p.members.map((m) => [m.user, m.full_name]));
+		const back = document.createElement("div");
+		back.className = "modal-back";
+		const sectionRow = ([code, title]) => {
+			const levels = d.work_sections.includes(code) ? [0, 1, 2] : [0, 1];
+			return `<div class="sec-row"><span>${esc(title)}</span><select class="field" data-sec="${code}">${levels
+				.map((l) => `<option value="${l}" ${(p.sections[code] || 0) === l ? "selected" : ""}>${LEVEL_NAMES[l]}</option>`)
+				.join("")}</select></div>`;
+		};
+		back.innerHTML = `<form class="modal wide"><h3>${profile ? "Профиль доступа" : "Новый профиль доступа"}</h3>
+			<label>Название</label><input name="profile_name" value="${esc(p.profile_name)}" required>
+			<label>Для кого и зачем</label><input name="description" value="${esc(p.description || "")}">
+			<label>Разделы</label><div class="sec-grid">${Object.entries(d.sections).map(sectionRow).join("")}</div>
+			<label class="check"><input type="checkbox" name="personal" ${p.personal ? "checked" : ""}> Персональные данные (даты рождения)</label>
+			<div class="lists-box"><label>Списки «Контроля» <span class="muted">(ничего не отмечено — все)</span></label><div class="sec-grid">${Object.entries(d.controls)
+				.map(([k, t]) => `<label class="check"><input type="checkbox" data-list="${k}" ${p.control_lists.includes(k) ? "checked" : ""}> ${esc(t)}</label>`)
+				.join("")}</div></div>
+			<label>Пользователи</label><div class="tags members"></div>
+			<div style="position:relative"><input class="user-q" placeholder="Найти пользователя по имени или почте" autocomplete="off"><div class="results user-results"></div></div>
+			<label class="check"><input type="checkbox" name="enabled" ${p.enabled ? "checked" : ""}> Профиль действует</label>
+			<div class="error-box" style="padding:8px 0 0;display:none"></div>
+			<div class="actions"><button type="button" class="btn cancel">Отмена</button><button class="btn primary">Сохранить</button></div></form>`;
+		document.body.appendChild(back);
+		const form = back.querySelector("form");
+		const drawMembers = () => {
+			form.querySelector(".members").innerHTML =
+				[...members].map(([u, n]) => `<span class="tag">${esc(n)} <a href="#" data-rm="${esc(u)}" title="Убрать">×</a></span>`).join("") ||
+				`<span class="muted small">никому не выдан</span>`;
+		};
+		const toggleLists = () => (form.querySelector(".lists-box").hidden = form.querySelector('[data-sec="control"]').value === "0");
+		drawMembers();
+		toggleLists();
+		form.querySelector('[data-sec="control"]').addEventListener("change", toggleLists);
+		form.querySelector(".members").addEventListener("click", (e) => {
+			const rm = e.target.closest("[data-rm]");
+			if (!rm) return;
+			e.preventDefault();
+			members.delete(rm.dataset.rm);
+			drawMembers();
+		});
+		const q = form.querySelector(".user-q");
+		const results = form.querySelector(".user-results");
+		let timer;
+		q.addEventListener("input", () => {
+			clearTimeout(timer);
+			timer = setTimeout(async () => {
+				if (q.value.trim().length < 2) return results.classList.remove("open");
+				const users = await api("find_users", { query: q.value });
+				results.innerHTML = users.map((u) => `<a class="result" data-u="${esc(u.user)}" data-n="${esc(u.full_name || u.user)}"><div><b>${esc(u.full_name || u.user)}</b><small>${esc(u.user)}</small></div></a>`).join("") || `<div class="empty">Не найдено</div>`;
+				results.classList.add("open");
+			}, 250);
+		});
+		results.addEventListener("click", (e) => {
+			const r = e.target.closest("[data-u]");
+			if (!r) return;
+			members.set(r.dataset.u, r.dataset.n);
+			q.value = "";
+			results.classList.remove("open");
+			drawMembers();
+		});
+		back.querySelector(".cancel").addEventListener("click", () => back.remove());
+		form.addEventListener("submit", async (e) => {
+			e.preventDefault();
+			const sections = Object.fromEntries([...form.querySelectorAll("[data-sec]")].map((x) => [x.dataset.sec, +x.value]));
+			const data = {
+				name: profile ? profile.name : null,
+				profile_name: form.profile_name.value,
+				description: form.description.value,
+				enabled: form.enabled.checked ? 1 : 0,
+				personal: form.personal.checked ? 1 : 0,
+				sections,
+				control_lists: [...form.querySelectorAll("[data-list]:checked")].map((x) => x.dataset.list),
+				members: [...members.keys()],
+			};
+			try {
+				await api("save_profile", { data }, true);
+				back.remove();
+				toast("Профиль сохранён");
+				done();
+			} catch (err) {
+				const box = form.querySelector(".error-box");
+				box.style.display = "block";
+				box.textContent = err.message;
+			}
+		});
+	}
+
 	// ------------------------------------------------------------------ start
 
 	async function start() {
@@ -1396,7 +1565,7 @@
 		renderShell();
 		window.addEventListener("hashchange", route);
 		await route();
-		if (!state.dashboard && state.boot.can.read) loadDashboard().catch(() => null);
+		if (!state.dashboard && (canSee("overview") || canSee("control") || canSee("sources"))) loadDashboard().catch(() => null);
 	}
 
 	start();

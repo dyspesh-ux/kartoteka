@@ -1,7 +1,7 @@
 {
  "charts": [],
  "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Каталог процессов:</b> владельцы, роли RACI, участники и заместители; загрузка из Excel.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Процессы</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Бизнес-процессы\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли процессов\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Участники процессов\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Риски процессов\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Импорт процессов из Excel\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000011\", \"type\": \"card\", \"data\": {\"card_name\": \"Бизнес-процессы\", \"col\": 4}}]",
- "creation": "2026-10-06 10:00:00.000000",
+ "creation": "2026-10-07 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -88,7 +88,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-06 10:00:00.000000",
+ "modified": "2026-10-07 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Бизнес-процессы",

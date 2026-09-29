@@ -14,8 +14,8 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, get_datetime, get_url, getdate, now_datetime, today
 
+from access_registry import app_access
 from access_registry.access_roles import suppression
-from access_registry.permissions import READERS
 
 # control lists in the digest, in the order of the letter
 KINDS = [
@@ -320,8 +320,9 @@ def recipients(settings) -> list[str]:
 		user = frappe.db.get_value("User", row.user, ["enabled", "email"], as_dict=True)
 		if not user or not user.enabled or not user.email:
 			continue
-		roles = set(frappe.get_roles(row.user))
-		if roles & set(READERS):
+		# the letter shows every control list: only for those who see «Обзор» and all of «Контроль»
+		a = app_access.access(row.user)
+		if a["sections"]["overview"] and a["sections"]["control"] and a["all_lists"]:
 			emails.append(user.email)
 	return sorted(set(emails))
 

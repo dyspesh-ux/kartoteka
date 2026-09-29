@@ -458,6 +458,14 @@ dl.kv dd { margin: 0; overflow-wrap: anywhere; }
 
 .modal-back { position: fixed; inset: 0; background: rgba(30, 36, 33, .45); display: grid; place-items: center; z-index: 50; padding: 16px; }
 .modal { width: 100%; max-width: 540px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 28px 32px; }
+.modal.wide { max-width: 760px; max-height: 92vh; overflow-y: auto; }
+.modal .sec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 24px; }
+.modal .sec-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.modal .sec-row .field { min-width: 120px; height: 36px; }
+.modal label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: var(--font-size-medium-mini); color: var(--text); margin: 8px 0 0; }
+.modal label.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+.modal .user-results { top: 48px; }
+.modal .tag a { color: var(--muted); margin-left: 4px; }
 .modal h3 { margin-bottom: 8px; font-size: var(--font-size-medium-maxi); }
 .modal label { display: block; font-weight: 700; font-size: var(--font-size-small-maxi); margin: 16px 0 6px; color: var(--text-2); }
 .modal textarea, .modal input, .modal select { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-small); padding: 10px 14px; background: var(--surface); }

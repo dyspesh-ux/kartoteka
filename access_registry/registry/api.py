@@ -10,14 +10,14 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, getdate, now_datetime, today
 
+from access_registry import app_access as aa
 from access_registry.access_catalog.access_report import main_places
 from access_registry.access_roles import engine, suppression
+from access_registry.app_access import CONTROLS, VIEW, WORK
 from access_registry.permissions import (
 	ADMINS,
 	AUDITOR,
-	PERSONAL_DATA,
 	PROCESS_MANAGER,
-	READERS,
 	REVIEWER,
 	ROLE_MANAGER,
 	has_any,
@@ -25,17 +25,23 @@ from access_registry.permissions import (
 )
 
 LIST_LIMIT = 500
-SUPPRESSORS = (*ADMINS, AUDITOR, ROLE_MANAGER)  # who may suppress alerts and return them
 CACHE_KEY = "access_registry:registry_dashboard"
 STALE_DAYS = 90
 
 
-def _check():
-	require(*READERS)
+def _check(section: str, need: int = VIEW):
+	"""Access to a section of the app: by registry roles or by access profiles (app_access)."""
+	aa.require_section(section, need)
 
 
 def _personal() -> bool:
-	return has_any(*PERSONAL_DATA)
+	return aa.personal()
+
+
+def _reviewer():
+	"""Own review tasks: anybody who may open the app (the tasks are filtered by the reviewer)."""
+	if not aa.can_open_app():
+		raise frappe.PermissionError(_("Нет доступа к реестру"))
 
 
 def _column(key, label, kind="text", link=None):
@@ -48,21 +54,29 @@ def _column(key, label, kind="text", link=None):
 @frappe.whitelist()
 def bootstrap() -> dict:
 	"""Who the user is and what the app shows. Reviewers without other roles see only their tasks."""
-	require(*READERS, REVIEWER)
+	if not aa.can_open_app():
+		raise frappe.PermissionError(_("Нет доступа к реестру"))
 	from access_registry.access_roles.review import pending_count
 
 	user = frappe.get_cached_doc("User", frappe.session.user)
+	a = aa.access()
 	return {
 		"pending_reviews": pending_count(),
 		"user": {"name": user.name, "full_name": user.full_name or user.name, "image": user.user_image},
 		"can": {
-			"read": has_any(*READERS),
-			"personal": _personal(),
+			"read": any(a["sections"].values()),
+			"sections": a["sections"],
+			"control_lists": aa.control_lists(),
+			"via": a["via"],
+			"personal": a["personal"],
+			# desk editing needs desk roles; the app only links to the desk forms
 			"roles": has_any(*ADMINS, ROLE_MANAGER),
 			"processes": has_any(*ADMINS, PROCESS_MANAGER),
 			"admin": has_any(*ADMINS),
-			"audit": has_any(*ADMINS, AUDITOR),
-			"suppress": has_any(*SUPPRESSORS),
+			"exceptions": a["sections"]["roles"] >= WORK,
+			"suppress": a["sections"]["control"] >= WORK,
+			"reviewer": bool(a.get("reviewer")),
+			"search": any(a["sections"][s] for s in ("people", "roles", "processes", "access")),
 		},
 		"layers": {
 			"hr": frappe.db.count("Info Base", {"configuration": "ЗУП"}),
@@ -116,14 +130,48 @@ class Accounts:
 
 @frappe.whitelist()
 def dashboard(refresh: int = 0) -> dict:
-	_check()
-	if not cint(refresh):
-		cached = frappe.cache().get_value(CACHE_KEY)
-		if cached:
-			return cached
-	data = _dashboard()
-	frappe.cache().set_value(CACHE_KEY, data, expires_in_sec=300)
-	return data
+	"""Counters for «Обзор», and for the list chips of «Контроль» (trimmed to what the user may see)."""
+	if not (aa.has_section("overview") or aa.has_section("control") or aa.has_section("sources")):
+		aa.require_section("overview")
+	data = None if cint(refresh) else frappe.cache().get_value(CACHE_KEY)
+	if not data:
+		data = _dashboard()
+		frappe.cache().set_value(CACHE_KEY, data, expires_in_sec=300)
+	return _trim_dashboard(data)
+
+
+# which dashboard counters belong to which control list
+DASHBOARD_LISTS = {
+	"dismissed_access": "dismissed",
+	"unlinked": "unlinked",
+	"sod": "sod",
+	"events": "events",
+	"processes": "processes",
+	"suppressed": "journal",
+}
+
+
+def _trim_dashboard(data: dict) -> dict:
+	if aa.has_section("overview"):
+		return data
+	lists = set(aa.control_lists())
+	trimmed = {
+		"generated": data["generated"],
+		"sources": data["sources"] if aa.has_section("sources") else [],
+	}
+	for key, kind in DASHBOARD_LISTS.items():
+		if kind in lists:
+			trimmed[key] = data[key]
+	if lists & {"excess", "missing", "exceptions"}:
+		trimmed["reconciliation"] = data["reconciliation"]
+	if "journal" in lists and not aa.access()["all_lists"]:
+		# suppressions of the user's lists only
+		trimmed["suppressed"] = sum(
+			1
+			for s in suppression.active().values()
+			if frappe.db.get_value("Alert Suppression", s.name, "alert_kind") in lists
+		)
+	return trimmed
 
 
 def _dashboard() -> dict:
@@ -308,7 +356,7 @@ def people(
 	start: int = 0,
 	limit: int = 100,
 ) -> dict:
-	_check()
+	_check("people")
 	filters = {}
 	if status:
 		filters["status"] = status
@@ -362,7 +410,7 @@ def people(
 
 @frappe.whitelist()
 def organizations() -> list:
-	_check()
+	_check("people")
 	return frappe.get_all(
 		"HR Organization", filters={"missing": 0}, fields=["name", "title"], order_by="title"
 	)
@@ -370,7 +418,7 @@ def organizations() -> list:
 
 @frappe.whitelist()
 def person(name: str) -> dict:
-	_check()
+	_check("people")
 	from access_registry.access_registry.page.access_overview.access_overview import _accounts, _ad_accounts
 
 	doc = frappe.get_doc("Person", name)
@@ -499,7 +547,7 @@ def person(name: str) -> dict:
 
 @frappe.whitelist()
 def entitlements(system: str | None = None) -> list:
-	_check()
+	_check("access")
 	filters = {"system": system} if system else {}
 	rows = frappe.get_all(
 		"Entitlement",
@@ -536,7 +584,7 @@ def entitlements(system: str | None = None) -> list:
 
 @frappe.whitelist()
 def entitlement(name: str) -> dict:
-	_check()
+	_check("access")
 	doc = frappe.get_doc("Entitlement", name)
 	actual, _other = engine.actual_entitlements()
 	holders = [p for p, held in actual.items() if name in held]
@@ -596,7 +644,7 @@ def entitlement(name: str) -> dict:
 
 @frappe.whitelist()
 def roles() -> list:
-	_check()
+	_check("roles")
 	model = engine.RoleModel()
 	members = Counter()
 	for person in model.persons:
@@ -626,7 +674,7 @@ def roles() -> list:
 
 @frappe.whitelist()
 def role(name: str) -> dict:
-	_check()
+	_check("roles")
 	doc = frappe.get_doc("Access Role", name)
 	model = engine.RoleModel()
 	members = model.members_of_role(name) if doc.status == "Действует" else {}
@@ -688,7 +736,7 @@ def role(name: str) -> dict:
 
 @frappe.whitelist()
 def processes() -> list:
-	_check()
+	_check("processes")
 	from access_registry.business_processes.reports import continuity
 
 	risks = Counter(r["process"] for r in continuity({"only_problems": 1})[1])
@@ -722,7 +770,7 @@ def processes() -> list:
 
 @frappe.whitelist()
 def process(name: str) -> dict:
-	_check()
+	_check("processes")
 	from access_registry.business_processes.reports import continuity, participants
 
 	doc = frappe.get_doc("Business Process", name)
@@ -801,21 +849,6 @@ def _names(persons) -> dict:
 # --------------------------------------------------------------------------- control
 
 
-CONTROLS = {
-	"dismissed": "Доступ у неработающих",
-	"unlinked": "Учётки без сотрудника",
-	"excess": "Лишние доступы",
-	"missing": "Не хватает доступов",
-	"sod": "Конфликты полномочий",
-	"privileged": "Привилегированный доступ",
-	"exceptions": "Исключения и временные роли",
-	"stale": "Давно не входили",
-	"processes": "Риски процессов",
-	"quality": "Расхождения данных",
-	"events": "Кадровые события: что сделать",
-	"shares": "Общие папки: замечания",
-	"journal": "Журнал гашений",
-}
 JML_GRANT = ("Приём", "Перевод", "Выход из отпуска по уходу", "Вернулся в выгрузку")
 JML_REVOKE = ("Увольнение", "Пропал из выгрузки")
 JML_PLAN = ("Предстоящее увольнение", "Уход в отпуск по уходу")
@@ -830,7 +863,7 @@ def _control_rows(kind):
 @frappe.whitelist()
 def control(kind: str, show_suppressed: int = 0) -> dict:
 	"""A control list without suppressed alerts; with show_suppressed — only the suppressed ones."""
-	_check()
+	aa.require_control(kind)
 	columns, rows = _control_rows(kind)
 	open_rows, hidden = suppression.split(kind, rows)
 	shown = hidden if cint(show_suppressed) else open_rows
@@ -848,7 +881,7 @@ def control(kind: str, show_suppressed: int = 0) -> dict:
 @frappe.whitelist(methods=["POST"])
 def suppress_alerts(kind: str, keys, reason: str, valid_to: str | None = None) -> int:
 	"""Suppresses the chosen alerts of a control list with a reason; every one gets a journal entry."""
-	require(*SUPPRESSORS)
+	aa.require_control(kind, WORK)
 	keys = frappe.parse_json(keys) if isinstance(keys, str) else keys
 	created = suppression.suppress(
 		kind, CONTROLS.get(kind, kind), _control_rows(kind)[1], keys, reason, valid_to
@@ -860,7 +893,8 @@ def suppress_alerts(kind: str, keys, reason: str, valid_to: str | None = None) -
 @frappe.whitelist(methods=["POST"])
 def restore_alert(name: str, reason: str) -> str:
 	"""The alert shows in its list again; the journal keeps who returned it and why."""
-	require(*SUPPRESSORS)
+	# only alerts of the lists the user works with (the journal alone does not give that)
+	aa.require_control(frappe.db.get_value("Alert Suppression", name, "alert_kind"), WORK)
 	result = suppression.restore(name, reason)
 	frappe.cache().delete_value(CACHE_KEY)
 	return result
@@ -868,6 +902,9 @@ def restore_alert(name: str, reason: str) -> str:
 
 def _control_journal():
 	rows = suppression.journal()
+	allowed = set(aa.control_lists())
+	if not aa.access()["all_lists"]:
+		rows = [r for r in rows if r["alert_kind"] in allowed]  # only the lists the user works with
 	for r in rows:
 		r["ref"], r["ref_doctype"] = r["name"], "Alert Suppression"
 		r["when"] = r["suppressed_on"]
@@ -1225,22 +1262,33 @@ def _control_shares():
 
 @frappe.whitelist()
 def search(query: str) -> list:
-	_check()
+	if not aa.any_section():
+		aa.require_section("people")
+	people, roles_ok = aa.has_section("people"), aa.has_section("roles")
+	processes_ok, catalog_ok = aa.has_section("processes"), aa.has_section("access")
 	query = (query or "").strip()
 	if len(query) < 2:
 		return []
 	like = f"%{query}%"
 	results = []
-	for p in frappe.db.sql(
-		"select name, full_name, status from `tabPerson` where full_name like %s order by status = 'Работает' desc, full_name limit 8",
-		like,
-		as_dict=True,
+	for p in (
+		frappe.db.sql(
+			"select name, full_name, status from `tabPerson` where full_name like %s order by status = 'Работает' desc, full_name limit 8",
+			like,
+			as_dict=True,
+		)
+		if people
+		else []
 	):
 		results.append({"kind": "person", "id": p.name, "title": p.full_name, "subtitle": p.status})
 	for doctype, title_field, extra, link in (
-		("IB User", "user_name", "login", "1С"),
-		("AD Account", "display_name", "sam_account_name", "AD"),
-		("B24 User", "full_name", "email", "Битрикс24"),
+		(
+			("IB User", "user_name", "login", "1С"),
+			("AD Account", "display_name", "sam_account_name", "AD"),
+			("B24 User", "full_name", "email", "Битрикс24"),
+		)
+		if people
+		else ()
 	):
 		for a in frappe.db.sql(
 			f"""select name, {title_field} as title, {extra} as extra, person from `tab{doctype}`
@@ -1257,14 +1305,26 @@ def search(query: str) -> list:
 					"subtitle": f"{link}: {a.extra or ''}" + ("" if a.person else " · не привязан"),
 				}
 			)
-	for r in frappe.get_all("Access Role", filters={"role_name": ["like", like]}, fields=["name"], limit=5):
+	for r in (
+		frappe.get_all("Access Role", filters={"role_name": ["like", like]}, fields=["name"], limit=5)
+		if roles_ok
+		else []
+	):
 		results.append({"kind": "role", "id": r.name, "title": r.name, "subtitle": _("роль доступа")})
-	for p in frappe.get_all(
-		"Business Process", filters={"title": ["like", like]}, fields=["name", "title"], limit=5
+	for p in (
+		frappe.get_all(
+			"Business Process", filters={"title": ["like", like]}, fields=["name", "title"], limit=5
+		)
+		if processes_ok
+		else []
 	):
 		results.append({"kind": "process", "id": p.name, "title": p.title, "subtitle": _("бизнес-процесс")})
-	for e in frappe.get_all(
-		"Entitlement", filters={"title": ["like", like]}, fields=["name", "title", "system"], limit=5
+	for e in (
+		frappe.get_all(
+			"Entitlement", filters={"title": ["like", like]}, fields=["name", "title", "system"], limit=5
+		)
+		if catalog_ok
+		else []
 	):
 		results.append({"kind": "entitlement", "id": e.name, "title": e.title, "subtitle": e.system})
 	return results
@@ -1272,7 +1332,7 @@ def search(query: str) -> list:
 
 @frappe.whitelist(methods=["POST"])
 def create_exception(person: str, entitlement: str, reason: str, valid_to: str | None = None) -> str:
-	require(ROLE_MANAGER)
+	_check("roles", WORK)
 	if not (reason or "").strip():
 		frappe.throw(_("Укажите, почему доступ согласован"))
 	doc = frappe.get_doc(
@@ -1294,7 +1354,7 @@ def create_exception(person: str, entitlement: str, reason: str, valid_to: str |
 @frappe.whitelist()
 def my_reviews() -> list:
 	"""Tasks of the current user in running access reviews."""
-	require(*READERS, REVIEWER)
+	_reviewer()
 	from access_registry.access_roles.review import my_items
 
 	return my_items()
@@ -1302,7 +1362,7 @@ def my_reviews() -> list:
 
 @frappe.whitelist(methods=["POST"])
 def decide(item: str, decision: str, comment: str | None = None) -> dict:
-	require(*READERS, REVIEWER)
+	_reviewer()
 	from access_registry.access_roles.review import decide as _decide
 
 	return _decide(item, decision, comment)
@@ -1311,7 +1371,7 @@ def decide(item: str, decision: str, comment: str | None = None) -> dict:
 @frappe.whitelist(methods=["POST"])
 def decide_person(review: str, person: str, decision: str) -> int:
 	"""The same decision for all undecided accesses of one employee assigned to the current user."""
-	require(*READERS, REVIEWER)
+	_reviewer()
 	from access_registry.access_roles.review import decide as _decide
 
 	items = frappe.get_all(
@@ -1331,7 +1391,7 @@ def decide_person(review: str, person: str, decision: str) -> int:
 
 @frappe.whitelist()
 def reviews() -> list:
-	_check()
+	_check("reviews")
 	rows = frappe.get_all(
 		"Access Review",
 		fields=[
@@ -1356,7 +1416,7 @@ def reviews() -> list:
 
 @frappe.whitelist()
 def review(name: str) -> dict:
-	_check()
+	_check("reviews")
 	from access_registry.access_roles.review import results
 
 	doc = frappe.get_doc("Access Review", name)
@@ -1383,7 +1443,178 @@ def review(name: str) -> dict:
 @frappe.whitelist(methods=["POST"])
 def mark_event_processed(event: str) -> str:
 	"""An HR event is handled: access granted or revoked in the systems."""
-	require(AUDITOR, ROLE_MANAGER)
+	aa.require_control("events", WORK)
 	frappe.db.set_value("HR Event", event, "processed", 1)
 	frappe.cache().delete_value(CACHE_KEY)
 	return event
+
+
+# --------------------------------------------------------------------------- access to the app
+
+
+PROFILE_FIELDS = {
+	"overview": "s_overview",
+	"people": "s_people",
+	"control": "s_control",
+	"access": "s_access",
+	"roles": "s_roles",
+	"processes": "s_processes",
+	"reviews": "s_reviews",
+	"sources": "s_sources",
+}
+LEVEL_TITLE = {aa.NONE: "", VIEW: "Просмотр", WORK: "Работа"}
+
+
+def _profile_dict(p) -> dict:
+	sections, personal, lists = aa.profile_access(p)
+	return {
+		"name": p.name,
+		"profile_name": p.profile_name,
+		"enabled": p.enabled,
+		"description": p.description,
+		"sections": sections,
+		"personal": personal,
+		"control_lists": lists,
+		"members": [{"user": m.user, "full_name": m.full_name or m.user} for m in p.members],
+	}
+
+
+@frappe.whitelist()
+def access_admin() -> dict:
+	"""Profiles, who sees what and why — for the administrators of the registry."""
+	require(*ADMINS)
+	profiles = [
+		_profile_dict(frappe.get_doc("Registry Access Profile", n))
+		for n in frappe.get_all("Registry Access Profile", order_by="profile_name", pluck="name")
+	]
+	registry_roles = [*ADMINS, AUDITOR, ROLE_MANAGER, PROCESS_MANAGER, aa.VIEWER, REVIEWER]
+	users = set(
+		frappe.get_all(
+			"Has Role", filters={"parenttype": "User", "role": ["in", registry_roles]}, pluck="parent"
+		)
+	)
+	users |= set(
+		frappe.get_all(
+			"Registry Access Member", filters={"parenttype": "Registry Access Profile"}, pluck="user"
+		)
+	)
+	users -= {"Administrator", "Guest"}
+	people = []
+	for u in frappe.get_all(
+		"User",
+		filters={"name": ["in", list(users) or [""]], "enabled": 1},
+		fields=["name", "full_name"],
+		order_by="full_name",
+	):
+		a = aa.access(u.name)
+		if not (any(a["sections"].values()) or a.get("reviewer")):
+			continue
+		people.append(
+			{
+				"user": u.name,
+				"full_name": u.full_name or u.name,
+				"sections": a["sections"],
+				"personal": a["personal"],
+				"lists": None if a["all_lists"] else sorted(a["control_lists"]),
+				"via": a["via"] or ([_("только свои задания пересмотра")] if a.get("reviewer") else []),
+			}
+		)
+	return {
+		"sections": aa.SECTIONS,
+		"work_sections": sorted(aa.WORK_SECTIONS),
+		"controls": CONTROLS,
+		"profiles": profiles,
+		"users": people,
+		"roles": [
+			{"role": _("Администратор (Registry Admin)"), "gives": _("всё, включая управление доступом")},
+			{
+				"role": AUDITOR,
+				"gives": _("все разделы на просмотр, «Контроль» — работа, персональные данные"),
+			},
+			{
+				"role": ROLE_MANAGER,
+				"gives": _("все разделы на просмотр, «Контроль» и «Роли доступа» — работа"),
+			},
+			{"role": PROCESS_MANAGER, "gives": _("все разделы на просмотр")},
+			{"role": aa.VIEWER, "gives": _("все разделы на просмотр, без персональных данных")},
+			{"role": REVIEWER, "gives": _("только свои задания пересмотра доступа")},
+		],
+	}
+
+
+@frappe.whitelist(methods=["POST"])
+def save_profile(data) -> str:
+	"""Creates or updates an access profile; every change is kept in its version history."""
+	require(*ADMINS)
+	data = frappe.parse_json(data) if isinstance(data, str) else frappe._dict(data)
+	name = (data.get("profile_name") or "").strip()
+	if not name:
+		frappe.throw(_("Назовите профиль"))
+	doc = (
+		frappe.get_doc("Registry Access Profile", data["name"])
+		if data.get("name")
+		else frappe.new_doc("Registry Access Profile")
+	)
+	doc.profile_name = name
+	doc.enabled = cint(data.get("enabled", 1))
+	doc.description = data.get("description")
+	sections = data.get("sections") or {}
+	for section, field in PROFILE_FIELDS.items():
+		value = cint(sections.get(section))
+		if section in aa.WORK_SECTIONS:
+			doc.set(field, LEVEL_TITLE[min(value, WORK)])
+		else:
+			doc.set(field, 1 if value else 0)
+	doc.s_personal = cint(data.get("personal"))
+	doc.set(
+		"control_lists",
+		[{"control_list": CONTROLS[k]} for k in data.get("control_lists") or [] if k in CONTROLS],
+	)
+	users = []
+	for user in data.get("members") or []:
+		if user not in users and frappe.db.exists("User", user):
+			users.append(user)
+	doc.set("members", [{"user": u} for u in users])
+	doc.save(ignore_permissions=True, ignore_version=False)
+	return doc.name
+
+
+@frappe.whitelist()
+def find_users(query: str) -> list:
+	require(*ADMINS)
+	like = f"%{(query or '').strip()}%"
+	return frappe.db.sql(
+		"""select name as user, full_name from `tabUser`
+		where enabled = 1 and name not in ('Guest', 'Administrator') and user_type in ('System User', 'Website User')
+			and (full_name like %(like)s or name like %(like)s)
+		order by full_name limit 10""",
+		{"like": like},
+		as_dict=True,
+	)
+
+
+@frappe.whitelist()
+def profile_history(name: str) -> list:
+	"""Who changed the profile, when and what."""
+	require(*ADMINS)
+	rows = []
+	for v in frappe.get_all(
+		"Version",
+		filters={"ref_doctype": "Registry Access Profile", "docname": name},
+		fields=["owner", "creation", "data"],
+		order_by="creation desc",
+		limit=50,
+	):
+		diff = frappe.parse_json(v.data or "{}")
+		parts = [f"{c[0]}: {c[1] or '—'} → {c[2] or '—'}" for c in diff.get("changed") or []]
+		for table, rows_ in (("добавлено", diff.get("added") or []), ("убрано", diff.get("removed") or [])):
+			for field, row in rows_:
+				parts.append(f"{table}: {row.get('user') or row.get('control_list') or field}")
+		rows.append(
+			{
+				"when": str(v.creation),
+				"who": frappe.db.get_value("User", v.owner, "full_name") or v.owner,
+				"what": "; ".join(parts) or _("создан"),
+			}
+		)
+	return rows
