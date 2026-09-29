@@ -1000,7 +1000,9 @@
 		view.innerHTML = `
 			<div class="page-head"><div><h1>Бизнес-процессы</h1><p>Реестр процессов: владелец, описание, регламент и схема, роли в процессе (RACI) и участники.
 				Права, нужные ролям процессов, попадают в «положено» участникам.</p></div>
-				${state.boot.can.processes ? `<a class="btn primary" href="/app/business-process/new">Новый процесс</a>` : ""}</div>
+				<div style="display:flex;gap:8px;flex-wrap:wrap">
+				<a class="btn" href="/api/method/access_registry.business_processes.api.download_template">${icon("download")} Скачать в Excel</a>
+				${state.boot.can.processes ? `<a class="btn" href="/app/process-import/new">Загрузить из Excel</a><a class="btn primary" href="/app/business-process/new">Новый процесс</a>` : ""}</div></div>
 			<div class="card procs"></div>`;
 		table(view.querySelector(".procs"), {
 			name: "процессы",
