@@ -12,6 +12,6 @@ frappe.ui.form.on("Access Role", {
 		);
 		frm.add_custom_button(__("Открыть в приложении"), () => window.open(`/registry#/role/${encodeURIComponent(frm.doc.name)}`));
 		if (frm.doc.status === "Черновик")
-			frm.dashboard.set_headline(__("Черновик: в сверке не участвует. Проверьте правила и права и переведите в «Действует»."), "orange");
+			frm.dashboard.set_headline(__("Черновик: в сверке не участвует. Проверьте правила и права и переведите в «Действует»."), "gray");
 	},
 });

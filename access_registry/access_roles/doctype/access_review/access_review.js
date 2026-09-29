@@ -24,7 +24,7 @@ frappe.ui.form.on("Access Review", {
 				__("Решено {0}% ({1} из {2}), на отзыв {3}, без проверяющего {4}.", [
 					done, frm.doc.items_done, frm.doc.items_total, frm.doc.items_revoke, frm.doc.items_unassigned,
 				]),
-				frm.doc.items_unassigned ? "orange" : "blue"
+				frm.doc.items_unassigned ? "gray" : "green"
 			);
 		}
 	},

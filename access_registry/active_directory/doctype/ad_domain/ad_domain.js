@@ -19,7 +19,7 @@ frappe.ui.form.on("AD Domain", {
 		);
 		frm.dashboard.set_headline(
 			__("Реестр только читает AD. Учётка для подключения не должна иметь прав на запись."),
-			"blue"
+			"green"
 		);
 	},
 });

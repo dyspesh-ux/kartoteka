@@ -2,11 +2,12 @@
 
 .ao-root {
 	--ao-radius: 14px;
-	--ao-green: var(--green-500, #16a34a);
-	--ao-red: var(--red-500, #e03636);
-	--ao-orange: var(--orange-500, #f97316);
-	--ao-blue: var(--blue-500, #2563eb);
-	--ao-purple: var(--purple-500, #8b5cf6);
+	/* green and grays only: problems are dark gray, not red */
+	--ao-green: #2e9e6a;
+	--ao-red: var(--gray-800, #2b312e);
+	--ao-orange: var(--gray-600, #5d6561);
+	--ao-blue: #1f7a4f;
+	--ao-purple: var(--gray-500, #7b837f);
 	--ao-gray: var(--gray-500, #8d99a6);
 	--ao-card: var(--card-bg, var(--bg-color, #fff));
 	--ao-soft: var(--subtle-fg, var(--control-bg, #f4f5f6));
@@ -192,7 +193,7 @@
 	background: linear-gradient(135deg, var(--ao-blue), var(--ao-purple));
 }
 .ao-avatar-sm { width: 34px; height: 34px; border-radius: 10px; font-size: 13px; }
-.ao-avatar-account { background: linear-gradient(135deg, var(--ao-orange), #f59e0b); }
+.ao-avatar-account { background: var(--ao-orange); }
 .ao-alert {
 	margin: -4px 0 16px;
 	padding: 12px 16px;
@@ -285,7 +286,7 @@
 
 /* Active Directory */
 .ao-kpi-group { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ao-muted); margin: 4px 0 8px; }
-.ao-avatar-ad { background: linear-gradient(135deg, var(--ao-purple), #6366f1); }
+.ao-avatar-ad { background: var(--ao-purple); }
 .ao-card header.ao-subheader { margin-top: 18px; }
 .ao-account-ad { border-top: 3px solid color-mix(in srgb, var(--ao-purple) 55%, transparent); }
 .ao-ok-inline { color: var(--ao-green); }

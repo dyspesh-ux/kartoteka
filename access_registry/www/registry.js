@@ -504,7 +504,7 @@
 						<div class="value">${total ? Math.round(share(r.ok)) : 0}%</div>
 						<div class="meter" title="соответствует / не хватает / лишнее / исключения">
 							<i style="width:${share(r.ok)}%;background:var(--green)"></i><i style="width:${share(r.missing)}%;background:var(--amber)"></i>
-							<i style="width:${share(r.excess + r.excess_not_working)}%;background:var(--red)"></i><i style="width:${share(r.exceptions)}%;background:var(--violet)"></i></div>
+							<i style="width:${share(r.excess + r.excess_not_working)}%;background:var(--red)"></i><i style="width:${share(r.exceptions)}%;background:var(--border-strong)"></i></div>
 						<div class="hint" style="margin-top:10px">${d.roles.active} ${plural(d.roles.active, "роль", "роли", "ролей")} · ${d.roles.entitlements} прав в каталоге${d.roles.drafts ? ` · черновиков: ${d.roles.drafts}` : ""}</div></a>
 				</div>` : `<div class="card card-pad"><b>Ролевая модель ещё не настроена.</b>
 					<p class="muted" style="margin-top:6px">Опишите права доступа и роли — реестр начнёт показывать, чего не хватает и что лишнее.
@@ -630,7 +630,7 @@
 			${alerts.map(([tone, text]) => `<div class="alert ${tone}">${esc(text)}</div>`).join("")}
 			<div class="tabs">
 				<button data-tab="access" class="on">Доступы <span class="n">${activeIb.length + activeAd.length + activeB24.length}</span></button>
-				<button data-tab="recon">Положено и есть ${counts["Не хватает"] || counts["Лишнее"] || counts["Лишнее: не работает"] ? `<span class="n" style="background:var(--red-soft);color:var(--red)">${(counts["Не хватает"] || 0) + (counts["Лишнее"] || 0) + (counts["Лишнее: не работает"] || 0)}</span>` : ""}</button>
+				<button data-tab="recon">Положено и есть ${counts["Не хватает"] || counts["Лишнее"] || counts["Лишнее: не работает"] ? `<span class="n" style="background:var(--strong);color:var(--on-strong)">${(counts["Не хватает"] || 0) + (counts["Лишнее"] || 0) + (counts["Лишнее: не работает"] || 0)}</span>` : ""}</button>
 				<button data-tab="roles">Роли и процессы <span class="n">${d.roles.length + d.process_roles.length}</span></button>
 				<button data-tab="hr">Кадры</button>
 			</div>

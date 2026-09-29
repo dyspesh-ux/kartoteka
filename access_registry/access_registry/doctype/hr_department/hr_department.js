@@ -12,7 +12,7 @@ frappe.ui.form.on("HR Department", {
 		if (frm.doc.head_conflict) {
 			frm.dashboard.set_headline(
 				__("Руководитель в ЗУП и указанный вручную различаются. Действует руководитель из ЗУП."),
-				"orange"
+				"gray"
 			);
 		}
 	},

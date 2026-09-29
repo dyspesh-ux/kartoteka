@@ -18,7 +18,7 @@ frappe.ui.form.on("IB Access Profile", {
 				],
 			})
 			.then((count) => {
-				frm.dashboard.add_indicator(__("Пользователей с профилем: {0}", [count]), count ? "blue" : "gray");
+				frm.dashboard.add_indicator(__("Пользователей с профилем: {0}", [count]), count ? "green" : "gray");
 			});
 	},
 });

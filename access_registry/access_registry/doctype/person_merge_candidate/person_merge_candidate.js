@@ -16,7 +16,7 @@ frappe.ui.form.on("Person Merge Candidate", {
 		});
 		frm.add_custom_button(__("Это разные люди"), () => {
 			frm.call("mark_different").then((r) => {
-				if (r.message) frappe.show_alert({ message: r.message, indicator: "blue" });
+				if (r.message) frappe.show_alert({ message: r.message, indicator: "green" });
 				frm.reload_doc();
 			});
 		});

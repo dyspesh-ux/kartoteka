@@ -12,13 +12,13 @@ frappe.ui.form.on("Process Import", {
 				frm.reload_doc();
 				frappe.show_alert({
 					message: frm.doc.summary || __("Готово"),
-					indicator: frm.doc.status === "Есть ошибки" ? "red" : "green",
+					indicator: frm.doc.status === "Есть ошибки" ? "gray" : "green",
 				});
 			});
 		frm.add_custom_button(__("Проверить"), () => run("check"));
 		frm.add_custom_button(__("Загрузить"), () => run("load")).addClass("btn-primary");
 		if (frm.doc.status === "Есть ошибки")
-			frm.dashboard.set_headline(__("В файле есть ошибки — ничего не загружено. Исправьте строки из списка ниже и прикрепите файл заново."), "red");
+			frm.dashboard.set_headline(__("В файле есть ошибки — ничего не загружено. Исправьте строки из списка ниже и прикрепите файл заново."), "gray");
 		else if (frm.doc.status === "Проверен")
 			frm.dashboard.set_headline(__("Проверка прошла. Нажмите «Загрузить»."), "green");
 	},

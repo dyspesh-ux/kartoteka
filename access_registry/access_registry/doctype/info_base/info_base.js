@@ -31,6 +31,6 @@ frappe.ui.form.on("Info Base", {
 			frm.doc.configuration === "ЗУП"
 				? __("Источник правды о сотрудниках, подразделениях и организациях. Отсюда же — пользователи и права этой базы.")
 				: __("База без кадровых данных: загружаются только пользователи и права. Пользователи привязываются к сотрудникам из баз ЗУП.");
-		frm.dashboard.set_headline(role, frm.doc.configuration === "ЗУП" ? "blue" : "gray");
+		frm.dashboard.set_headline(role, frm.doc.configuration === "ЗУП" ? "green" : "gray");
 	},
 });

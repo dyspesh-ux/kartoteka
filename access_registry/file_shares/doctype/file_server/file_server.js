@@ -8,7 +8,7 @@ frappe.ui.form.on("File Server", {
 			frm.call("load_file").then((r) => {
 				const m = r.message;
 				if (!m) return;
-				frappe.show_alert({ message: `${m.status}: ${m.log}`, indicator: m.status === "Успех" ? "green" : "red" });
+				frappe.show_alert({ message: `${m.status}: ${m.log}`, indicator: m.status === "Успех" ? "green" : "gray" });
 				frm.reload_doc();
 			})
 		);
@@ -31,7 +31,7 @@ frappe.ui.form.on("File Server", {
 			__("Права присылает сборщик synology/registry_collect.sh (SERVER_CODE={0}). Реестр только читает, в NAS ничего не пишет.", [
 				frm.doc.server_code,
 			]),
-			"blue"
+			"green"
 		);
 	},
 });

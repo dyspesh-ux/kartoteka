@@ -68,7 +68,7 @@ class AccessOverview {
 
 	status_pill(status) {
 		if (!status) return "";
-		const tone = { Работает: "green", Уволен: "red", "Не принят": "gray", "Нет в выгрузке": "orange" }[status] || "gray";
+		const tone = { Работает: "green", Уволен: "gray", "Не принят": "gray", "Нет в выгрузке": "gray" }[status] || "gray";
 		return `<span class="ao-pill ao-${tone}">${this.esc(status)}</span>`;
 	}
 
@@ -80,7 +80,7 @@ class AccessOverview {
 	}
 
 	config_badge(configuration) {
-		const tone = configuration === "ЗУП" ? "blue" : configuration === "Бухгалтерия" ? "green" : "gray";
+		const tone = configuration === "ЗУП" ? "green" : configuration === "Бухгалтерия" ? "green" : "gray";
 		return `<span class="ao-badge ao-${tone}">${this.esc(configuration || "—")}</span>`;
 	}
 
@@ -88,9 +88,9 @@ class AccessOverview {
 		if (!status && !last) return { tone: "gray", text: __("не загружалось") };
 		const s = status || "";
 		if (s.startsWith("Успех")) return { tone: "green", text: this.when(last) };
-		if (s.startsWith("Остановлен")) return { tone: "orange", text: __("остановлено предохранителем") };
-		if (s.startsWith("Ошибка")) return { tone: "red", text: __("ошибка") };
-		return { tone: "blue", text: s };
+		if (s.startsWith("Остановлен")) return { tone: "gray", text: __("остановлено предохранителем") };
+		if (s.startsWith("Ошибка")) return { tone: "gray", text: __("ошибка") };
+		return { tone: "green", text: s };
 	}
 
 	loading() {
@@ -239,25 +239,25 @@ class AccessOverview {
 				</a>`;
 			const kpis = [
 				tile(k.employees, __("Сотрудников работают"), __("по кадрам всех баз ЗУП"), "green", "List|Person", { status: "Работает" }),
-				tile(k.users, __("Пользователей 1С со входом"), __("во всех базах"), "blue", "List|IB User", {
+				tile(k.users, __("Пользователей 1С со входом"), __("во всех базах"), "green", "List|IB User", {
 					login_allowed: 1,
 					invalid: 0,
 					missing_in_source: 0,
 				}),
-				tile(k.not_working, __("Вход у неработающих"), __("уволены, но вход разрешён"), k.not_working ? "red" : "gray", "query-report|IB Login Not Working"),
-				tile(k.unlinked, __("Не привязаны к сотруднику"), __("со входом, без сотрудника"), k.unlinked ? "orange" : "gray", "query-report|IB Users Without Employee"),
-				tile(k.extra_roles, __("Роли в обход профилей"), __("выданы напрямую"), k.extra_roles ? "purple" : "gray", "query-report|IB Extra Roles"),
-				tile(k.orphans, __("Сироты ИБ"), __("пользователи ИБ без карточки"), k.orphans ? "orange" : "gray", "query-report|IB Orphans"),
+				tile(k.not_working, __("Вход у неработающих"), __("уволены, но вход разрешён"), k.not_working ? "gray" : "gray", "query-report|IB Login Not Working"),
+				tile(k.unlinked, __("Не привязаны к сотруднику"), __("со входом, без сотрудника"), k.unlinked ? "gray" : "gray", "query-report|IB Users Without Employee"),
+				tile(k.extra_roles, __("Роли в обход профилей"), __("выданы напрямую"), k.extra_roles ? "gray" : "gray", "query-report|IB Extra Roles"),
+				tile(k.orphans, __("Сироты ИБ"), __("пользователи ИБ без карточки"), k.orphans ? "gray" : "gray", "query-report|IB Orphans"),
 			].join("");
 			const ad_kpis = k.ad_domains
 				? [
-						tile(k.ad_enabled, __("Учёток AD включено"), __("во всех доменах"), "blue", "List|AD Account", {
+						tile(k.ad_enabled, __("Учёток AD включено"), __("во всех доменах"), "green", "List|AD Account", {
 							enabled: 1,
 							missing_in_source: 0,
 						}),
-						tile(k.ad_not_working, __("AD включена у неработающих"), __("уволены, учётка активна"), k.ad_not_working ? "red" : "gray", "query-report|AD Dismissed Enabled"),
-						tile(k.ad_off_1c_on, __("AD отключена, вход в 1С есть"), __("по «Пользователю ОС» в 1С"), k.ad_off_1c_on ? "red" : "gray", "query-report|AD Disabled But 1C Active"),
-						tile(k.ad_unlinked, __("Учётки AD без сотрудника"), __("включённые: служебные и не найденные"), k.ad_unlinked ? "orange" : "gray", "query-report|AD Without Employee"),
+						tile(k.ad_not_working, __("AD включена у неработающих"), __("уволены, учётка активна"), k.ad_not_working ? "gray" : "gray", "query-report|AD Dismissed Enabled"),
+						tile(k.ad_off_1c_on, __("AD отключена, вход в 1С есть"), __("по «Пользователю ОС» в 1С"), k.ad_off_1c_on ? "gray" : "gray", "query-report|AD Disabled But 1C Active"),
+						tile(k.ad_unlinked, __("Учётки AD без сотрудника"), __("включённые: служебные и не найденные"), k.ad_unlinked ? "gray" : "gray", "query-report|AD Without Employee"),
 				  ].join("")
 				: "";
 
@@ -283,24 +283,24 @@ class AccessOverview {
 					<section class="ao-card ao-span-2">
 						<header><h3>${__("Требует внимания")}</h3><span class="ao-muted">${__("первые записи, полный список — в отчётах")}</span></header>
 						<div class="ao-attention ${k.ad_domains ? "ao-attention-4" : ""}">
-							${this.attention_column(__("Вход у неработающих"), "red", data.attention.not_working, (r) => ({
+							${this.attention_column(__("Вход у неработающих"), "gray", data.attention.not_working, (r) => ({
 								title: r.full_name,
 								sub: `${r.base_code} · ${r.login || r.user_name} · ${r.status}`,
 								attrs: `data-person="${this.esc(r.person)}"`,
 							}))}
-							${this.attention_column(__("Не привязаны к сотруднику"), "orange", data.attention.unlinked, (r) => ({
+							${this.attention_column(__("Не привязаны к сотруднику"), "gray", data.attention.unlinked, (r) => ({
 								title: r.user_name,
 								sub: `${r.base_code} · ${r.person_link_note || ""}`,
 								attrs: `data-account="${this.esc(r.name)}"`,
 							}))}
-							${this.attention_column(__("Роли в обход профилей"), "purple", data.attention.extra_roles, (r) => ({
+							${this.attention_column(__("Роли в обход профилей"), "gray", data.attention.extra_roles, (r) => ({
 								title: r.user_name,
 								sub: `${r.base_code} · ${r.roles.join(", ")}${r.more ? " +" + r.more : ""}`,
 								attrs: r.person ? `data-person="${this.esc(r.person)}"` : `data-account="${this.esc(r.name)}"`,
 							}))}
 							${
 								k.ad_domains
-									? this.attention_column(__("Учётка AD включена у неработающих"), "red", data.attention.ad_not_working, (r) => ({
+									? this.attention_column(__("Учётка AD включена у неработающих"), "gray", data.attention.ad_not_working, (r) => ({
 											title: r.full_name,
 											sub: `${r.domain} · ${r.sam_account_name || ""} · ${r.status}`,
 											attrs: `data-person="${this.esc(r.person)}"`,

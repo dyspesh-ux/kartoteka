@@ -31,7 +31,7 @@ frappe.ui.form.on("B24 Portal", {
 						frm.doc.write_mode,
 				  ])
 				: __("Реестр только читает портал. Запись отчества и даты рождения включается в секции «Запись в Битрикс24»."),
-			frm.doc.write_enabled ? "orange" : "blue"
+			frm.doc.write_enabled ? "gray" : "green"
 		);
 	},
 });
