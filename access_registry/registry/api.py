@@ -271,6 +271,18 @@ def sources() -> list:
 				"doctype": "B24 Portal",
 			}
 		)
+	for f in frappe.get_all("File Server", fields=["name", "title", "enabled", "last_upload", "last_status"]):
+		result.append(
+			{
+				"kind": "Общие папки Synology",
+				"name": f.name,
+				"title": f.title,
+				"enabled": f.enabled,
+				"last": f.last_upload,
+				"status": f.last_status,
+				"doctype": "File Server",
+			}
+		)
 	for row in result:
 		status = row["status"] or ""
 		row["state"] = (
@@ -435,6 +447,14 @@ def person(name: str) -> dict:
 			)
 			u.workgroups = [g for g in groups]
 			u.last_login = str(u.last_login) if u.last_login else None
+	shares = []
+	if frappe.db.count("Folder ACL"):
+		from access_registry.file_shares.access import ShareAccess
+
+		shares = [
+			{k: row[k] for k in ("share_name", "path", "level", "via", "login", "server")}
+			for row in ShareAccess().rows({"person": name})
+		]
 	model = engine.RoleModel()
 	roles = [{"role": r, "reason": reason} for r, reason in model.roles_of(name).items()]
 	process_roles = []
@@ -468,6 +488,7 @@ def person(name: str) -> dict:
 		"ad": _ad_accounts({"person": name}),
 		"b24": b24_users,
 		"b24_access": b24_access,
+		"shares": shares,
 		"roles": roles,
 		"process_roles": process_roles,
 		"reconciliation": engine.reconcile({name}, model),
@@ -794,6 +815,7 @@ CONTROLS = {
 	"processes": "Риски процессов",
 	"quality": "Расхождения данных",
 	"events": "Кадровые события: что сделать",
+	"shares": "Общие папки: замечания",
 }
 JML_GRANT = ("Приём", "Перевод", "Выход из отпуска по уходу", "Вернулся в выгрузку")
 JML_REVOKE = ("Увольнение", "Пропал из выгрузки")
@@ -1120,6 +1142,30 @@ def _control_events():
 		_column("todo", _("Что сделать")),
 		_column("details", _("Подробности")),
 	], events
+
+
+def _control_shares():
+	from access_registry.file_shares.reports import share_issues
+
+	rows = share_issues({})[1]
+	persons = {r["person"] for r in rows if r.get("person")}
+	names = dict(
+		frappe.get_all(
+			"Person",
+			filters={"name": ["in", list(persons) or [""]]},
+			fields=["name", "full_name"],
+			as_list=True,
+		)
+	)
+	for r in rows:
+		r["full_name"] = names.get(r.get("person")) or ""
+		r["ref"], r["ref_doctype"] = r["folder"], "Folder ACL"
+	return [
+		_column("share_name", _("Общая папка"), "badge"),
+		_column("path", _("Папка"), "ref"),
+		_column("issue", _("Замечание")),
+		_column("detail", _("Подробно")),
+	], rows
 
 
 # --------------------------------------------------------------------------- search and actions

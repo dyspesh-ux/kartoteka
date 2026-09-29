@@ -18,6 +18,8 @@
   "under_control",
   "owner_person",
   "purpose",
+  "section_break_3",
+  "parent_groups",
   "section_break_2",
   "uid",
   "domain",
@@ -111,6 +113,20 @@
    "fieldname": "purpose",
    "fieldtype": "Small Text",
    "label": "Назначение"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Входит в группы (вложенность)"
+  },
+  {
+   "description": "Группы, в которые эта группа входит напрямую. Права этих групп получают и её участники",
+   "fieldname": "parent_groups",
+   "fieldtype": "Table",
+   "label": "Входит в группы",
+   "options": "AD Account Group",
+   "read_only": 1
   },
   {
    "collapsible": 1,

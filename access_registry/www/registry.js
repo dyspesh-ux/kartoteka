@@ -660,6 +660,21 @@
 							{ key: "via", label: "Через" },
 						],
 					});
+				const shares = body.querySelector(".shares-access");
+				if (shares)
+					table(shares, {
+						name: "общие-папки",
+						rows: d.shares,
+						filter: d.shares.length > 8,
+						empty: "Доступа к общим папкам нет",
+						columns: [
+							{ key: "share_name", label: "Общая папка", type: "badge" },
+							{ key: "path", label: "Папка" },
+							{ key: "level", label: "Доступ" },
+							{ key: "via", label: "Через" },
+							{ key: "login", label: "Учётка" },
+						],
+					});
 			}
 		};
 		view.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => open(b.dataset.tab)));
@@ -718,7 +733,8 @@
 			section("1С", ib, "Учётных записей 1С нет") +
 			section("Active Directory", ad, "Учётки AD нет") +
 			section("Битрикс24", b24, "Пользователя Битрикс24 нет") +
-			(d.b24.length ? `<div class="section"><h2>Доступ к разделам Битрикс24</h2><div class="card b24-access"></div></div>` : "")
+			(d.b24.length ? `<div class="section"><h2>Доступ к разделам Битрикс24</h2><div class="card b24-access"></div></div>` : "") +
+			(d.shares.length ? `<div class="section"><h2>Общие папки</h2><div class="card shares-access"></div></div>` : "")
 		);
 	}
 
@@ -810,12 +826,13 @@
 		processes: "Роли процессов без участников, без заместителя или с неработающими участниками.",
 		quality: "Данные в Битрикс24 и AD, которые не совпадают с кадрами ЗУП.",
 		events: "Необработанные кадровые события: кому после приёма или перевода выдать положенное, у кого после увольнения отключить учётки и отозвать права.",
+		shares: "Права на папках Synology: выданные напрямую людям, доступ для всех, запреты, удалённые учётки, локальные учётки NAS, доступ у неработающих.",
 	};
-	const CONTROL_ORDER = ["dismissed", "events", "sod", "excess", "privileged", "unlinked", "missing", "exceptions", "stale", "processes", "quality"];
+	const CONTROL_ORDER = ["dismissed", "events", "sod", "excess", "privileged", "unlinked", "missing", "exceptions", "stale", "processes", "quality", "shares"];
 	const CONTROL_TITLES = {
 		dismissed: "Доступ у неработающих", unlinked: "Учётки без сотрудника", excess: "Лишние доступы", missing: "Не хватает доступов",
 		sod: "Конфликты полномочий", privileged: "Привилегированный доступ", exceptions: "Исключения и сроки", stale: "Давно не входили",
-		processes: "Риски процессов", quality: "Расхождения с кадрами", events: "Кадровые события",
+		processes: "Риски процессов", quality: "Расхождения с кадрами", events: "Кадровые события", shares: "Общие папки",
 	};
 
 	async function viewControl(view, kind) {

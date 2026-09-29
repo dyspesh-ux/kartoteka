@@ -1,0 +1,62 @@
+#REGISTRY-SYNOLOGY 1
+SERVER TkFTMDE=
+HOST bmFzMDE=
+TIME 2026-09-29T02:00:00+0300
+DSM 
+STOP_ON_SAME 1
+MAX_DEPTH 12
+SHARE YnVo
+INFO SYNOSHARE data dump:
+INFO 	 Name .......[buh]
+INFO 	 Comment ....[Бухгалтерия]
+INFO 	 Path .......[/volume1/buh]
+INFO 	 RW list ....[@CORP\GG_Buh_Share,admin]
+INFO 	 RO list ....[CORP\Ivanov]
+INFO 	 NA list ....[CORP\sidorov]
+DIR YnVo Lw== 0
+ACL ACL version: 1
+ACL Archive: is_inherit,is_support_ACL
+ACL Owner: [root(user)]
+ACL ---------------------
+ACL 	 [0] group:CORP\GG_Buh_Share:allow:rwxpdDaARWc--:fd-- (level:0)
+ACL 	 [1] group:administrators:allow:rwxpdDaARWcCo:fd-- (level:0)
+DIR YnVo L9CQ0YDRhdC40LI= 1
+ACL ACL version: 1
+ACL Archive: is_inherit,is_support_ACL
+ACL Owner: [root(user)]
+ACL ---------------------
+ACL 	 [0] group:CORP\DL_Buh_Read:deny:rwxpdDaARWcCo:fd-- (level:0)
+ACL 	 [1] group:CORP\GG_Buh_Share:allow:rwxpdDaARWc--:fd-- (level:1)
+ACL 	 [2] group:administrators:allow:rwxpdDaARWcCo:fd-- (level:1)
+DIR YnVo L9CX0LDRgNC/0LvQsNGC0LA= 1
+ACL ACL version: 1
+ACL Archive: is_support_ACL
+ACL Owner: [root(user)]
+ACL ---------------------
+ACL 	 [0] user:CORP\petrova:allow:rwxpdDaARWc--:fd-- (level:0)
+ACL 	 [1] group:administrators:allow:rwxpdDaARWcCo:fd-- (level:0)
+DIR YnVo L9Ch0YLQsNGA0L7QtQ== 1
+ACL ACL version: 1
+ACL Archive: is_inherit,is_support_ACL
+ACL Owner: [root(user)]
+ACL ---------------------
+ACL 	 [0] user:CORP\uvolen:allow:rwxpdDaARWc--:fd-- (level:0)
+ACL 	 [1] user:backup:allow:r-x---a-R-c--:fd-- (level:0)
+ACL 	 [2] group:CORP\GG_Buh_Share:allow:rwxpdDaARWc--:fd-- (level:1)
+ACL 	 [3] group:administrators:allow:rwxpdDaARWcCo:fd-- (level:1)
+SHARE cHVibGlj
+INFO SYNOSHARE data dump:
+INFO 	 Name .......[public]
+INFO 	 Comment ....[]
+INFO 	 Path .......[/volume1/public]
+INFO 	 RW list ....[admin]
+INFO 	 RO list ....[@CORP\GG_1C_ZUP_Users]
+INFO 	 NA list ....[]
+DIR cHVibGlj Lw== 0
+ACL ACL version: 1
+ACL Archive: is_inherit,is_support_ACL
+ACL Owner: [root(user)]
+ACL ---------------------
+ACL 	 [0] everyone::allow:r-x---a-R-c--:fd-- (level:0)
+ACL 	 [1] group:administrators:allow:rwxpdDaARWcCo:fd-- (level:0)
+END

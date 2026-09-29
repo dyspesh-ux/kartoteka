@@ -1,0 +1,187 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:server_code",
+ "creation": "2026-10-03 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "server_code",
+  "title",
+  "kind",
+  "enabled",
+  "column_break_1",
+  "domain",
+  "upload_file",
+  "section_break_2",
+  "last_upload",
+  "collector_settings",
+  "column_break_2",
+  "last_status",
+  "shares_count",
+  "folders_count"
+ ],
+ "fields": [
+  {
+   "description": "Как SERVER_CODE в скрипте сборщика, например NAS01",
+   "fieldname": "server_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Код сервера",
+   "reqd": 1,
+   "set_only_once": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Название"
+  },
+  {
+   "default": "Synology",
+   "fieldname": "kind",
+   "fieldtype": "Select",
+   "label": "Тип",
+   "options": "Synology"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Используется"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Домен, в который введён NAS: по нему узнаются учётки и группы вида CORP\\ivanov. Пусто — по NetBIOS-имени из записи",
+   "fieldname": "domain",
+   "fieldtype": "Link",
+   "label": "Домен AD",
+   "options": "AD Domain"
+  },
+  {
+   "description": "Для первой проверки: запустите сборщик с --dry-run, приложите /tmp/registry-acl.txt и нажмите «Загрузить из файла»",
+   "fieldname": "upload_file",
+   "fieldtype": "Attach",
+   "label": "Файл выгрузки вручную"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Последняя загрузка"
+  },
+  {
+   "fieldname": "last_upload",
+   "fieldtype": "Datetime",
+   "label": "Последняя успешная загрузка",
+   "read_only": 1
+  },
+  {
+   "description": "STOP_ON_SAME и MAX_DEPTH из последней выгрузки",
+   "fieldname": "collector_settings",
+   "fieldtype": "Data",
+   "label": "Настройки сборщика",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Статус последней загрузки",
+   "read_only": 1
+  },
+  {
+   "fieldname": "shares_count",
+   "fieldtype": "Int",
+   "label": "Общих папок",
+   "read_only": 1
+  },
+  {
+   "fieldname": "folders_count",
+   "fieldtype": "Int",
+   "label": "Папок с особыми правами",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "group": "Данные",
+   "link_doctype": "File Share",
+   "link_fieldname": "server"
+  },
+  {
+   "group": "Данные",
+   "link_doctype": "Folder ACL",
+   "link_fieldname": "server"
+  }
+ ],
+ "modified": "2026-10-03 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "File Shares",
+ "name": "File Server",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

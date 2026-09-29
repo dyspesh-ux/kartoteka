@@ -44,6 +44,7 @@ GROUP_ATTRIBUTES = [
 	"description",
 	"groupType",
 	"managedBy",
+	"memberOf",
 	"whenCreated",
 	"whenChanged",
 ]

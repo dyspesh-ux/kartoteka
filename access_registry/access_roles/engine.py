@@ -236,13 +236,24 @@ def raw_accesses(persons=None) -> dict:
 			and ifnull(u.person, '') != '' and ifnull(r.profile, '') != ''"""
 	):
 		add(person, f"1c:{profile}", f"1С {base}: {login}")
-	for person, group, domain, login in frappe.db.sql(
-		"""select a.person, g.`group`, a.domain, a.sam_account_name
-		from `tabAD Account Group` g join `tabAD Account` a on a.name = g.parent
-		join `tabAD Group` ag on ag.name = g.`group`
-		where a.enabled = 1 and a.missing_in_source = 0 and ifnull(a.person, '') != '' and ag.security = 1"""
-	):
-		add(person, f"ad:{group}", f"AD {domain}\\{login}")
+	from access_registry.active_directory.groups import effective_account_groups
+
+	security = set(frappe.get_all("AD Group", filters={"security": 1}, pluck="name", limit_page_length=0))
+	accounts = {
+		a.name: a
+		for a in frappe.get_all(
+			"AD Account",
+			filters={"enabled": 1, "missing_in_source": 0, "person": ["is", "set"]},
+			fields=["name", "person", "domain", "sam_account_name"],
+			limit_page_length=0,
+		)
+	}
+	for account, groups in effective_account_groups().items():
+		a = accounts.get(account)
+		if not a:
+			continue
+		for group in groups & security:  # nested groups count: access comes through them too
+			add(a.person, f"ad:{group}", f"AD {a.domain}\\{a.sam_account_name}")
 	for person, group, name in frappe.db.sql(
 		"""select u.person, m.parent, u.full_name
 		from `tabB24 Workgroup Member` m join `tabB24 User` u on u.name = m.user

@@ -1,0 +1,175 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:uid",
+ "creation": "2026-10-03 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "share_name",
+  "server",
+  "path",
+  "comment",
+  "missing_in_source",
+  "column_break_1",
+  "owner_person",
+  "purpose",
+  "section_break_1",
+  "privileges",
+  "uid",
+  "src_hash"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "share_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Общая папка",
+   "read_only": 1
+  },
+  {
+   "fieldname": "server",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Сервер",
+   "options": "File Server",
+   "read_only": 1
+  },
+  {
+   "fieldname": "path",
+   "fieldtype": "Data",
+   "label": "Путь на NAS",
+   "read_only": 1
+  },
+  {
+   "fieldname": "comment",
+   "fieldtype": "Small Text",
+   "label": "Описание",
+   "read_only": 1
+  },
+  {
+   "description": "Была в выгрузке раньше, в последней её нет (удалена, переименована или права стали как у родителя)",
+   "fieldname": "missing_in_source",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Нет на сервере",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Кто согласует доступ к папке",
+   "fieldname": "owner_person",
+   "fieldtype": "Link",
+   "label": "Владелец данных",
+   "options": "Person"
+  },
+  {
+   "fieldname": "purpose",
+   "fieldtype": "Small Text",
+   "label": "Назначение"
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Права на общую папку (DSM)"
+  },
+  {
+   "description": "Чтение/запись на уровне общей папки. Итоговый доступ — меньшее из этих прав и прав на папку (ACL)",
+   "fieldname": "privileges",
+   "fieldtype": "Table",
+   "label": "Права",
+   "options": "File Share Privilege",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uid",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "src_hash",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Хеш исходных данных",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "group": "Папки",
+   "link_doctype": "Folder ACL",
+   "link_fieldname": "share"
+  }
+ ],
+ "modified": "2026-10-03 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "File Shares",
+ "name": "File Share",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager"
+  }
+ ],
+ "show_title_field_in_link": 1,
+ "sort_field": "share_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "share_name",
+ "track_changes": 1
+}

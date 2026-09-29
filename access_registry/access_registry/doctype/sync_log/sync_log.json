@@ -37,7 +37,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Вид",
-   "options": "ЗУП\nПрава 1С\nЖурнал 1С\nAD\nБитрикс24",
+   "options": "ЗУП\nПрава 1С\nЖурнал 1С\nAD\nБитрикс24\nФайловый сервер",
    "read_only": 1
   },
   {
