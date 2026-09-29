@@ -196,3 +196,63 @@ def journal(limit: int = 2000) -> list:
 		for field in ("valid_to", "suppressed_on", "restored_on"):
 			r[field] = str(r[field]) if r[field] else None
 	return rows
+
+
+# --------------------------------------------------------------------------- desk reports
+
+SUPPRESSED_COLUMNS = [
+	{"fieldname": "suppression_reason", "label": _("Почему погашено"), "fieldtype": "Data", "width": 320},
+	{
+		"fieldname": "suppressed_by",
+		"label": _("Погасил"),
+		"fieldtype": "Link",
+		"options": "User",
+		"width": 160,
+	},
+	{"fieldname": "suppressed_until", "label": _("Погашено до"), "fieldtype": "Date", "width": 110},
+	{
+		"fieldname": "suppression",
+		"label": _("Запись журнала"),
+		"fieldtype": "Link",
+		"options": "Alert Suppression",
+		"width": 130,
+	},
+]
+
+
+def by_ref(kind: str, doctype: str, field: str = "name"):
+	"""Key of an alert about one record (a 1C user, an AD account, a Bitrix24 user)."""
+	return lambda row: f"{kind}|{doctype}|{row.get(field) or ''}"
+
+
+def hide_in_report(kind: str, result, filters=None, key=None):
+	"""A desk report without the alerts suppressed in the registry app.
+
+	With the filter «Показать погашенные» the report shows only them, with the reason and who
+	suppressed them. Returns (columns, data, message) for a Script Report.
+	"""
+	columns, data = result[0], result[1]
+	filters = frappe._dict(filters or {})
+	key = key or (lambda row: alert_key(kind, row))
+	current = active()
+	shown, hidden = [], []
+	for row in data:
+		s = current.get(key(row))
+		if not s:
+			shown.append(row)
+			continue
+		row["suppression"] = s.name
+		row["suppression_reason"] = s.reason
+		row["suppressed_by"] = s.suppressed_by
+		row["suppressed_until"] = s.valid_to
+		hidden.append(row)
+	if filters.get("show_suppressed"):
+		return list(columns) + SUPPRESSED_COLUMNS, hidden, None
+	message = (
+		_(
+			"Скрыто погашенных замечаний: {0}. Показать их — галочка «Показать погашенные»; все гашения — «Журнал гашений»."
+		).format(len(hidden))
+		if hidden
+		else None
+	)
+	return columns, shown, message

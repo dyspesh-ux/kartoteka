@@ -5,5 +5,6 @@ frappe.query_reports["SoD Conflicts"] = {
 	filters: [
 		{ fieldname: "person", label: __("Сотрудник"), fieldtype: "Link", options: "Person" },
 		{ fieldname: "rule", label: __("Правило"), fieldtype: "Link", options: "SoD Rule" },
+		{ fieldname: "show_suppressed", label: __("Показать погашенные"), fieldtype: "Check" },
 	],
 };

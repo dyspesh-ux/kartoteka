@@ -3,10 +3,11 @@
 
 from frappe import _
 
+from access_registry.access_roles.suppression import by_ref, hide_in_report
 from access_registry.active_directory.report_utils import account_report
 
 
-def execute(filters=None):
+def _execute(filters=None):
 	"""Включённые учётки AD, не привязанные к сотруднику: служебные, внешние или не найденные."""
 	return account_report(
 		filters,
@@ -22,3 +23,8 @@ def execute(filters=None):
 		],
 		extra_fields="a.person_link_note, a.employee_number",
 	)
+
+
+def execute(filters=None):
+	"""Alerts suppressed in the registry app are hidden (filter «Показать погашенные» shows them)."""
+	return hide_in_report("unlinked", _execute(filters), filters, key=by_ref("unlinked", "AD Account"))

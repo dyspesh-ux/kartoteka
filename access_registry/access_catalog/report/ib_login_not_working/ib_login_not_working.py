@@ -4,9 +4,10 @@
 from frappe import _
 
 from access_registry.access_catalog.report_utils import user_report
+from access_registry.access_roles.suppression import by_ref, hide_in_report
 
 
-def execute(filters=None):
+def _execute(filters=None):
 	"""Вход в 1С разрешён, а сотрудник по кадровым данным не работает.
 
 	Пользователи, не привязанные к сотруднику, — в отчёте «IB Users Without Employee».
@@ -34,3 +35,8 @@ def execute(filters=None):
 		join="left join `tabPerson` p on p.name = u.person",
 	)
 	return columns, data
+
+
+def execute(filters=None):
+	"""Alerts suppressed in the registry app are hidden (filter «Показать погашенные» shows them)."""
+	return hide_in_report("dismissed", _execute(filters), filters, key=by_ref("dismissed", "IB User"))

@@ -4,9 +4,10 @@
 from frappe import _
 
 from access_registry.access_catalog.report_utils import user_report
+from access_registry.access_roles.suppression import by_ref, hide_in_report
 
 
-def execute(filters=None):
+def _execute(filters=None):
 	"""Вход разрешён, а пользователь 1С не привязан к сотруднику.
 
 	Служебные пользователи и сироты ИБ не люди: у них свои отчёты и отметки.
@@ -25,3 +26,8 @@ def execute(filters=None):
 		],
 		extra_fields="u.person_name, u.person_link_note",
 	)
+
+
+def execute(filters=None):
+	"""Alerts suppressed in the registry app are hidden (filter «Показать погашенные» shows them)."""
+	return hide_in_report("unlinked", _execute(filters), filters, key=by_ref("unlinked", "IB User"))

@@ -5,5 +5,6 @@ frappe.query_reports["AD Dismissed Enabled"] = {
 	filters: [
 		{ fieldname: "domain", label: __("Домен"), fieldtype: "Link", options: "AD Domain" },
 		{ fieldname: "ou", label: __("OU содержит"), fieldtype: "Data" },
+		{ fieldname: "show_suppressed", label: __("Показать погашенные"), fieldtype: "Check" },
 	],
 };

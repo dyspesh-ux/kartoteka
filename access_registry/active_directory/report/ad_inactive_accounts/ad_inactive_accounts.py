@@ -4,11 +4,12 @@
 from frappe import _
 from frappe.utils import add_days, cint, now_datetime
 
+from access_registry.access_roles.suppression import by_ref, hide_in_report
 from access_registry.active_directory.report_utils import account_report
 from access_registry.settings import get_settings
 
 
-def execute(filters=None):
+def _execute(filters=None):
 	"""Включённые учётки, которые давно не входили или не входили никогда."""
 	filters = dict(filters or {})
 	days = cint(filters.get("days")) or cint(get_settings().ad_inactive_days)
@@ -29,3 +30,8 @@ def execute(filters=None):
 	for row in data:
 		row.days_since = (now - row.last_logon).days if row.last_logon else None
 	return columns, data
+
+
+def execute(filters=None):
+	"""Alerts suppressed in the registry app are hidden (filter «Показать погашенные» shows them)."""
+	return hide_in_report("stale", _execute(filters), filters, key=by_ref("stale", "AD Account"))

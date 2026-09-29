@@ -333,7 +333,7 @@ class TestAccessCatalog(FrappeTestCase):
 		# Report: login allowed although the employee does not work (Фёдоров is dismissed in zup1)
 		from access_registry.access_catalog.report.ib_login_not_working.ib_login_not_working import execute
 
-		_columns, rows = execute({"base_code": S1})
+		rows = execute({"base_code": S1})[1]
 		self.assertEqual([r.name for r in rows], [f"{S1}:{USR(6)}"])
 		self.assertEqual(rows[0].person_status, "Уволен")
 

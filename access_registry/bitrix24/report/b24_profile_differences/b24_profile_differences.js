@@ -5,5 +5,6 @@ frappe.query_reports["B24 Profile Differences"] = {
 	filters: [
 		{ fieldname: "portal", label: __("Портал"), fieldtype: "Link", options: "B24 Portal" },
 		{ fieldname: "field", label: __("Что отличается"), fieldtype: "Select", options: ["", "Отчество", "Дата рождения", "Должность", "Подразделение"] },
+		{ fieldname: "show_suppressed", label: __("Показать погашенные"), fieldtype: "Check" },
 	],
 };

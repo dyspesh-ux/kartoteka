@@ -127,3 +127,44 @@ class TestAlertSuppression(RegistryFixture):
 		self.assertTrue(api.bootstrap()["can"]["suppress"])
 		self.assertEqual(api.suppress_alerts("unlinked", [row["alert_key"]], "подрядчик"), 1)
 		self.assertEqual(frappe.db.get_value("Alert Suppression", {}, "suppressed_by"), auditor)
+
+	def test_desk_reports_hide_suppressed(self):
+		from access_registry.access_roles.report.sod_conflicts import sod_conflicts as sod_report
+		from access_registry.active_directory.report.ad_dismissed_enabled import (
+			ad_dismissed_enabled as ad_report,
+		)
+		from access_registry.bitrix24.report.b24_users_without_employee import (
+			b24_users_without_employee as b24_report,
+		)
+
+		row = self.unlinked_b24()
+		columns, data, message = b24_report.execute({})
+		self.assertIn(row["ref"], [r["user"] for r in data])
+		self.assertIsNone(message)
+		api.suppress_alerts("unlinked", [row["alert_key"]], "учётка подрядчика")
+		columns, data, message = b24_report.execute({})
+		self.assertNotIn(row["ref"], [r["user"] for r in data])
+		self.assertIn("Скрыто погашенных замечаний: 1", message)
+		columns, data, _m = b24_report.execute({"show_suppressed": 1})
+		self.assertEqual([r["user"] for r in data], [row["ref"]])
+		self.assertEqual(data[0]["suppression_reason"], "учётка подрядчика")
+		self.assertIn("suppression_reason", [c["fieldname"] for c in columns])
+
+		ad = next(r for r in api.control("dismissed")["rows"] if r["ref_doctype"] == "AD Account")
+		before = len(ad_report.execute({})[1])
+		api.suppress_alerts("dismissed", [ad["alert_key"]], "заблокирована вручную")
+		self.assertEqual(len(ad_report.execute({})[1]), before - 1)
+
+		sod = api.control("sod")["rows"][0]
+		api.suppress_alerts("sod", [sod["alert_key"]], "согласовано")
+		self.assertEqual(sod_report.execute({})[1], [])
+		self.assertEqual(len(sod_report.execute({"show_suppressed": 1})[1]), 1)
+
+	def test_extra_roles_report_uses_app_key(self):
+		from access_registry.access_catalog.report.ib_extra_roles import ib_extra_roles as report
+
+		rows = [r for r in api.control("privileged")["rows"] if "в обход профилей" in r["title"]]
+		self.assertTrue(rows)
+		before = len(report.execute({})[1])
+		api.suppress_alerts("privileged", [rows[0]["alert_key"]], "роль нужна для обмена, согласовано")
+		self.assertEqual(len(report.execute({})[1]), before - 1)

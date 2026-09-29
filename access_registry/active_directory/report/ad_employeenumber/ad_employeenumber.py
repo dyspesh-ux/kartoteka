@@ -3,10 +3,11 @@
 
 from frappe import _
 
+from access_registry.access_roles.suppression import hide_in_report
 from access_registry.active_directory.report_utils import account_report
 
 
-def execute(filters=None):
+def _execute(filters=None):
 	"""Учётки, привязанные к сотруднику, у которых employeeNumber не равен UUID сотрудника.
 
 	Реестр в AD не пишет: кнопка отчёта формирует скрипт PowerShell для администратора.
@@ -28,4 +29,14 @@ def execute(filters=None):
 		],
 		extra_fields="p.full_name, a.person, a.employee_number, a.person_link_method, a.object_guid",
 		join="left join `tabPerson` p on p.name = a.person",
+	)
+
+
+def execute(filters=None):
+	"""Alerts suppressed in the registry app are hidden (filter «Показать погашенные» shows them)."""
+	return hide_in_report(
+		"quality",
+		_execute(filters),
+		filters,
+		key=lambda r: f"quality|AD: employeeNumber|{r.get('person') or ''}|{r.get('full_name') or ''}",
 	)

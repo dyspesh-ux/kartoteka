@@ -5,5 +5,6 @@ frappe.query_reports["IB Login Not Working"] = {
 	filters: [
 		{ fieldname: "base_code", label: __("База"), fieldtype: "Link", options: "Info Base" },
 		{ fieldname: "configuration", label: __("Конфигурация"), fieldtype: "Select", options: ["", "ЗУП", "Бухгалтерия", "Другая"] },
+		{ fieldname: "show_suppressed", label: __("Показать погашенные"), fieldtype: "Check" },
 	],
 };
