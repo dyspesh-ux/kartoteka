@@ -73,6 +73,20 @@ DISK_TASKS = {
 }
 
 
+EXPORT_SECTIONS = {
+	"crm_roles": "роли CRM",
+	"crm_role_relations": "назначения ролей CRM",
+	"disk_rights": "права на папки дисков",
+	"user_groups": "группы пользователей",
+	"logins": "логины",
+}
+FAILED_SECTION_TYPES = {
+	"crm": ("CRM", "Смарт-процесс"),
+	"disk": ("Диск",),
+	"groups": ("Группа пользователей",),
+}
+
+
 class B24GuardTripped(frappe.ValidationError):
 	pass
 
@@ -131,11 +145,22 @@ def fetch_export(portal) -> dict:
 		timeout=cint(get_settings().http_timeout) or 300,
 		verify=bool(portal.verify_ssl),
 	)
+	hints = {
+		403: "ключ в карточке портала не совпадает с REGISTRY_TOKEN в скрипте (или он пустой)",
+		404: "по этому адресу скрипта нет: проверьте путь /local/registry/export.php",
+		500: "ошибка PHP в скрипте: смотрите журнал ошибок веб-сервера портала",
+	}
 	if response.status_code != 200:
+		hint = hints.get(response.status_code, "")
 		raise frappe.ValidationError(
-			f"Скрипт выгрузки ответил HTTP {response.status_code}: {response.text[:300]}"
+			f"Скрипт выгрузки ответил HTTP {response.status_code}{': ' + hint if hint else ''}. {response.text[:300]}"
 		)
-	return response.json()
+	try:
+		return response.json()
+	except ValueError as e:
+		raise frappe.ValidationError(
+			f"Скрипт выгрузки вернул не JSON (часто это страница авторизации или ошибка PHP): {response.text[:300]}"
+		) from e
 
 
 def run_portal_sync(portal: str, commit: bool = True, fetch=None, client=None):
@@ -389,8 +414,18 @@ class PortalImport:
 			self.import_grants(export, data.get("crm_types") or [])
 			for warning in export.get("warnings") or []:
 				self.warn(f"скрипт выгрузки: {warning}")
+			for key, title in EXPORT_SECTIONS.items():
+				self.counters[f"скрипт: {title}"] = len(export.get(key) or [])
+				if not export.get(key):
+					self.warn(f"скрипт выгрузки не вернул {title}")
 		elif self.portal.exporter_url:
 			self.warn("скрипт выгрузки не вернул данных")
+		else:
+			self.warn(
+				"права на разделы (CRM, смарт-процессы, общие диски, группы пользователей) и график отсутствий "
+				"не загружены: REST API Битрикс24 их не отдаёт. Установите скрипт bitrix24/registry_export.php "
+				"на сервер портала и укажите его адрес и ключ в карточке портала"
+			)
 
 		self.counters["users"] = len(users)
 		self.counters["departments"] = len(departments)
@@ -808,8 +843,20 @@ class PortalImport:
 			doc.update(grant)
 			doc.src_hash = h
 			self.save(doc)
-		self.mark_missing("B24 Access Grant", seen)
 		self.counters["access_grants"] = len(seen)
+		# a section the script could not read keeps its last known rights instead of «disappearing»
+		failed = set(export.get("failed") or [])
+		kept = [t for section, types in FAILED_SECTION_TYPES.items() if section in failed for t in types]
+		if kept:
+			seen |= set(
+				frappe.get_all(
+					"B24 Access Grant",
+					filters={"portal": self.code, "resource_type": ["in", kept]},
+					pluck="name",
+				)
+			)
+			self.warn(f"права разделов «{', '.join(kept)}» не обновлены: скрипт не смог их прочитать")
+		self.mark_missing("B24 Access Grant", seen)
 
 
 def crm_resource(entity: str, smart: dict) -> tuple[str, str]:

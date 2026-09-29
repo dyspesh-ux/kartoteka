@@ -449,3 +449,38 @@ class TestBitrix24(FrappeTestCase):
 		self.assertEqual({r["user_name"] for r in not_working}, {"Фёдоров Фёдор Фёдорович"})
 		disk = reports.section_access({"resource": "Бухгалтерия"})[1]
 		self.assertEqual([(r["user_name"], r["permission"]) for r in disk], [("Петрова Мария", "Изменение")])
+
+	def test_export_problems_are_visible(self):
+		self.assertSuccess(self.sync())
+		crm = frappe.db.count(
+			"B24 Access Grant", {"resource_type": ["in", ["CRM", "Смарт-процесс"]], "missing_in_source": 0}
+		)
+		self.assertGreater(crm, 0)
+		# the script could not read CRM: its rights stay as they were, the log says why
+		data = portal_data()
+		data["export"].update(
+			{
+				"crm_roles": [],
+				"crm_role_relations": [],
+				"failed": ["crm"],
+				"warnings": ["crm: Bitrix\\Main\\DB\\SqlQueryException: Table b_crm_role doesn't exist"],
+			}
+		)
+		log = self.sync(data)
+		self.assertSuccess(log)
+		self.assertIn("b_crm_role", log.messages)
+		self.assertIn("не обновлены", log.messages)
+		self.assertEqual(
+			frappe.db.count(
+				"B24 Access Grant",
+				{"resource_type": ["in", ["CRM", "Смарт-процесс"]], "missing_in_source": 0},
+			),
+			crm,
+		)
+		# no export script at all: users load, the log explains why rights are empty
+		frappe.db.set_value("B24 Portal", PORTAL, "exporter_url", "")
+		data = portal_data()
+		data.pop("export")
+		log = self.sync(data)
+		self.assertSuccess(log)
+		self.assertIn("REST API Битрикс24 их не отдаёт", log.messages)

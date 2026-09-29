@@ -65,16 +65,43 @@ class B24Portal(Document):
 				lines.append(_("Не хватает прав вебхука: {0}.").format(", ".join(missing)))
 		except Exception as e:
 			lines.append(_("REST не работает: {0}").format(frappe.utils.escape_html(str(e))))
-		if self.exporter_url:
+		if not self.exporter_url:
+			lines.append(
+				_(
+					"Скрипт выгрузки не указан: права на CRM, смарт-процессы, общие диски, группы пользователей "
+					"и график отсутствий загружаться не будут (REST их не отдаёт)."
+				)
+			)
+		else:
 			try:
 				data = fetch_export(self)
 				lines.append(
-					_("Скрипт выгрузки работает: ролей CRM {0}, прав на диски {1}, отсутствий {2}.").format(
+					_(
+						"Скрипт выгрузки работает: ролей CRM {0}, назначений ролей {1}, прав на папки {2}, "
+						"групп пользователей {3}, отсутствий {4}."
+					).format(
 						len(data.get("crm_roles") or []),
+						len(data.get("crm_role_relations") or []),
 						len(data.get("disk_rights") or []),
+						len(data.get("user_groups") or []),
 						len(data.get("absences") or []),
 					)
 				)
+				modules = (data.get("diagnostics") or {}).get("modules") or {}
+				if modules:
+					lines.append(
+						_("Модули: {0}").format(
+							frappe.utils.escape_html(", ".join(f"{k} {v}" for k, v in modules.items()))
+						)
+					)
+				for warning in data.get("warnings") or []:
+					lines.append(_("Скрипт сообщает: {0}").format(frappe.utils.escape_html(str(warning))))
+				if int(data.get("version") or 0) < 2:
+					lines.append(
+						_(
+							"На портале старая версия скрипта: замените её на bitrix24/registry_export.php из репозитория."
+						)
+					)
 			except Exception as e:
 				lines.append(_("Скрипт выгрузки не работает: {0}").format(frappe.utils.escape_html(str(e))))
 		return "<br>".join(lines)
