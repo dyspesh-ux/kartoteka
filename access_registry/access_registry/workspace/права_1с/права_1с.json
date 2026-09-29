@@ -1,0 +1,254 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Пользователи 1С всех баз:</b> профили, организации, роли в обход профилей и журнал изменений прав.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Пользователи и права</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Полный отчёт по доступам\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пользователи 1С\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Не привязаны к сотруднику\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Вход у неработающих\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли в обход профилей\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сироты ИБ\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Доступ ко всем организациям\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Профили доступа\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал изменений прав\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000014\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000015\", \"type\": \"card\", \"data\": {\"card_name\": \"Пользователи 1С и права\", \"col\": 4}}, {\"id\": \"ar00000016\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по правам\", \"col\": 4}}]",
+ "creation": "2026-10-03 10:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "lock",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Права 1С",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Пользователи 1С и права",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Пользователи 1С",
+   "link_count": 0,
+   "link_to": "IB User",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Профили доступа",
+   "link_count": 0,
+   "link_to": "IB Access Profile",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Журнал изменений прав",
+   "link_count": 0,
+   "link_to": "IB Audit Event",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Отчёты по правам",
+   "link_count": 8,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Полный отчёт по доступам 1С",
+   "link_count": 0,
+   "link_to": "IB Access Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Роли в обход профилей",
+   "link_count": 0,
+   "link_to": "IB Extra Roles",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Не привязаны к сотруднику",
+   "link_count": 0,
+   "link_to": "IB Users Without Employee",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Вход у неработающих",
+   "link_count": 0,
+   "link_to": "IB Login Not Working",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Сироты ИБ",
+   "link_count": 0,
+   "link_to": "IB Orphans",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Доступ ко всем организациям",
+   "link_count": 0,
+   "link_to": "IB All Organizations Access",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Пользователи профиля",
+   "link_count": 0,
+   "link_to": "IB Profile Users",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Кто менял права",
+   "link_count": 0,
+   "link_to": "IB Rights Changes",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-03 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Права 1С",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "Access Registry",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Registry Admin"
+  },
+  {
+   "role": "Registry Auditor"
+  },
+  {
+   "role": "Access Role Manager"
+  },
+  {
+   "role": "Process Manager"
+  },
+  {
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sequence_id": 1.2,
+ "shortcuts": [
+  {
+   "label": "Полный отчёт по доступам",
+   "link_to": "IB Access Report",
+   "type": "Report",
+   "report_ref_doctype": "IB User"
+  },
+  {
+   "label": "Пользователи 1С",
+   "link_to": "IB User",
+   "type": "DocType",
+   "stats_filter": "[[\"IB User\", \"login_allowed\", \"=\", 1], [\"IB User\", \"invalid\", \"=\", 0], [\"IB User\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Blue",
+   "format": "{} со входом"
+  },
+  {
+   "label": "Не привязаны к сотруднику",
+   "link_to": "IB User",
+   "type": "DocType",
+   "stats_filter": "[[\"IB User\", \"login_allowed\", \"=\", 1], [\"IB User\", \"invalid\", \"=\", 0], [\"IB User\", \"missing_in_source\", \"=\", 0], [\"IB User\", \"person\", \"is\", \"not set\"], [\"IB User\", \"service\", \"=\", 0], [\"IB User\", \"is_orphan\", \"=\", 0]]",
+   "color": "Orange",
+   "format": "{} пользователей"
+  },
+  {
+   "label": "Вход у неработающих",
+   "link_to": "IB Login Not Working",
+   "type": "Report",
+   "report_ref_doctype": "IB User"
+  },
+  {
+   "label": "Роли в обход профилей",
+   "link_to": "IB User",
+   "type": "DocType",
+   "stats_filter": "[[\"IB User\", \"has_extra_roles\", \"=\", 1], [\"IB User\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Red",
+   "format": "{} пользователей"
+  },
+  {
+   "label": "Сироты ИБ",
+   "link_to": "IB User",
+   "type": "DocType",
+   "stats_filter": "[[\"IB User\", \"is_orphan\", \"=\", 1], [\"IB User\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Orange",
+   "format": "{} пользователей ИБ"
+  },
+  {
+   "label": "Доступ ко всем организациям",
+   "link_to": "IB User",
+   "type": "DocType",
+   "stats_filter": "[[\"IB User\", \"all_orgs\", \"=\", 1], [\"IB User\", \"login_allowed\", \"=\", 1], [\"IB User\", \"invalid\", \"=\", 0], [\"IB User\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Grey",
+   "format": "{} пользователей"
+  },
+  {
+   "label": "Профили доступа",
+   "link_to": "IB Access Profile",
+   "type": "DocType",
+   "stats_filter": "[[\"IB Access Profile\", \"missing_in_source\", \"=\", 0], [\"IB Access Profile\", \"is_folder\", \"=\", 0]]",
+   "color": "Blue",
+   "format": "{} профилей"
+  },
+  {
+   "label": "Журнал изменений прав",
+   "link_to": "IB Audit Event",
+   "type": "DocType"
+  }
+ ],
+ "title": "Права 1С"
+}

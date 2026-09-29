@@ -1,0 +1,150 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Общие папки Synology:</b> права шар и папок (только там, где права меняются) и кто реально имеет доступ.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Права и доступ</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кто имеет доступ к папкам\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Замечания по правам папок\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Общие папки\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Папки с особыми правами\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Файловые серверы\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000011\", \"type\": \"card\", \"data\": {\"card_name\": \"Общие папки Synology\", \"col\": 4}}]",
+ "creation": "2026-10-03 10:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "folder-normal",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Общие папки",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Общие папки Synology",
+   "link_count": 5,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Файловые серверы",
+   "link_count": 0,
+   "link_to": "File Server",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Общие папки",
+   "link_count": 0,
+   "link_to": "File Share",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Права папок",
+   "link_count": 0,
+   "link_to": "Folder ACL",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Кто имеет доступ к папкам",
+   "link_count": 0,
+   "link_to": "Share Access",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Замечания по правам папок",
+   "link_count": 0,
+   "link_to": "Share Permission Issues",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-03 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Общие папки",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "Access Registry",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Registry Admin"
+  },
+  {
+   "role": "Registry Auditor"
+  },
+  {
+   "role": "Access Role Manager"
+  },
+  {
+   "role": "Process Manager"
+  },
+  {
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sequence_id": 1.5,
+ "shortcuts": [
+  {
+   "label": "Кто имеет доступ к папкам",
+   "link_to": "Share Access",
+   "type": "Report",
+   "report_ref_doctype": "Folder ACL"
+  },
+  {
+   "label": "Замечания по правам папок",
+   "link_to": "Share Permission Issues",
+   "type": "Report",
+   "report_ref_doctype": "Folder ACL"
+  },
+  {
+   "label": "Общие папки",
+   "link_to": "File Share",
+   "type": "DocType",
+   "stats_filter": "[[\"File Share\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Blue",
+   "format": "{} папок"
+  },
+  {
+   "label": "Папки с особыми правами",
+   "link_to": "Folder ACL",
+   "type": "DocType",
+   "stats_filter": "[[\"Folder ACL\", \"missing_in_source\", \"=\", 0], [\"Folder ACL\", \"issues\", \"is\", \"set\"]]",
+   "color": "Orange",
+   "format": "{} с замечаниями"
+  },
+  {
+   "label": "Файловые серверы",
+   "link_to": "File Server",
+   "type": "DocType",
+   "stats_filter": "[[\"File Server\", \"enabled\", \"=\", 1]]",
+   "color": "Blue",
+   "format": "{} включено"
+  }
+ ],
+ "title": "Общие папки"
+}

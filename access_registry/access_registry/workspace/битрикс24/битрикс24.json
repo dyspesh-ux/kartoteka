@@ -1,0 +1,274 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Портал Битрикс24:</b> пользователи, структура, отсутствия, доступ к разделам; отчество и дата рождения из кадров.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Пользователи и доступ</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пользователи Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Активны у неработающих\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Профиль не как в кадрах\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Руководители: Битрикс24 и кадры\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Структура: расхождения\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Отсутствия: расхождения\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Доступ к разделам Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Записано в Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000013\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000014\", \"type\": \"card\", \"data\": {\"card_name\": \"Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000015\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по Битрикс24\", \"col\": 4}}]",
+ "creation": "2026-10-03 10:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "support",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Битрикс24",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Битрикс24",
+   "link_count": 6,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Пользователи Битрикс24",
+   "link_count": 0,
+   "link_to": "B24 User",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Подразделения Битрикс24",
+   "link_count": 0,
+   "link_to": "B24 Department",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Группы и проекты",
+   "link_count": 0,
+   "link_to": "B24 Workgroup",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Права на разделы",
+   "link_count": 0,
+   "link_to": "B24 Access Grant",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Отсутствия в Битрикс24",
+   "link_count": 0,
+   "link_to": "B24 Absence",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Журнал записи в Битрикс24",
+   "link_count": 0,
+   "link_to": "B24 Write Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Отчёты по Битрикс24",
+   "link_count": 8,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Активны у неработающих",
+   "link_count": 0,
+   "link_to": "B24 Active Not Working",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Не привязаны к сотруднику (Битрикс24)",
+   "link_count": 0,
+   "link_to": "B24 Users Without Employee",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Профиль не как в кадрах",
+   "link_count": 0,
+   "link_to": "B24 Profile Differences",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Руководители: Битрикс24 и кадры",
+   "link_count": 0,
+   "link_to": "B24 Department Heads",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Структура: расхождения",
+   "link_count": 0,
+   "link_to": "B24 Structure",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Отсутствия: расхождения",
+   "link_count": 0,
+   "link_to": "B24 Absence Differences",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Доступ к разделам Битрикс24",
+   "link_count": 0,
+   "link_to": "B24 Section Access",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Участники групп и проектов",
+   "link_count": 0,
+   "link_to": "B24 Workgroup Members",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-03 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Битрикс24",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "Access Registry",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Registry Admin"
+  },
+  {
+   "role": "Registry Auditor"
+  },
+  {
+   "role": "Access Role Manager"
+  },
+  {
+   "role": "Process Manager"
+  },
+  {
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sequence_id": 1.4,
+ "shortcuts": [
+  {
+   "label": "Пользователи Битрикс24",
+   "link_to": "B24 User",
+   "type": "DocType",
+   "stats_filter": "[[\"B24 User\", \"active\", \"=\", 1], [\"B24 User\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Blue",
+   "format": "{} активных"
+  },
+  {
+   "label": "Активны у неработающих",
+   "link_to": "B24 Active Not Working",
+   "type": "Report",
+   "report_ref_doctype": "B24 User"
+  },
+  {
+   "label": "Профиль не как в кадрах",
+   "link_to": "B24 Profile Differences",
+   "type": "Report",
+   "report_ref_doctype": "B24 User"
+  },
+  {
+   "label": "Руководители: Битрикс24 и кадры",
+   "link_to": "B24 Department Heads",
+   "type": "Report",
+   "report_ref_doctype": "B24 Department"
+  },
+  {
+   "label": "Структура: расхождения",
+   "link_to": "B24 Structure",
+   "type": "Report",
+   "report_ref_doctype": "B24 Department"
+  },
+  {
+   "label": "Отсутствия: расхождения",
+   "link_to": "B24 Absence Differences",
+   "type": "Report",
+   "report_ref_doctype": "B24 Absence"
+  },
+  {
+   "label": "Доступ к разделам Битрикс24",
+   "link_to": "B24 Section Access",
+   "type": "Report",
+   "report_ref_doctype": "B24 Access Grant"
+  },
+  {
+   "label": "Записано в Битрикс24",
+   "link_to": "B24 Write Log",
+   "type": "DocType",
+   "stats_filter": "[[\"B24 Write Log\", \"status\", \"=\", \"Ошибка\"]]",
+   "color": "Red",
+   "format": "{} ошибок записи"
+  }
+ ],
+ "title": "Битрикс24"
+}

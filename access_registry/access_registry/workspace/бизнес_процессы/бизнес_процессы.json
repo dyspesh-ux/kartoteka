@@ -1,0 +1,155 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Каталог процессов:</b> владельцы, роли RACI, участники и заместители; загрузка из Excel.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Процессы</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Бизнес-процессы\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли процессов\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Участники процессов\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Риски процессов\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Импорт процессов из Excel\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000011\", \"type\": \"card\", \"data\": {\"card_name\": \"Бизнес-процессы\", \"col\": 4}}]",
+ "creation": "2026-10-03 10:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "organization",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Бизнес-процессы",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Бизнес-процессы",
+   "link_count": 6,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Бизнес-процессы",
+   "link_count": 0,
+   "link_to": "Business Process",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Роли процессов",
+   "link_count": 0,
+   "link_to": "Process Role",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Участники",
+   "link_count": 0,
+   "link_to": "Process Participant",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Импорт из Excel",
+   "link_count": 0,
+   "link_to": "Process Import",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Участники процессов",
+   "link_count": 0,
+   "link_to": "Process Participants",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Риски процессов",
+   "link_count": 0,
+   "link_to": "Process Continuity",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-03 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Бизнес-процессы",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "Access Registry",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Registry Admin"
+  },
+  {
+   "role": "Registry Auditor"
+  },
+  {
+   "role": "Access Role Manager"
+  },
+  {
+   "role": "Process Manager"
+  },
+  {
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sequence_id": 1.7,
+ "shortcuts": [
+  {
+   "label": "Бизнес-процессы",
+   "link_to": "Business Process",
+   "type": "DocType",
+   "stats_filter": "[[\"Business Process\", \"status\", \"=\", \"Действует\"]]",
+   "color": "Blue",
+   "format": "{} действуют"
+  },
+  {
+   "label": "Роли процессов",
+   "link_to": "Process Role",
+   "type": "DocType"
+  },
+  {
+   "label": "Участники процессов",
+   "link_to": "Process Participants",
+   "type": "Report",
+   "report_ref_doctype": "Process Participant"
+  },
+  {
+   "label": "Риски процессов",
+   "link_to": "Process Continuity",
+   "type": "Report",
+   "report_ref_doctype": "Process Role"
+  },
+  {
+   "label": "Импорт процессов из Excel",
+   "link_to": "Process Import",
+   "type": "DocType"
+  }
+ ],
+ "title": "Бизнес-процессы"
+}

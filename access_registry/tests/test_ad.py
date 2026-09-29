@@ -407,11 +407,13 @@ class TestActiveDirectory(FrappeTestCase):
 		self.assertEqual(row["ad"][DOMAIN]["groups"], 2)
 
 	def test_workspace_has_ad_block(self):
-		workspace = frappe.get_doc("Workspace", "Access Registry")
+		workspace = frappe.get_doc("Workspace", "Active Directory")
+		self.assertEqual(workspace.parent_page, "Access Registry")
 		shortcuts = {s.label: s for s in workspace.shortcuts}
 		self.assertEqual(shortcuts["Учётки AD"].link_to, "AD Account")
 		self.assertEqual(shortcuts["Включены у уволенных"].type, "Report")
-		self.assertEqual(shortcuts["Домены AD"].link_to, "AD Domain")
+		sources = {s.label: s for s in frappe.get_doc("Workspace", "Источники данных").shortcuts}
+		self.assertEqual(sources["Домены AD"].link_to, "AD Domain")
 		self.assertIn(
 			"Active Directory", [link.label for link in workspace.links if link.type == "Card Break"]
 		)

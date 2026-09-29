@@ -728,8 +728,18 @@ class TestZupSync(FrappeTestCase):
 		self.assertFalse(frappe.db.exists("Workspace", "Кадры ЗУП"))
 		self.assertEqual(ws.public, 1)
 		self.assertIn("/registry", [s.url for s in ws.shortcuts if s.type == "URL"])
-		targets = [(s.type, s.link_to) for s in ws.shortcuts if s.type != "URL"] + [
-			(link.link_type, link.link_to) for link in ws.links if link.type == "Link"
+		pages = [ws] + [
+			frappe.get_doc("Workspace", name)
+			for name in frappe.get_all("Workspace", filters={"parent_page": ws.name}, pluck="name")
+		]
+		self.assertGreaterEqual(len(pages), 9)
+		# every section on the main page leads to an existing child page
+		children = {f"/app/{p.name.lower().replace(' ', '-')}" for p in pages[1:]}
+		self.assertTrue(children <= {s.url for s in ws.shortcuts if s.type == "URL"})
+		for page in pages[1:]:
+			self.assertEqual(page.title, page.name)
+		targets = [(s.type, s.link_to) for p in pages for s in p.shortcuts if s.type != "URL"] + [
+			(link.link_type, link.link_to) for p in pages for link in p.links if link.type == "Link"
 		]
 		self.assertIn(("DocType", "Info Base"), targets)
 		self.assertIn(("DocType", "Person Merge Candidate"), targets)
@@ -737,7 +747,7 @@ class TestZupSync(FrappeTestCase):
 		for link_type, target in targets:
 			self.assertIn(link_type, ("DocType", "Report", "Page"))
 			self.assertTrue(frappe.db.exists(link_type, target), target)
-		for shortcut in ws.shortcuts:
+		for shortcut in (s for p in pages for s in p.shortcuts):
 			if shortcut.stats_filter:
 				filters = [f[1:] for f in json.loads(shortcut.stats_filter)]
 				frappe.db.count(shortcut.link_to, filters)  # the counter query must be valid
@@ -784,4 +794,10 @@ class TestZupSync(FrappeTestCase):
 		self.assertFalse(frappe.db.exists("Workspace", "Кадры ЗУП"))
 		ws = frappe.get_doc("Workspace", "Access Registry")
 		self.assertEqual(ws.title, "Access Registry")
-		self.assertIn("Пользователи 1С и права", ws.content)
+		self.assertIn("Разделы реестра", ws.content)
+		# the long page is split into child pages under the main one
+		children = frappe.get_all("Workspace", filters={"parent_page": "Access Registry"}, pluck="name")
+		self.assertTrue(
+			{"Кадры", "Права 1С", "Active Directory", "Общие папки", "Источники данных"} <= set(children)
+		)
+		self.assertIn("Пользователи 1С и права", frappe.db.get_value("Workspace", "Права 1С", "content"))

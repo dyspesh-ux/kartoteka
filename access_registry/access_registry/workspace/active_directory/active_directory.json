@@ -1,0 +1,234 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Учётки и группы домена</b>, привязанные к сотрудникам. Реестр в AD не пишет.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Учётки и группы</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Учётки AD\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Включены у уволенных\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Учётки без сотрудника\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Давно не входили\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Отключены в AD, вход в 1С есть\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Группы AD\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Группы на контроле\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Проставить employeeNumber\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000013\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000014\", \"type\": \"card\", \"data\": {\"card_name\": \"Active Directory\", \"col\": 4}}, {\"id\": \"ar00000015\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по AD\", \"col\": 4}}]",
+ "creation": "2026-10-03 10:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "hr",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Active Directory",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Active Directory",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Учётки AD",
+   "link_count": 0,
+   "link_to": "AD Account",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Группы AD",
+   "link_count": 0,
+   "link_to": "AD Group",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Домены AD",
+   "link_count": 0,
+   "link_to": "AD Domain",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Отчёты по AD",
+   "link_count": 7,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Включены у уволенных",
+   "link_count": 0,
+   "link_to": "AD Dismissed Enabled",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Учётки без сотрудника",
+   "link_count": 0,
+   "link_to": "AD Without Employee",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Давно не входили",
+   "link_count": 0,
+   "link_to": "AD Inactive Accounts",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Пароль не истекает",
+   "link_count": 0,
+   "link_to": "AD Password Never Expires",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Участники группы",
+   "link_count": 0,
+   "link_to": "AD Group Members",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Отключены в AD, вход в 1С есть",
+   "link_count": 0,
+   "link_to": "AD Disabled But 1C Active",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Проставить employeeNumber",
+   "link_count": 0,
+   "link_to": "AD employeeNumber",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-03 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Active Directory",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "Access Registry",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Registry Admin"
+  },
+  {
+   "role": "Registry Auditor"
+  },
+  {
+   "role": "Access Role Manager"
+  },
+  {
+   "role": "Process Manager"
+  },
+  {
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sequence_id": 1.3,
+ "shortcuts": [
+  {
+   "label": "Учётки AD",
+   "link_to": "AD Account",
+   "type": "DocType",
+   "stats_filter": "[[\"AD Account\", \"enabled\", \"=\", 1], [\"AD Account\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Blue",
+   "format": "{} включено"
+  },
+  {
+   "label": "Включены у уволенных",
+   "link_to": "AD Dismissed Enabled",
+   "type": "Report",
+   "report_ref_doctype": "AD Account"
+  },
+  {
+   "label": "Учётки без сотрудника",
+   "link_to": "AD Account",
+   "type": "DocType",
+   "stats_filter": "[[\"AD Account\", \"enabled\", \"=\", 1], [\"AD Account\", \"missing_in_source\", \"=\", 0], [\"AD Account\", \"person\", \"is\", \"not set\"]]",
+   "color": "Orange",
+   "format": "{} учёток"
+  },
+  {
+   "label": "Давно не входили",
+   "link_to": "AD Inactive Accounts",
+   "type": "Report",
+   "report_ref_doctype": "AD Account"
+  },
+  {
+   "label": "Отключены в AD, вход в 1С есть",
+   "link_to": "AD Disabled But 1C Active",
+   "type": "Report",
+   "report_ref_doctype": "IB User"
+  },
+  {
+   "label": "Группы AD",
+   "link_to": "AD Group",
+   "type": "DocType",
+   "stats_filter": "[[\"AD Group\", \"missing_in_source\", \"=\", 0], [\"AD Group\", \"security\", \"=\", 1]]",
+   "color": "Blue",
+   "format": "{} групп безопасности"
+  },
+  {
+   "label": "Группы на контроле",
+   "link_to": "AD Group",
+   "type": "DocType",
+   "stats_filter": "[[\"AD Group\", \"under_control\", \"=\", 1], [\"AD Group\", \"missing_in_source\", \"=\", 0]]",
+   "color": "Purple",
+   "format": "{} групп"
+  },
+  {
+   "label": "Проставить employeeNumber",
+   "link_to": "AD employeeNumber",
+   "type": "Report",
+   "report_ref_doctype": "AD Account"
+  }
+ ],
+ "title": "Active Directory"
+}

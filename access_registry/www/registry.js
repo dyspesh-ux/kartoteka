@@ -132,11 +132,11 @@
 		Соответствует: "t-green",
 	};
 	const RISK_TONE = { Критичный: "t-red", Критичная: "t-red", Высокий: "t-amber", Высокая: "t-amber", Средний: "t-blue", Средняя: "t-blue", Низкий: "" };
-	const SYSTEM_TONE = { "1С": "t-amber", AD: "t-blue", "Active Directory": "t-blue", Битрикс24: "t-accent", Другое: "" };
+	const SYSTEM_TONE = { "1С": "t-amber", AD: "t-blue", "Active Directory": "t-blue", Битрикс24: "t-violet", Другое: "" };
 
 	const pill = (text, tone) => (text ? `<span class="pill ${tone || ""}">${esc(text)}</span>` : "");
 	const statusPill = (s) => pill(s, STATUS_TONE[s]);
-	const systemBadge = (s) => (s ? `<span class="badge ${SYSTEM_TONE[s] || (String(s).startsWith("Битрикс24") ? "t-accent" : String(s).startsWith("AD") ? "t-blue" : "")}">${esc(s)}</span>` : "");
+	const systemBadge = (s) => (s ? `<span class="badge ${SYSTEM_TONE[s] || (String(s).startsWith("Битрикс24") ? "t-violet" : String(s).startsWith("AD") ? "t-blue" : "")}">${esc(s)}</span>` : "");
 
 	// ------------------------------------------------------------------ table
 
@@ -454,6 +454,12 @@
 		return d;
 	}
 
+	/* a logical section of a page: number, title, one line of explanation, content */
+	function block(num, title, lead, content, actions) {
+		return `<section class="section"><div class="section-head">${num ? `<span class="num">${String(num).padStart(2, "0")}</span>` : ""}
+			<div class="titles"><h2>${title}</h2>${lead ? `<p>${lead}</p>` : ""}</div>${actions ? `<div class="actions">${actions}</div>` : ""}</div>${content}</section>`;
+	}
+
 	function kpi({ href, label, value, hint, tone, extra, display }) {
 		const tag = href ? "a" : "div";
 		const toneClass = display !== undefined ? tone || "" : value ? tone || "" : "tone-green";
@@ -479,7 +485,7 @@
 					данные на ${esc(fmtDateTime(d.generated))}</p></div>
 				<div style="display:flex;gap:8px"><button class="btn refresh">${icon("refresh")} Обновить</button></div>
 			</div>
-			<div class="section"><h2>Безопасность</h2><div class="grid grid-4">
+			${block(1, "Безопасность", "Что нужно закрыть в первую очередь: доступ у уволенных, ничьи учётки, несовместимые права и администраторы.", `<div class="grid grid-4">
 				${kpi({ href: "#/control/dismissed", label: "Доступ у неработающих", value: d.dismissed_access.people, tone: "tone-red",
 					hint: d.dismissed_access.people ? "уволены, но учётки активны" : "у уволенных нет активных учёток",
 					extra: bySystem ? `<div class="split-line">${bySystem}</div>` : "" })}
@@ -489,9 +495,8 @@
 				${kpi({ href: "#/control/sod", label: "Конфликты полномочий", value: d.sod, tone: "tone-red", hint: "права, которые нельзя совмещать" })}
 				${kpi({ href: "#/control/privileged", label: "Привилегированный доступ", value: r.privileged + d.quality.extra_roles + d.quality.b24_admins, tone: "tone-violet",
 					hint: `администраторы, роли 1С в обход профилей: ${d.quality.extra_roles}` })}
-			</div></div>
-			<div class="section"><h2>Положено и есть</h2>
-				${r.enabled ? `<div class="grid grid-4">
+			</div>`)}
+			${block(2, "Положено и есть", "Сверка ролевой модели с тем, что реально выдано в системах.", r.enabled ? `<div class="grid grid-4">
 					${kpi({ href: "#/control/excess", label: "Лишние доступы", value: r.excess + r.excess_not_working, tone: "tone-red", hint: `из них у неработающих: ${r.excess_not_working}` })}
 					${kpi({ href: "#/control/missing", label: "Не хватает доступов", value: r.missing, tone: "tone-amber", hint: "положены по роли, но не выданы" })}
 					${kpi({ href: "#/control/exceptions", label: "Исключения", value: r.exceptions, tone: "tone-violet", hint: d.expiring ? `истекают в ближайшие 2 недели: ${d.expiring}` : "согласованные отступления" })}
@@ -500,23 +505,20 @@
 						<div class="meter" title="соответствует / не хватает / лишнее / исключения">
 							<i style="width:${share(r.ok)}%;background:var(--green)"></i><i style="width:${share(r.missing)}%;background:var(--amber)"></i>
 							<i style="width:${share(r.excess + r.excess_not_working)}%;background:var(--red)"></i><i style="width:${share(r.exceptions)}%;background:var(--violet)"></i></div>
-						<div class="hint" style="margin-top:8px">${d.roles.active} ${plural(d.roles.active, "роль", "роли", "ролей")} · ${d.roles.entitlements} прав в каталоге${d.roles.drafts ? ` · черновиков: ${d.roles.drafts}` : ""}</div></a>
+						<div class="hint" style="margin-top:10px">${d.roles.active} ${plural(d.roles.active, "роль", "роли", "ролей")} · ${d.roles.entitlements} прав в каталоге${d.roles.drafts ? ` · черновиков: ${d.roles.drafts}` : ""}</div></a>
 				</div>` : `<div class="card card-pad"><b>Ролевая модель ещё не настроена.</b>
-					<p class="muted" style="margin:6px 0 0">Опишите права доступа и роли — реестр начнёт показывать, чего не хватает и что лишнее.
+					<p class="muted" style="margin-top:6px">Опишите права доступа и роли — реестр начнёт показывать, чего не хватает и что лишнее.
 					Начать проще с отчёта «Подбор ролей»: он предложит роли по уже выданным доступам.</p>
-					${b.can.roles ? `<p style="margin:10px 0 0"><a class="btn" href="/app/query-report/Role Mining">Подобрать роли</a></p>` : ""}</div>`}
-			</div>
-			<div class="section split">
-				<div><h2>Процессы и данные</h2><div class="grid grid-3">
+					${b.can.roles ? `<p style="margin-top:16px"><a class="btn" href="/app/query-report/Role Mining">Подобрать роли</a></p>` : ""}</div>`)}
+			${block(3, "Процессы и качество данных", "Кто подменит ключевых людей и совпадают ли системы с кадрами.", `<div class="grid grid-3">
 					${kpi({ href: "#/control/processes", label: "Риски процессов", value: d.processes.risks, tone: "tone-amber",
 						hint: `${d.processes.total} ${plural(d.processes.total, "процесс", "процесса", "процессов")}, ролей: ${d.processes.roles}` })}
 					${kpi({ href: "#/control/quality", label: "Расхождения с кадрами", display: "→", hint: "профили Битрикс24, руководители, employeeNumber в AD" })}
 					${kpi({ href: DESK ? "/app/person-merge-candidate?status=Открыт" : null, label: "Кандидаты на склейку", value: d.quality.merge_candidates, tone: "tone-amber", hint: "один человек в разных базах ЗУП" })}
-				</div></div>
-				<div><h2>Источники</h2><div class="card list">${sourcesList(d.sources.slice(0, 7))}
-					<a class="list-item" href="#/sources"><span class="grow muted">Все источники</span>→</a></div></div>
-			</div>`;
-		view.querySelector(".refresh").addEventListener("click", () => viewDashboard(view, true));
+				</div>`)}
+			${block(4, "Источники", "Откуда реестр берёт данные и когда загружал их в последний раз.", `<div class="card list">${sourcesList(d.sources.slice(0, 8))}</div>`,
+				`<a class="btn small" href="#/sources">Все источники</a>`)}`;
+				view.querySelector(".refresh").addEventListener("click", () => viewDashboard(view, true));
 	}
 
 	function sourcesList(sources) {
@@ -660,6 +662,12 @@
 							{ key: "via", label: "Через" },
 						],
 					});
+				body.querySelectorAll("[data-panel-btn]").forEach((btn) =>
+					btn.addEventListener("click", () => {
+						body.querySelectorAll("[data-panel-btn]").forEach((x) => x.classList.toggle("on", x === btn));
+						body.querySelectorAll("[data-panel]").forEach((panel) => (panel.hidden = panel.dataset.panel !== btn.dataset.panelBtn));
+					})
+				);
 				const shares = body.querySelector(".shares-access");
 				if (shares)
 					table(shares, {
@@ -727,21 +735,31 @@
 				</div>`;
 			})
 			.join("");
-		const section = (title, content, emptyText) =>
-			`<div class="section"><h2>${title}</h2>${content ? `<div class="grid grid-3">${content}</div>` : `<div class="card empty">${emptyText}</div>`}</div>`;
-		return (
-			section("1С", ib, "Учётных записей 1С нет") +
-			section("Active Directory", ad, "Учётки AD нет") +
-			section("Битрикс24", b24, "Пользователя Битрикс24 нет") +
-			(d.b24.length ? `<div class="section"><h2>Доступ к разделам Битрикс24</h2><div class="card b24-access"></div></div>` : "") +
-			(d.shares.length ? `<div class="section"><h2>Общие папки</h2><div class="card shares-access"></div></div>` : "")
-		);
+		const cards = (content, emptyText) => (content ? `<div class="grid grid-3">${content}</div>` : `<div class="card empty">${emptyText}</div>`);
+		const risky = (list, isOn) => (d.person.status !== "Работает" ? list.filter(isOn).length : 0);
+		// one system at a time: the card does not turn into a long scroll
+		const panels = [
+			["ib", "1С", d.ib.length, risky(d.ib, (a) => a.login_allowed && !a.invalid),
+				`<div class="group"><h3>Учётные записи в базах 1С</h3>${cards(ib, "Учётных записей 1С нет")}</div>`],
+			["ad", "Active Directory", d.ad.length, risky(d.ad, (a) => a.enabled && !a.missing_in_source),
+				`<div class="group"><h3>Учётки и группы домена</h3>${cards(ad, "Учётки AD нет")}</div>`],
+			["b24", "Битрикс24", d.b24.length, risky(d.b24, (u) => u.active && !u.missing_in_source),
+				`<div class="group"><h3>Пользователь портала</h3>${cards(b24, "Пользователя Битрикс24 нет")}</div>` +
+				(d.b24.length ? `<div class="group"><h3>Доступ к разделам: CRM, смарт-процессы, диск</h3><div class="card b24-access"></div></div>` : "")],
+			["shares", "Общие папки", d.shares.length, risky(d.shares, () => true),
+				`<div class="group"><h3>Папки Synology, к которым есть доступ</h3>${d.shares.length ? `<div class="card shares-access"></div>` : `<div class="card empty">Доступа к общим папкам нет</div>`}</div>`],
+		];
+		const first = (panels.find((x) => x[3]) || panels.find((x) => x[2]) || panels[0])[0];
+		return `<div class="subnav">${panels
+			.map(([key, label, n, alarm]) => `<button class="chip ${key === first ? "on" : ""}" data-panel-btn="${key}">${label} <span class="n ${alarm ? "alarm" : ""}">${n}</span></button>`)
+			.join("")}</div>
+			${panels.map(([key, , , , html]) => `<section class="section" data-panel="${key}" ${key === first ? "" : "hidden"}>${html}</section>`).join("")}`;
 	}
 
 	function personRecon(body, d, can, reload) {
 		const rows = d.reconciliation;
-		body.innerHTML = `<p class="muted" style="margin-top:0">Что положено сотруднику по ролям доступа и ролям в процессах, и что у него есть в системах.
-			«Лишнее» — есть, но не положено; «Исключение» — согласованное лишнее.</p><div class="card recon"></div>`;
+		body.innerHTML = `<section class="section"><p class="muted" style="margin-bottom:16px;max-width:760px">Что положено сотруднику по ролям доступа и ролям в процессах, и что у него есть в системах.
+			«Лишнее» — есть, но не положено; «Исключение» — согласованное лишнее.</p><div class="card recon"></div></section>`;
 		table(body.querySelector(".recon"), {
 			name: "сверка-" + d.person.full_name,
 			rows,
@@ -787,10 +805,10 @@
 		const procs = d.process_roles
 			.map((r) => `<a class="list-item" href="#/process/${enc(r.process)}"><div class="grow"><b>${esc(r.role)}</b> ${pill(r.raci, "t-blue")}<small>${esc(r.process_title)} · ${esc(r.how)}</small></div>→</a>`)
 			.join("");
-		return `<div class="grid grid-2">
-			<div><div class="section" style="margin-top:0"><h2>Роли доступа</h2><div class="card list">${roles || `<div class="empty">Ролей нет</div>`}</div></div></div>
-			<div><div class="section" style="margin-top:0"><h2>Роли в бизнес-процессах</h2><div class="card list">${procs || `<div class="empty">В процессах не участвует</div>`}</div></div></div>
-		</div>`;
+		return `<section class="section"><div class="grid grid-2">
+			<div class="group"><h3>Роли доступа</h3><div class="card list">${roles || `<div class="empty">Ролей нет</div>`}</div></div>
+			<div class="group"><h3>Роли в бизнес-процессах</h3><div class="card list">${procs || `<div class="empty">В процессах не участвует</div>`}</div></div>
+		</div></section>`;
 	}
 
 	function personHr(d) {
@@ -805,11 +823,11 @@
 		const events = d.events
 			.map((e) => `<div class="list-item"><div class="grow"><b>${esc(e.event_type)}</b> <span class="muted small">${esc(fmtDate(e.event_date))}</span><small>${esc(e.details || "")}</small></div></div>`)
 			.join("");
-		return `<div class="grid grid-2">
-			<div class="section" style="margin-top:0"><h2>Трудоустройства</h2><div class="card list">${emps || `<div class="empty">Нет</div>`}</div></div>
-			<div><div class="section" style="margin-top:0"><h2>Отсутствия</h2><div class="card list">${abs || `<div class="empty">Нет</div>`}</div></div>
-			<div class="section"><h2>Кадровые события</h2><div class="card list">${events || `<div class="empty">Нет</div>`}</div></div></div>
-		</div>`;
+		return `<section class="section"><div class="grid grid-2">
+			<div class="group"><h3>Трудоустройства</h3><div class="card list">${emps || `<div class="empty">Нет</div>`}</div></div>
+			<div><div class="group"><h3>Отсутствия</h3><div class="card list">${abs || `<div class="empty">Нет</div>`}</div></div>
+			<div class="group"><h3>Кадровые события</h3><div class="card list">${events || `<div class="empty">Нет</div>`}</div></div></div>
+		</div></section>`;
 	}
 
 	// ------------------------------------------------------------------ control
@@ -829,6 +847,13 @@
 		shares: "Права на папках Synology: выданные напрямую людям, доступ для всех, запреты, удалённые учётки, локальные учётки NAS, доступ у неработающих.",
 	};
 	const CONTROL_ORDER = ["dismissed", "events", "sod", "excess", "privileged", "unlinked", "missing", "exceptions", "stale", "processes", "quality", "shares"];
+	// lists grouped by meaning, so twelve lists do not read as one row of buttons
+	const CONTROL_GROUPS = [
+		["Закрыть срочно", ["dismissed", "events", "sod", "privileged"]],
+		["Положено и выдано", ["excess", "missing", "exceptions"]],
+		["Порядок в учётках и данных", ["unlinked", "stale", "quality", "shares", "processes"]],
+	];
+	const ALARM_CONTROLS = new Set(["dismissed", "sod", "excess"]);
 	const CONTROL_TITLES = {
 		dismissed: "Доступ у неработающих", unlinked: "Учётки без сотрудника", excess: "Лишние доступы", missing: "Не хватает доступов",
 		sod: "Конфликты полномочий", privileged: "Привилегированный доступ", exceptions: "Исключения и сроки", stale: "Давно не входили",
@@ -850,11 +875,16 @@
 		};
 		view.innerHTML = `
 			<div class="page-head"><div><h1>Контроль</h1><p>Что требует решения: списки для службы безопасности, ИБ и контролёров прав. Каждый список можно выгрузить в CSV.</p></div></div>
-			<div class="chips" style="margin-bottom:16px">${CONTROL_ORDER.map(
-				(k) => `<a class="chip ${k === kind ? "on" : ""}" href="#/control/${k}">${CONTROL_TITLES[k]}${counts[k] !== undefined ? ` <span class="n">${fmtNum(counts[k])}</span>` : ""}</a>`
+			<div class="chip-groups">${CONTROL_GROUPS.map(
+				([title, keys]) => `<div><div class="group-title">${title}</div><div class="chips">${keys
+					.map(
+						(k) => `<a class="chip ${k === kind ? "on" : ""}" href="#/control/${k}">${CONTROL_TITLES[k]}${
+							counts[k] !== undefined ? ` <span class="n ${counts[k] && ALARM_CONTROLS.has(k) ? "alarm" : ""}">${fmtNum(counts[k])}</span>` : ""
+						}</a>`
+					)
+					.join("")}</div></div>`
 			).join("")}</div>
-			<div class="card"><div class="card-head"><div><h3>${CONTROL_TITLES[kind]}</h3><p class="muted small" style="margin:4px 0 0">${CONTROL_HELP[kind]}</p></div></div>
-			<div class="ctl"><div class="loading"><div class="spinner"></div></div></div></div>`;
+			${block(null, CONTROL_TITLES[kind], CONTROL_HELP[kind], `<div class="card ctl"><div class="loading"><div class="spinner"></div></div></div>`)}`;
 		const data = await api("control", { kind });
 		const box = view.querySelector(".ctl");
 		const canMark = kind === "events" && (state.boot.can.audit || state.boot.can.roles);
@@ -944,9 +974,10 @@
 
 	async function viewRoles(view) {
 		const rows = await api("roles");
-		const group = (title, list) =>
+		let num = 0;
+		const group = (title, lead, list) =>
 			list.length
-				? `<div class="section"><h2>${title}</h2><div class="grid grid-3">${list
+				? block(++num, title, lead, `<div class="grid grid-3">${list
 						.map(
 							(r) => `<a class="card card-pad" href="#/role/${enc(r.name)}" style="color:inherit;text-decoration:none">
 								<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b style="font-size:15px">${esc(r.role_name)}</b>${pill(r.kind, r.kind === "Базовая" ? "t-green" : r.kind === "Дополнительная" ? "t-violet" : "t-blue")}</div>
@@ -955,15 +986,15 @@
 								<span><b>${r.entitlements}</b> <span class="muted">${plural(r.entitlements, "право", "права", "прав")}</span></span></div>
 								${r.owner_name ? `<div class="muted small" style="margin-top:8px">владелец: ${esc(r.owner_name)}</div>` : ""}</a>`
 						)
-						.join("")}</div></div>`
+						.join("")}</div>`)
 				: "";
 		view.innerHTML = `
 			<div class="page-head"><div><h1>Роли доступа</h1><p>Роль — набор прав. Должностные роли получают по правилам (должность, подразделение, организация),
 				базовые — все работающие, дополнительные — только назначением на срок.</p></div>
 				${state.boot.can.roles ? `<div style="display:flex;gap:8px"><a class="btn" href="/app/query-report/Role Mining">Подбор ролей</a><a class="btn primary" href="/app/access-role/new">Новая роль</a></div>` : ""}</div>
-			${group("Действуют", rows.filter((r) => r.status === "Действует"))}
-			${group("Черновики — на проверку", rows.filter((r) => r.status === "Черновик"))}
-			${group("Архив", rows.filter((r) => r.status === "Архив"))}
+			${group("Действуют", "По ним считается, что положено сотрудникам.", rows.filter((r) => r.status === "Действует"))}
+			${group("Черновики — на проверку", "Предложены подбором ролей или заведены вручную; на сверку не влияют, пока не утверждены.", rows.filter((r) => r.status === "Черновик"))}
+			${group("Архив", "Больше не действуют, хранятся для истории.", rows.filter((r) => r.status === "Архив"))}
 			${rows.length ? "" : `<div class="card empty"><b>Ролей пока нет</b>Подбор ролей предложит черновики по доступам, которые уже выданы.</div>`}`;
 	}
 
@@ -1074,15 +1105,15 @@
 				${p.diagram ? `<a class="btn" href="${esc(p.diagram)}" target="_blank" rel="noopener">Схема</a>` : ""}
 				${state.boot.can.processes ? `<a class="btn" href="${deskUrl("Business Process", p.name)}" target="_blank" rel="noopener">${icon("external")} Изменить</a>` : ""}</div></div>
 			<div class="split">
-				<div><div class="section" style="margin-top:0"><h2>Роли в процессе</h2>${roles ? `<div class="grid grid-2">${roles}</div>` : `<div class="card empty">Роли не описаны</div>`}</div></div>
-				<div class="card card-pad">
-					${p.goal ? `<h3 style="font-size:14px">Цель и результат</h3><p class="rich">${esc(p.goal)}</p>` : ""}
-					${p.trigger_event ? `<h3 style="font-size:14px">Начинается с</h3><p class="rich">${esc(p.trigger_event)}</p>` : ""}
-					${p.systems ? `<h3 style="font-size:14px">Системы</h3><p class="rich">${esc(p.systems)}</p>` : ""}
-					${p.description ? `<h3 style="font-size:14px">Описание</h3><div class="rich">${sanitize(p.description)}</div>` : ""}
-					${d.children.length ? `<h3 style="font-size:14px;margin-top:12px">Подпроцессы</h3>${d.children.map((c) => `<div><a href="#/process/${enc(c.name)}">${esc(c.title)}</a></div>`).join("")}` : ""}
+				<div class="group"><h3>Роли в процессе</h3>${roles ? `<div class="grid grid-2">${roles}</div>` : `<div class="card empty">Роли не описаны</div>`}</div>
+				<div class="group"><h3>О процессе</h3><div class="card card-pad facts">
+					${p.goal ? `<h4>Цель и результат</h4><p class="rich">${esc(p.goal)}</p>` : ""}
+					${p.trigger_event ? `<h4>Начинается с</h4><p class="rich">${esc(p.trigger_event)}</p>` : ""}
+					${p.systems ? `<h4>Системы</h4><p class="rich">${esc(p.systems)}</p>` : ""}
+					${p.description ? `<h4>Описание</h4><div class="rich">${sanitize(p.description)}</div>` : ""}
+					${d.children.length ? `<h4>Подпроцессы</h4>${d.children.map((c) => `<div><a href="#/process/${enc(c.name)}">${esc(c.title)}</a></div>`).join("")}` : ""}
 					${!p.goal && !p.description && !p.systems && !d.children.length ? `<div class="muted">Описание не заполнено</div>` : ""}
-				</div>
+				</div></div>
 			</div>`;
 	}
 
@@ -1124,11 +1155,11 @@
 			<div class="page-head"><div><h1>Пересмотр доступа</h1><p>Проверяющие подтверждают, что доступы сотрудников нужны для работы, или отмечают их на отзыв.
 				Реестр сам ничего не отзывает: список на отзыв получают администраторы систем.</p></div>
 				${can.roles ? `<a class="btn primary" href="/app/access-review/new">Новый пересмотр</a>` : ""}</div>
-			${items.length ? `<div class="card card-pad" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+			${block(1, "Мои задания", "Сотрудники, чьи доступы вам нужно подтвердить или отметить на отзыв.", items.length ? `<div class="card card-pad" style="margin-bottom:24px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
 				<div><b>Мои задания</b><div class="muted small">решено ${done} из ${items.length}</div></div>
 				<div class="meter" style="flex:1;max-width:420px"><i class="my-progress" style="width:${(100 * done) / items.length}%;background:var(--green)"></i></div></div></div>
-				<div class="my-tasks"></div>` : `<div class="card empty" style="margin-bottom:16px"><b>Заданий нет</b>Когда начнётся пересмотр доступа, здесь появятся сотрудники, чьи доступы нужно подтвердить.</div>`}
-			${can.read ? `<div class="section"><h2>Кампании</h2><div class="card campaigns"></div></div>` : ""}`;
+				<div class="my-tasks"></div>` : `<div class="card empty"><b>Заданий нет</b>Когда начнётся пересмотр доступа, здесь появятся сотрудники, чьи доступы нужно подтвердить.</div>`)}
+			${can.read ? block(2, "Кампании", "Все пересмотры: сроки, ход и сколько доступов отмечено на отзыв.", `<div class="card campaigns"></div>`) : ""}`;
 		const box = view.querySelector(".my-tasks");
 		if (box) {
 			const refresh = () => {
@@ -1139,8 +1170,8 @@
 			};
 			box.innerHTML = Object.entries(byReview)
 				.map(
-					([review, r]) => `<div class="section" style="margin-top:0"><h2>${esc(r.title)}${r.due ? ` · срок ${esc(fmtDate(r.due))}` : ""}</h2>
-						${r.text ? `<p class="muted" style="margin-top:-6px">${esc(r.text)}</p>` : ""}
+					([review, r]) => `<div class="group"><h3>${esc(r.title)}${r.due ? ` · срок ${esc(fmtDate(r.due))}` : ""}</h3>
+						${r.text ? `<p class="muted" style="margin:-4px 0 12px">${esc(r.text)}</p>` : ""}
 						<div class="grid grid-2">${Object.entries(r.people)
 							.sort(([, a], [, b]) => (a.some((i) => !i.decision) ? 0 : 1) - (b.some((i) => !i.decision) ? 0 : 1))
 							.map(([person, list]) => reviewCard(review, person, list))

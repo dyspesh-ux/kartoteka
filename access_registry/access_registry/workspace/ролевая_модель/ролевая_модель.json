@@ -1,0 +1,252 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Положено и есть:</b> права доступа, роли по должностям, исключения, конфликты полномочий и пересмотр доступа.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Роли и сверка</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сверка доступа\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Конфликты полномочий\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли доступа\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Черновики ролей\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Каталог прав доступа\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Подбор ролей\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Доступы вне каталога\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Исключения\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пересмотр доступа\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000014\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000015\", \"type\": \"card\", \"data\": {\"card_name\": \"Ролевая модель\", \"col\": 4}}]",
+ "creation": "2026-10-03 10:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "list",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Ролевая модель",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Ролевая модель",
+   "link_count": 12,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Каталог прав доступа",
+   "link_count": 0,
+   "link_to": "Entitlement",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Роли доступа",
+   "link_count": 0,
+   "link_to": "Access Role",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Назначения ролей",
+   "link_count": 0,
+   "link_to": "Access Role Assignment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Исключения",
+   "link_count": 0,
+   "link_to": "Access Exception",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Правила SoD",
+   "link_count": 0,
+   "link_to": "SoD Rule",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Пересмотр доступа",
+   "link_count": 0,
+   "link_to": "Access Review",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Сверка доступа",
+   "link_count": 0,
+   "link_to": "Access Reconciliation",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Конфликты полномочий",
+   "link_count": 0,
+   "link_to": "SoD Conflicts",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Состав ролей",
+   "link_count": 0,
+   "link_to": "Access Role Members",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Подбор ролей",
+   "link_count": 0,
+   "link_to": "Role Mining",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Доступы вне каталога",
+   "link_count": 0,
+   "link_to": "Unmanaged Access",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Результаты пересмотра",
+   "link_count": 0,
+   "link_to": "Access Review Results",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-03 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Ролевая модель",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "Access Registry",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Registry Admin"
+  },
+  {
+   "role": "Registry Auditor"
+  },
+  {
+   "role": "Access Role Manager"
+  },
+  {
+   "role": "Process Manager"
+  },
+  {
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sequence_id": 1.6,
+ "shortcuts": [
+  {
+   "label": "Сверка доступа",
+   "link_to": "Access Reconciliation",
+   "type": "Report",
+   "report_ref_doctype": "Entitlement"
+  },
+  {
+   "label": "Конфликты полномочий",
+   "link_to": "SoD Conflicts",
+   "type": "Report",
+   "report_ref_doctype": "SoD Rule"
+  },
+  {
+   "label": "Роли доступа",
+   "link_to": "Access Role",
+   "type": "DocType",
+   "stats_filter": "[[\"Access Role\", \"status\", \"=\", \"Действует\"]]",
+   "color": "Blue",
+   "format": "{} действуют"
+  },
+  {
+   "label": "Черновики ролей",
+   "link_to": "Access Role",
+   "type": "DocType",
+   "stats_filter": "[[\"Access Role\", \"status\", \"=\", \"Черновик\"]]",
+   "color": "Orange",
+   "format": "{} на проверку"
+  },
+  {
+   "label": "Каталог прав доступа",
+   "link_to": "Entitlement",
+   "type": "DocType",
+   "stats_filter": "[[\"Entitlement\", \"active\", \"=\", 1]]",
+   "color": "Blue",
+   "format": "{} прав"
+  },
+  {
+   "label": "Подбор ролей",
+   "link_to": "Role Mining",
+   "type": "Report",
+   "report_ref_doctype": "Access Role"
+  },
+  {
+   "label": "Доступы вне каталога",
+   "link_to": "Unmanaged Access",
+   "type": "Report",
+   "report_ref_doctype": "Entitlement"
+  },
+  {
+   "label": "Исключения",
+   "link_to": "Access Exception",
+   "type": "DocType"
+  },
+  {
+   "label": "Пересмотр доступа",
+   "link_to": "Access Review",
+   "type": "DocType",
+   "stats_filter": "[[\"Access Review\", \"status\", \"=\", \"Идёт\"]]",
+   "color": "Blue",
+   "format": "{} идёт"
+  }
+ ],
+ "title": "Ролевая модель"
+}

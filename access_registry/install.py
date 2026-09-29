@@ -67,16 +67,24 @@ LEGACY_WORKSPACES = ("Кадры ЗУП",)
 
 
 def sync_workspace():
-	"""Keeps the app's workspace exactly as shipped in the repository.
+	"""Keeps the app's workspaces exactly as shipped in the repository.
 
 	Frappe re-imports a workspace file only when the database copy is older than the file, so a copy
-	touched on the site (or left from an earlier version) silently stays. The workspace is part of the
-	app: it is re-imported on every migrate, and earlier interim names are removed.
+	touched on the site (or left from an earlier version) silently stays. The workspaces are part of
+	the app: «Access Registry» and its child pages are re-imported on every migrate, and earlier
+	interim names are removed.
 	"""
-	from frappe.modules.import_file import import_file
+	import os
+
+	from frappe.modules.import_file import import_file_by_path
 
 	for name in LEGACY_WORKSPACES:
 		if frappe.db.exists("Workspace", name):
 			frappe.delete_doc("Workspace", name, ignore_permissions=True, force=True)
-	import_file("Access Registry", "Workspace", WORKSPACE, force=True)
+	folder = os.path.join(os.path.dirname(__file__), "access_registry", "workspace")
+	# the main page first: child pages refer to it as their parent
+	for entry in sorted(os.listdir(folder), key=lambda e: e != frappe.scrub(WORKSPACE)):
+		path = os.path.join(folder, entry, f"{entry}.json")
+		if os.path.exists(path):
+			import_file_by_path(path, force=True, ignore_version=True)
 	frappe.clear_cache()

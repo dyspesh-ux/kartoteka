@@ -559,7 +559,8 @@ class TestAccessCatalog(FrappeTestCase):
 		self.assertEqual(len(rows), 2)
 
 	def test_workspace_has_rights_block(self):
-		ws = frappe.get_doc("Workspace", "Access Registry")
+		ws = frappe.get_doc("Workspace", "Права 1С")
+		self.assertEqual(ws.parent_page, "Access Registry")
 		targets = {s.link_to for s in ws.shortcuts} | {
 			link.link_to for link in ws.links if link.type == "Link"
 		}
