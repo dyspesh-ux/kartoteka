@@ -161,8 +161,26 @@ def only_hash_changed(doc) -> bool:
 	)
 
 
+def fit_lengths(doc) -> list[str]:
+	"""Cuts values of Data fields that do not fit the column (140 characters by default).
+
+	Sources sometimes send longer values (deep OU paths, long positions); losing the tail is
+	better than failing the whole load. Returns labels of the cut fields for a warning.
+	"""
+	cut = []
+	for d in [doc, *doc.get_all_children()]:
+		for df in d.meta.get("fields", {"fieldtype": "Data"}):
+			value = d.get(df.fieldname)
+			limit = cint(df.length) or frappe.db.VARCHAR_LEN
+			if isinstance(value, str) and len(value) > limit:
+				d.set(df.fieldname, value[: limit - 1] + "…")
+				cut.append(df.label or df.fieldname)
+	return cut
+
+
 def save_changed(doc) -> bool:
 	"""Inserts or saves with a version; returns False when only the source hash was refreshed."""
+	doc.flags.cut_fields = fit_lengths(doc)
 	if doc.is_new():
 		doc.insert(ignore_permissions=True)
 		return True
@@ -260,6 +278,8 @@ class SnapshotImport:
 		doc.flags.ignore_permissions = True
 		if save_changed(doc):
 			self.counters["changed"] += 1
+		if doc.flags.cut_fields:
+			self.warn(f"{doc.name}: слишком длинные значения обрезаны: {', '.join(doc.flags.cut_fields)}")
 
 	def load(self, doctype, uid, payload_hash):
 		"""Returns the document to fill, or None when nothing changed."""

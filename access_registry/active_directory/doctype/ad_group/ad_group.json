@@ -148,8 +148,7 @@
   },
   {
    "fieldname": "ou",
-   "fieldtype": "Data",
-   "in_standard_filter": 1,
+   "fieldtype": "Small Text",
    "label": "Подразделение AD (OU)",
    "read_only": 1
   },

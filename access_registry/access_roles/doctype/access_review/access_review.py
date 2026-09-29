@@ -11,7 +11,13 @@ from access_registry.permissions import ROLE_MANAGER, require
 class AccessReview(Document):
 	def validate(self):
 		if not self.is_new() and self.status != "Черновик":
-			for field in ("system", "organization", "only_privileged", "include_uncatalogued", "reviewer_mode"):
+			for field in (
+				"system",
+				"organization",
+				"only_privileged",
+				"include_uncatalogued",
+				"reviewer_mode",
+			):
 				if self.has_value_changed(field):
 					frappe.throw(_("Пересмотр уже начат: состав и режим проверки менять нельзя"))
 

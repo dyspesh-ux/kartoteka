@@ -181,6 +181,22 @@ class TestActiveDirectory(FrappeTestCase):
 		self.assertIn("предохранителем", log.messages)
 		self.assertEqual(frappe.db.count("AD Account", {"domain": DOMAIN, "missing_in_source": 0}), 7)
 
+	def test_long_values(self):
+		"""Deep OU paths and long attributes from a real domain do not break the load."""
+		data = directory()
+		deep = ",".join(f"OU=Очень длинное название подразделения номер {i}" for i in range(6))
+		user(data, 2)["distinguishedName"] = f"CN=Петрова Мария Сергеевна,{deep},DC=corp,DC=example,DC=local"
+		user(data, 2)["title"] = "Заместитель руководителя " * 10
+		user(data, 2)["displayName"] = "Петрова Мария Сергеевна " + "x" * 200
+		log = self.sync(data)
+		self.assertEqual(log.status, "Успех", log.messages)
+		petrova = self.account(2)
+		self.assertGreater(len(petrova.ou), 140)  # OU is kept whole
+		self.assertGreater(len(petrova.title), 140)  # position is kept whole
+		self.assertEqual(len(petrova.display_name), 140)
+		self.assertTrue(petrova.display_name.endswith("…"))
+		self.assertIn("слишком длинные значения обрезаны: Отображаемое имя", log.messages)
+
 	def test_error_is_logged(self):
 		def broken(domain):
 			raise ConnectionError("dc1 unreachable")

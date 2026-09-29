@@ -82,7 +82,9 @@ def collect_items(review) -> list[dict]:
 	people = {
 		p.name: p
 		for p in frappe.get_all(
-			"Person", filters={"name": ["in", list(persons) or [""]]}, fields=["name", "full_name", "status"],
+			"Person",
+			filters={"name": ["in", list(persons) or [""]]},
+			fields=["name", "full_name", "status"],
 			limit_page_length=0,
 		)
 	}
@@ -104,9 +106,16 @@ def collect_items(review) -> list[dict]:
 				continue
 			items.append(
 				{
-					"person": person, "full_name": info.full_name, "person_status": info.status,
-					"system": e.system, "entitlement": name, "access_title": e.title, "access_key": None,
-					"risk": e.risk, "evidence": evidence, "owner": e.owner_person,
+					"person": person,
+					"full_name": info.full_name,
+					"person_status": info.status,
+					"system": e.system,
+					"entitlement": name,
+					"access_title": e.title,
+					"access_key": None,
+					"risk": e.risk,
+					"evidence": evidence,
+					"owner": e.owner_person,
 				}
 			)
 		if review.include_uncatalogued and not review.only_privileged:
@@ -116,9 +125,16 @@ def collect_items(review) -> list[dict]:
 					continue
 				items.append(
 					{
-						"person": person, "full_name": info.full_name, "person_status": info.status,
-						"system": system, "entitlement": None, "access_title": engine.describe_key(key)["title"],
-						"access_key": key, "risk": "", "evidence": evidence, "owner": None,
+						"person": person,
+						"full_name": info.full_name,
+						"person_status": info.status,
+						"system": system,
+						"entitlement": None,
+						"access_title": engine.describe_key(key)["title"],
+						"access_key": key,
+						"risk": "",
+						"evidence": evidence,
+						"owner": None,
 					}
 				)
 	return items
@@ -132,7 +148,9 @@ def start_review(name: str) -> dict:
 		frappe.throw(_("Укажите проверяющего"))
 	items = collect_items(review)
 	users = person_users()
-	heads = managers({i["person"] for i in items}) if review.reviewer_mode == "Руководитель сотрудника" else {}
+	heads = (
+		managers({i["person"] for i in items}) if review.reviewer_mode == "Руководитель сотрудника" else {}
+	)
 	for item in items:
 		if review.reviewer_mode == "Руководитель сотрудника":
 			reviewer = users.get(heads.get(item["person"]))
@@ -237,14 +255,31 @@ def results(name: str) -> list[dict]:
 	rows = frappe.get_all(
 		"Access Review Item",
 		filters={"access_review": name},
-		fields=["name", "person", "full_name", "person_status", "system", "entitlement", "access_title", "risk",
-		        "evidence", "reviewer_user", "decision", "comment", "decided_by", "decided_on"],
+		fields=[
+			"name",
+			"person",
+			"full_name",
+			"person_status",
+			"system",
+			"entitlement",
+			"access_title",
+			"risk",
+			"evidence",
+			"reviewer_user",
+			"decision",
+			"comment",
+			"decided_by",
+			"decided_on",
+		],
 		order_by="full_name, system, access_title",
 		limit_page_length=0,
 	)
 	names = defaultdict(str)
-	for u in frappe.get_all("User", filters={"name": ["in", list({r.reviewer_user for r in rows if r.reviewer_user}) or [""]]},
-	                        fields=["name", "full_name"]):
+	for u in frappe.get_all(
+		"User",
+		filters={"name": ["in", list({r.reviewer_user for r in rows if r.reviewer_user}) or [""]]},
+		fields=["name", "full_name"],
+	):
 		names[u.name] = u.full_name or u.name
 	for r in rows:
 		r.reviewer_name = names.get(r.reviewer_user) or r.reviewer_user or ""

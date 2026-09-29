@@ -237,6 +237,8 @@ class DomainImport:
 			self.counters[f"{doc.doctype}: без изменений"] += 1
 		else:
 			self.counters[f"{doc.doctype}: {'создано' if new else 'изменено'}"] += 1
+		if doc.flags.cut_fields:
+			self.warn(f"{doc.name}: слишком длинные значения обрезаны: {', '.join(doc.flags.cut_fields)}")
 
 	def common(self, doc, row):
 		doc.domain = self.code
