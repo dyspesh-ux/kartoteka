@@ -1,0 +1,210 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-10-05 07:00:00.000000",
+ "description": "Журнал погашенных замечаний: кто, когда и почему погасил замечание и кто вернул",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "status",
+  "alert_kind",
+  "alert_title",
+  "subject",
+  "person",
+  "ref_doctype",
+  "ref_name",
+  "alert_key",
+  "section_break_1",
+  "reason",
+  "valid_to",
+  "column_break_1",
+  "suppressed_by",
+  "suppressed_on",
+  "section_break_2",
+  "restore_reason",
+  "column_break_2",
+  "restored_by",
+  "restored_on"
+ ],
+ "fields": [
+  {
+   "default": "Погашено",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Статус",
+   "options": "Погашено\nВозвращено\nИстёк срок",
+   "read_only": 1
+  },
+  {
+   "fieldname": "alert_kind",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Вид замечания (код)",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "alert_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Замечание",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "description": "Учётная запись, сотрудник или папка, к которой относится замечание",
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Что",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Сотрудник",
+   "options": "Person",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ref_doctype",
+   "fieldtype": "Link",
+   "label": "Тип записи",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ref_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Запись",
+   "options": "ref_doctype",
+   "read_only": 1
+  },
+  {
+   "fieldname": "alert_key",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Ключ замечания",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Почему погашено"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Причина",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "description": "После этой даты замечание снова появится. Пусто — бессрочно",
+   "fieldname": "valid_to",
+   "fieldtype": "Date",
+   "label": "Погашено до",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "suppressed_by",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Погасил",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "suppressed_on",
+   "fieldtype": "Datetime",
+   "label": "Когда",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.status != 'Погашено'",
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Возврат"
+  },
+  {
+   "fieldname": "restore_reason",
+   "fieldtype": "Small Text",
+   "label": "Почему вернули",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "restored_by",
+   "fieldtype": "Link",
+   "label": "Вернул",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "restored_on",
+   "fieldtype": "Datetime",
+   "label": "Когда вернули",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-05 07:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Roles",
+ "name": "Alert Suppression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "subject",
+ "track_changes": 1
+}

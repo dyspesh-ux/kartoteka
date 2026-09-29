@@ -845,24 +845,27 @@
 		quality: "Данные в Битрикс24 и AD, которые не совпадают с кадрами ЗУП.",
 		events: "Необработанные кадровые события: кому после приёма или перевода выдать положенное, у кого после увольнения отключить учётки и отозвать права.",
 		shares: "Права на папках Synology: выданные напрямую людям, доступ для всех, запреты, удалённые учётки, локальные учётки NAS, доступ у неработающих.",
+		journal: "Все погашенные замечания: что, кто и когда погасил и почему, до какой даты; кто и почему вернул. Записи не удаляются.",
 	};
-	const CONTROL_ORDER = ["dismissed", "events", "sod", "excess", "privileged", "unlinked", "missing", "exceptions", "stale", "processes", "quality", "shares"];
+	const CONTROL_ORDER = ["dismissed", "events", "sod", "excess", "privileged", "unlinked", "missing", "exceptions", "stale", "processes", "quality", "shares", "journal"];
 	// lists grouped by meaning, so twelve lists do not read as one row of buttons
 	const CONTROL_GROUPS = [
 		["Закрыть срочно", ["dismissed", "events", "sod", "privileged"]],
 		["Положено и выдано", ["excess", "missing", "exceptions"]],
 		["Порядок в учётках и данных", ["unlinked", "stale", "quality", "shares", "processes"]],
+		["Разобрано", ["journal"]],
 	];
 	const ALARM_CONTROLS = new Set(["dismissed", "sod", "excess"]);
 	const CONTROL_TITLES = {
 		dismissed: "Доступ у неработающих", unlinked: "Учётки без сотрудника", excess: "Лишние доступы", missing: "Не хватает доступов",
 		sod: "Конфликты полномочий", privileged: "Привилегированный доступ", exceptions: "Исключения и сроки", stale: "Давно не входили",
-		processes: "Риски процессов", quality: "Расхождения с кадрами", events: "Кадровые события", shares: "Общие папки",
+		processes: "Риски процессов", quality: "Расхождения с кадрами", events: "Кадровые события", shares: "Общие папки", journal: "Журнал гашений",
 	};
 
-	async function viewControl(view, kind) {
+	async function viewControl(view, kind, showSuppressed) {
 		kind = kind || "dismissed";
 		const d = state.dashboard || (await loadDashboard());
+		const can = state.boot.can;
 		const counts = {
 			dismissed: d.dismissed_access.people,
 			unlinked: Object.values(d.unlinked).reduce((a, x) => a + x, 0),
@@ -872,9 +875,11 @@
 			exceptions: d.reconciliation.exceptions,
 			processes: d.processes.risks,
 			events: d.events,
+			journal: d.suppressed,
 		};
 		view.innerHTML = `
-			<div class="page-head"><div><h1>Контроль</h1><p>Что требует решения: списки для службы безопасности, ИБ и контролёров прав. Каждый список можно выгрузить в CSV.</p></div></div>
+			<div class="page-head"><div><h1>Контроль</h1><p>Что требует решения: списки для службы безопасности, ИБ и контролёров прав. Каждый список можно выгрузить в CSV.
+				Замечание, которое разобрали и приняли (например, учётка подрядчика без сотрудника), можно погасить с комментарием — оно попадёт в журнал.</p></div></div>
 			<div class="chip-groups">${CONTROL_GROUPS.map(
 				([title, keys]) => `<div><div class="group-title">${title}</div><div class="chips">${keys
 					.map(
@@ -884,26 +889,93 @@
 					)
 					.join("")}</div></div>`
 			).join("")}</div>
-			${block(null, CONTROL_TITLES[kind], CONTROL_HELP[kind], `<div class="card ctl"><div class="loading"><div class="spinner"></div></div></div>`)}`;
-		const data = await api("control", { kind });
+			${block(null, CONTROL_TITLES[kind], CONTROL_HELP[kind], `<div class="suppress-bar"></div><div class="card ctl"><div class="loading"><div class="spinner"></div></div></div>`)}`;
+		const data = await api("control", { kind, show_suppressed: showSuppressed ? 1 : 0 });
 		const box = view.querySelector(".ctl");
-		const canMark = kind === "events" && (state.boot.can.audit || state.boot.can.roles);
-		table(box, {
-			name: CONTROL_TITLES[kind].toLowerCase(),
-			rows: data.rows,
-			columns: data.columns,
-			empty: "Замечаний нет",
-			actions: canMark ? (r) => `<button class="btn small mark" data-event="${esc(r.name)}">Обработано</button>` : null,
-		});
-		if (canMark)
-			box.addEventListener("click", async (e) => {
-				const btn = e.target.closest(".mark");
-				if (!btn) return;
-				btn.disabled = true;
-				await api("mark_event_processed", { event: btn.dataset.event }, true);
-				btn.closest("tr").style.opacity = ".4";
-				btn.textContent = "✓";
+		const bar = view.querySelector(".suppress-bar");
+		const reload = () => loadDashboard(true).then(() => viewControl(view, kind, showSuppressed));
+		const canMark = kind === "events" && (can.audit || can.roles);
+		const canSuppress = data.suppressible && can.suppress && !showSuppressed;
+		const canRestore = can.suppress && (showSuppressed || kind === "journal");
+		const selected = new Set();
+
+		const columns = showSuppressed
+			? [...data.columns, { key: "suppression_reason", label: "Почему погашено" }, { key: "suppressed_until", label: "До" }]
+			: data.columns;
+		let actions = null;
+		if (canMark) actions = (r) => `<button class="btn small mark" data-event="${esc(r.name)}">Обработано</button>`;
+		if (canSuppress)
+			actions = (r) => `<label class="pick" title="Отметить, чтобы погасить"><input type="checkbox" data-key="${esc(r.alert_key)}"></label>`;
+		if (canRestore)
+			actions = (r) =>
+				kind === "journal" && r.status !== "Погашено" ? "" : `<button class="btn small restore" data-name="${esc(r.suppression || r.name)}">Вернуть</button>`;
+
+		const drawBar = () => {
+			if (!data.suppressible && kind !== "journal") return (bar.innerHTML = "");
+			bar.innerHTML = `<div class="toolbar">
+				${canSuppress ? `<button class="btn primary do-suppress" ${selected.size ? "" : "disabled"}>Погасить выбранные${selected.size ? ` · ${selected.size}` : ""}</button>
+					<button class="btn pick-all">Отметить все</button>` : ""}
+				${data.suppressible ? `<button class="btn toggle-suppressed">${showSuppressed ? "← Открытые замечания" : `Показать погашенные · ${fmtNum(data.suppressed)}`}</button>` : ""}
+				${kind !== "journal" ? `<a class="btn" href="#/control/journal">Журнал гашений</a>` : ""}
+			</div>`;
+			bar.querySelector(".do-suppress")?.addEventListener("click", () =>
+				modal({
+					title: `Погасить: ${selected.size} ${plural(selected.size, "замечание", "замечания", "замечаний")}`,
+					text: "Замечание пропадёт из списка и счётчиков. В журнал попадут причина, кто и когда погасил. Вернуть можно в любой момент.",
+					fields: [
+						{ name: "reason", label: "Почему гасим (обязательно)", type: "textarea", required: true },
+						{ name: "valid_to", label: "Погасить до (пусто — бессрочно; после даты замечание вернётся)", type: "date" },
+					],
+					submit: async (values) => {
+						const n = await api("suppress_alerts", { kind, keys: [...selected], ...values }, true);
+						toast(`Погашено: ${n}`);
+						reload();
+					},
+				})
+			);
+			bar.querySelector(".pick-all")?.addEventListener("click", () => {
+				box.querySelectorAll("input[data-key]").forEach((c) => ((c.checked = true), selected.add(c.dataset.key)));
+				drawBar();
 			});
+			bar.querySelector(".toggle-suppressed")?.addEventListener("click", () => viewControl(view, kind, !showSuppressed));
+		};
+
+		table(box, {
+			name: CONTROL_TITLES[kind].toLowerCase() + (showSuppressed ? "-погашенные" : ""),
+			rows: data.rows,
+			columns,
+			empty: showSuppressed ? "Погашенных замечаний нет" : kind === "journal" ? "Журнал пуст" : "Замечаний нет",
+			actions,
+		});
+		drawBar();
+		box.addEventListener("change", (e) => {
+			const c = e.target.closest("input[data-key]");
+			if (!c) return;
+			c.checked ? selected.add(c.dataset.key) : selected.delete(c.dataset.key);
+			drawBar();
+		});
+		box.addEventListener("click", async (e) => {
+			const mark = e.target.closest(".mark");
+			if (mark) {
+				mark.disabled = true;
+				await api("mark_event_processed", { event: mark.dataset.event }, true);
+				mark.closest("tr").style.opacity = ".4";
+				mark.textContent = "✓";
+				return;
+			}
+			const restore = e.target.closest(".restore");
+			if (restore)
+				modal({
+					title: "Вернуть замечание",
+					text: "Замечание снова появится в списке и счётчиках. В журнале останется, кто и почему его вернул.",
+					fields: [{ name: "reason", label: "Почему возвращаем (обязательно)", type: "textarea", required: true }],
+					submit: async (values) => {
+						await api("restore_alert", { name: restore.dataset.name, ...values }, true);
+						toast("Замечание возвращено");
+						reload();
+					},
+				});
+		});
 	}
 
 	// ------------------------------------------------------------------ access catalog

@@ -29,5 +29,7 @@ scheduler_events = {
 		"40 * * * *": ["access_registry.bitrix24.sync.scheduled_sync"],
 		# Role model: holders of entitlements and members of roles for list views.
 		"30 4 * * *": ["access_registry.access_roles.api.scheduled_refresh"],
+		# Suppressed alerts whose date has passed show again.
+		"5 0 * * *": ["access_registry.access_roles.suppression.expire"],
 	}
 }

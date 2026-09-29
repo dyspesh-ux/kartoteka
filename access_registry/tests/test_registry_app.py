@@ -11,7 +11,9 @@ from access_registry.tests.test_permissions import make_user
 from access_registry.tests.test_roles import RoleFixture
 
 
-class TestRegistryApp(RoleFixture):
+class RegistryFixture(RoleFixture):
+	"""Data for the app: HR, 1C, AD, Bitrix24, a base role model, a process and an SoD rule."""
+
 	def setUp(self):
 		super().setUp()
 		frappe.cache().delete_value(api.CACHE_KEY)
@@ -47,6 +49,8 @@ class TestRegistryApp(RoleFixture):
 		frappe.cache().delete_value(api.CACHE_KEY)
 		super().tearDown()
 
+
+class TestRegistryApp(RegistryFixture):
 	def test_bootstrap_and_dashboard(self):
 		boot = api.bootstrap()
 		self.assertTrue(boot["can"]["admin"])

@@ -334,6 +334,10 @@ a.kpi:hover::after { color: var(--accent); transform: translateX(3px); }
 .btn.small { height: 32px; padding: 0 14px; font-size: var(--font-size-small-maxi); }
 .btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
 
+.pick { display: inline-grid; place-items: center; width: 32px; height: 32px; cursor: pointer; }
+.pick input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+.suppress-bar .toolbar { margin-bottom: 16px; }
+.btn[disabled] { opacity: .45; cursor: default; }
 .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
 .field { height: 44px; border: 1px solid var(--border); border-radius: var(--radius-btn); background: var(--surface); padding: 0 18px; min-width: 180px; }
 select.field { padding-right: 12px; }

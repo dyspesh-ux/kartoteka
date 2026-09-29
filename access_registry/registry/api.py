@@ -11,7 +11,7 @@ from frappe import _
 from frappe.utils import add_days, cint, getdate, now_datetime, today
 
 from access_registry.access_catalog.access_report import main_places
-from access_registry.access_roles import engine
+from access_registry.access_roles import engine, suppression
 from access_registry.permissions import (
 	ADMINS,
 	AUDITOR,
@@ -25,6 +25,7 @@ from access_registry.permissions import (
 )
 
 LIST_LIMIT = 500
+SUPPRESSORS = (*ADMINS, AUDITOR, ROLE_MANAGER)  # who may suppress alerts and return them
 CACHE_KEY = "access_registry:registry_dashboard"
 STALE_DAYS = 90
 
@@ -61,6 +62,7 @@ def bootstrap() -> dict:
 			"processes": has_any(*ADMINS, PROCESS_MANAGER),
 			"admin": has_any(*ADMINS),
 			"audit": has_any(*ADMINS, AUDITOR),
+			"suppress": has_any(*SUPPRESSORS),
 		},
 		"layers": {
 			"hr": frappe.db.count("Info Base", {"configuration": "ЗУП"}),
@@ -126,28 +128,15 @@ def dashboard(refresh: int = 0) -> dict:
 
 def _dashboard() -> dict:
 	persons = frappe.get_all("Person", fields=["name", "status"], limit_page_length=0)
-	accounts = Accounts()
 	working = [p.name for p in persons if p.status == "Работает"]
-	dismissed = [p.name for p in persons if p.status != "Работает" and accounts.has_active(p.name)]
-	by_system = Counter()
-	for person in dismissed:
-		for system, count in accounts.active(person).items():
-			if count:
-				by_system[system] += 1
-
-	unlinked = {
-		"1С": frappe.db.sql(
-			"""select count(*) from `tabIB User` where login_allowed = 1 and invalid = 0 and missing_in_source = 0
-			and ifnull(person, '') = '' and service = 0 and is_orphan = 0"""
-		)[0][0],
-		"AD": frappe.db.sql(
-			"select count(*) from `tabAD Account` where enabled = 1 and missing_in_source = 0 and ifnull(person, '') = ''"
-		)[0][0],
-		"Битрикс24": frappe.db.sql(
-			"""select count(*) from `tabB24 User` where active = 1 and missing_in_source = 0
-			and ifnull(person, '') = '' and ifnull(user_type, '') in ('', 'employee')"""
-		)[0][0],
-	}
+	# counters show open alerts only: suppressed ones are in the journal
+	suppressed = suppression.active()
+	dismissed_rows = suppression.split("dismissed", _control_dismissed()[1], suppressed)[0]
+	dismissed = {r.person for r in dismissed_rows}
+	by_system = Counter(system for system, _person in {(r.system, r.person) for r in dismissed_rows})
+	unlinked = Counter({"1С": 0, "AD": 0, "Битрикс24": 0})
+	for r in suppression.split("unlinked", _control_unlinked()[1], suppressed)[0]:
+		unlinked[r.system] += 1
 
 	model = engine.RoleModel()
 	has_model = bool(model.roles or model.process_roles)
@@ -158,11 +147,19 @@ def _dashboard() -> dict:
 			statuses[row["status"]] += 1
 			if row["privileged"] and row["status"] != engine.MISSING:
 				privileged += 1
-	sod = len(engine.sod_conflicts()) if frappe.db.count("SoD Rule", {"active": 1}) else 0
+	sod = (
+		len(suppression.split("sod", engine.sod_conflicts(), suppressed)[0])
+		if frappe.db.count("SoD Rule", {"active": 1})
+		else 0
+	)
 
 	from access_registry.business_processes.reports import continuity
 
-	process_risks = len(continuity({"only_problems": 1})[1]) if model.process_roles else 0
+	process_risks = (
+		len(suppression.split("processes", continuity({"only_problems": 1})[1], suppressed)[0])
+		if model.process_roles
+		else 0
+	)
 	expiring = frappe.db.count(
 		"Access Exception", {"valid_to": ["between", [today(), add_days(today(), 14)]]}
 	) + frappe.db.count("Access Role Assignment", {"valid_to": ["between", [today(), add_days(today(), 14)]]})
@@ -170,7 +167,8 @@ def _dashboard() -> dict:
 		"generated": str(now_datetime()),
 		"people": {"working": len(working), "total": len(persons)},
 		"dismissed_access": {"people": len(dismissed), "by_system": dict(by_system)},
-		"unlinked": unlinked,
+		"unlinked": dict(unlinked),
+		"suppressed": len(suppressed),
 		"reconciliation": {
 			"enabled": has_model,
 			"missing": statuses[engine.MISSING],
@@ -816,25 +814,79 @@ CONTROLS = {
 	"quality": "Расхождения данных",
 	"events": "Кадровые события: что сделать",
 	"shares": "Общие папки: замечания",
+	"journal": "Журнал гашений",
 }
 JML_GRANT = ("Приём", "Перевод", "Выход из отпуска по уходу", "Вернулся в выгрузку")
 JML_REVOKE = ("Увольнение", "Пропал из выгрузки")
 JML_PLAN = ("Предстоящее увольнение", "Уход в отпуск по уходу")
 
 
-@frappe.whitelist()
-def control(kind: str) -> dict:
-	_check()
+def _control_rows(kind):
 	if kind not in CONTROLS:
 		frappe.throw(_("Неизвестный раздел контроля"))
-	columns, rows = globals()[f"_control_{kind}"]()
+	return globals()[f"_control_{kind}"]()
+
+
+@frappe.whitelist()
+def control(kind: str, show_suppressed: int = 0) -> dict:
+	"""A control list without suppressed alerts; with show_suppressed — only the suppressed ones."""
+	_check()
+	columns, rows = _control_rows(kind)
+	open_rows, hidden = suppression.split(kind, rows)
+	shown = hidden if cint(show_suppressed) else open_rows
 	return {
 		"kind": kind,
 		"title": CONTROLS[kind],
 		"columns": columns,
-		"rows": rows[:5000],
-		"total": len(rows),
+		"rows": shown[:5000],
+		"total": len(shown),
+		"suppressible": kind in suppression.SUPPRESSIBLE,
+		"suppressed": len(hidden),
 	}
+
+
+@frappe.whitelist(methods=["POST"])
+def suppress_alerts(kind: str, keys, reason: str, valid_to: str | None = None) -> int:
+	"""Suppresses the chosen alerts of a control list with a reason; every one gets a journal entry."""
+	require(*SUPPRESSORS)
+	keys = frappe.parse_json(keys) if isinstance(keys, str) else keys
+	created = suppression.suppress(
+		kind, CONTROLS.get(kind, kind), _control_rows(kind)[1], keys, reason, valid_to
+	)
+	frappe.cache().delete_value(CACHE_KEY)
+	return len(created)
+
+
+@frappe.whitelist(methods=["POST"])
+def restore_alert(name: str, reason: str) -> str:
+	"""The alert shows in its list again; the journal keeps who returned it and why."""
+	require(*SUPPRESSORS)
+	result = suppression.restore(name, reason)
+	frappe.cache().delete_value(CACHE_KEY)
+	return result
+
+
+def _control_journal():
+	rows = suppression.journal()
+	for r in rows:
+		r["ref"], r["ref_doctype"] = r["name"], "Alert Suppression"
+		r["when"] = r["suppressed_on"]
+		r["until"] = r["valid_to"] or ("бессрочно" if r["status"] == suppression.ACTIVE else "")
+		r["returned"] = (
+			f"{r['restored_by_name']}, {r['restored_on'][:16]}: {r['restore_reason']}"
+			if r["restored_by"]
+			else ""
+		)
+	return [
+		_column("when", _("Когда"), "datetime"),
+		_column("status", _("Статус"), "badge"),
+		_column("alert_title", _("Замечание")),
+		_column("subject", _("Что"), "ref"),
+		_column("reason", _("Почему погашено")),
+		_column("suppressed_by_name", _("Погасил")),
+		_column("until", _("До")),
+		_column("returned", _("Возврат")),
+	], rows
 
 
 def _control_dismissed():
