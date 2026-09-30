@@ -1,0 +1,7 @@
+apps.json
+registry.env
+db/db.env
+tls/*.crt
+tls/*.key
+.frappe_docker/
+compose.registry.generated.yaml

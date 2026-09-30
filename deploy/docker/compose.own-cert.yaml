@@ -1,0 +1,14 @@
+# HTTPS with a company certificate: nginx terminates TLS and passes requests to frontend.
+services:
+  tls:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    ports:
+      - ${HTTP_PUBLISH_PORT:-80}:80
+      - ${HTTPS_PUBLISH_PORT:-443}:443
+    volumes:
+      - ./tls/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${TLS_CERT_FILE:-./tls/registry.crt}:/etc/nginx/certs/registry.crt:ro
+      - ${TLS_KEY_FILE:-./tls/registry.key}:/etc/nginx/certs/registry.key:ro
