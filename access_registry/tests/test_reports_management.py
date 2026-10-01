@@ -1,6 +1,7 @@
 """Tests of the reports inside the app (section «Отчёты») and of the management dashboard («Руководству»)."""
 
 import frappe
+from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_days, today
 
 from access_registry import app_access
@@ -125,3 +126,28 @@ class TestReportsAndManagement(RegistryFixture):
 		frappe.set_user(viewer)
 		self.assertEqual(api.bootstrap()["can"]["sections"]["management"], 1)
 		self.assertTrue(api.management()["sources"] is not None)
+
+
+class TestAccessReportTexts(FrappeTestCase):
+	def test_short_org_and_kind(self):
+		from access_registry.access_catalog.access_report import short_kind, short_org
+
+		self.assertEqual(short_org('Общество с ограниченной ответственностью "Ромашка"'), "ООО «Ромашка»")
+		self.assertEqual(short_org("акционерное общество Альфа"), "АО Альфа")
+		self.assertEqual(short_kind("ВнешнееСовместительство"), "внешн. совм.")
+		self.assertEqual(short_kind("ОсновноеМестоРаботы", "Уволен"), "основное, уволен")
+
+	def test_orgs_summary_names_the_profiles(self):
+		from access_registry.access_catalog.access_report import orgs_summary
+
+		p = frappe._dict
+		admin = p(profile_name="Администратор", orgs_mode="unrestricted", orgs_text="все (без ограничения)")
+		buh = p(
+			profile_name="Бухгалтер",
+			orgs_mode="only",
+			orgs_text='Общество с ограниченной ответственностью "Альфа"',
+		)
+		self.assertEqual(orgs_summary([buh], 0, ""), "ООО «Альфа»")
+		self.assertEqual(orgs_summary([admin], 1, "все"), "все")
+		self.assertEqual(orgs_summary([buh, admin], 1, "все"), "все — Администратор; ООО «Альфа» — Бухгалтер")
+		self.assertEqual(orgs_summary([], 1, "все"), "все")

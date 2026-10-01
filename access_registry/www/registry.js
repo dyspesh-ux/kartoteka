@@ -219,10 +219,27 @@
 		setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 	}
 
-	/* A sortable, filterable table with CSV export, rendered into a container element. */
-	function table(container, { columns, rows, name, empty, filter = true, pageSize = 100, actions }) {
+	/* A sortable, filterable table with CSV export, rendered into a container element.
+	   resizable: report mode — fixed column widths that the user drags (remembered per table), columns
+	   can be hidden, long text is cut with «…» (the full value in the tooltip), the header and the
+	   first column stay in place and the table fits the window height, so its horizontal scroll bar
+	   is always on screen. */
+	function table(container, { columns, rows, name, empty, filter = true, pageSize = 100, actions, resizable = false }) {
 		const st = { sort: null, dir: 1, query: "", shown: pageSize };
+		const prefsKey = `registry-table:${name}`;
+		let prefs = {};
+		try {
+			prefs = JSON.parse(storage(prefsKey) || "{}") || {};
+		} catch (e) {
+			prefs = {};
+		}
+		prefs.widths = prefs.widths || {};
+		prefs.hidden = prefs.hidden || [];
+		const savePrefs = () => storage(prefsKey, JSON.stringify(prefs));
+		const widthOf = (c) => prefs.widths[c.key] || Math.min(Math.max(c.width || 140, 70), 420);
+		const visible = () => (resizable ? columns.filter((c) => !prefs.hidden.includes(c.key)) : columns);
 		const draw = () => {
+			const cols = visible();
 			let list = rows;
 			if (st.query) {
 				const q = st.query.toLowerCase();
@@ -237,45 +254,118 @@
 					return cmp * st.dir;
 				});
 			}
-			const head = columns
-				.map((c) => `<th data-key="${esc(c.key)}">${esc(c.label)}${st.sort === c.key ? `<span class="arrow">${st.dir > 0 ? "↑" : "↓"}</span>` : ""}</th>`)
+			const head = cols
+				.map((c) => `<th data-key="${esc(c.key)}" ${resizable ? `style="width:${widthOf(c)}px" title="${esc(c.label)}"` : ""}>${esc(c.label)}${
+					st.sort === c.key ? `<span class="arrow">${st.dir > 0 ? "↑" : "↓"}</span>` : ""}${resizable ? `<span class="rz" title="Потяните, чтобы изменить ширину"></span>` : ""}</th>`)
 				.join("") + (actions ? "<th></th>" : "");
 			const body = list
 				.slice(0, st.shown)
 				.map(
 					(r, i) =>
-						`<tr>${columns.map((c) => `<td class="${c.type === "number" ? "num" : ""}">${cell(c, r)}</td>`).join("")}${
-							actions ? `<td class="nowrap">${actions(r, i)}</td>` : ""
-						}</tr>`
+						`<tr>${cols.map((c) => {
+							const tip = resizable ? plainValue(c, r) : "";
+							return `<td class="${c.type === "number" ? "num" : ""}" ${tip ? `title="${esc(tip)}"` : ""}>${cell(c, r)}</td>`;
+						}).join("")}${actions ? `<td class="nowrap">${actions(r, i)}</td>` : ""}</tr>`
 				)
 				.join("");
+			const total = cols.reduce((a, c) => a + widthOf(c), 0);
 			container.querySelector(".tbl").innerHTML = rows.length
-				? `<div class="table-wrap"><table class="data"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>
+				? `<div class="table-wrap ${resizable ? "fit" : ""}"><table class="data ${resizable ? "fixed" : ""}" ${resizable ? `style="width:${total}px"` : ""}>
+					<thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>
 					<div class="table-foot"><span>${fmtNum(list.length)} ${plural(list.length, "запись", "записи", "записей")}${
 						list.length !== rows.length ? ` из ${fmtNum(rows.length)}` : ""
 					}</span>${list.length > st.shown ? `<button class="btn small more">Показать ещё</button>` : ""}</div>`
 				: `<div class="empty"><b>${esc(empty || "Ничего не найдено")}</b></div>`;
 			container.querySelectorAll("th[data-key]").forEach((th) =>
-				th.addEventListener("click", () => {
+				th.addEventListener("click", (e) => {
+					if (e.target.classList.contains("rz") || th.dataset.resized) return void delete th.dataset.resized;
 					const key = th.dataset.key;
 					st.dir = st.sort === key ? -st.dir : 1;
 					st.sort = key;
 					draw();
 				})
 			);
+			if (resizable) bindResize(container.querySelector("table.data"));
 			const more = container.querySelector(".more");
 			if (more) more.addEventListener("click", () => ((st.shown += pageSize * 5), draw()));
 			container._rows = list;
 		};
+		const bindResize = (tbl) => {
+			if (!tbl) return;
+			tbl.querySelectorAll("th .rz").forEach((handle) =>
+				handle.addEventListener("pointerdown", (e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					const th = handle.parentElement;
+					const key = th.dataset.key;
+					const x0 = e.clientX, w0 = th.offsetWidth, t0 = tbl.offsetWidth;
+					handle.setPointerCapture(e.pointerId);
+					const move = (ev) => {
+						const w = Math.max(60, w0 + ev.clientX - x0);
+						th.style.width = `${w}px`;
+						tbl.style.width = `${t0 + w - w0}px`;
+						prefs.widths[key] = w;
+					};
+					const up = () => {
+						handle.removeEventListener("pointermove", move);
+						handle.removeEventListener("pointerup", up);
+						th.dataset.resized = "1";
+						savePrefs();
+					};
+					handle.addEventListener("pointermove", move);
+					handle.addEventListener("pointerup", up);
+				})
+			);
+			// double click on the edge: back to the default width
+			tbl.querySelectorAll("th .rz").forEach((handle) =>
+				handle.addEventListener("dblclick", (e) => {
+					e.stopPropagation();
+					delete prefs.widths[handle.parentElement.dataset.key];
+					savePrefs();
+					draw();
+				})
+			);
+		};
 		container.innerHTML = `
-			${filter && rows.length ? `<div class="toolbar" style="padding:14px 14px 0">
-				<input class="field tbl-filter" placeholder="Фильтр по таблице" style="flex:1;max-width:360px">
+			${(filter || resizable) && rows.length ? `<div class="toolbar" style="padding:14px 14px 0">
+				${filter ? `<input class="field tbl-filter" placeholder="Фильтр по таблице" style="flex:1;max-width:360px">` : ""}
+				${resizable ? `<div class="col-menu"><button class="btn small tbl-cols">Колонки</button><div class="col-list" hidden></div></div>` : ""}
 				<button class="btn small tbl-csv">${icon("download")} CSV</button></div>` : ""}
 			<div class="tbl"></div>`;
 		const input = container.querySelector(".tbl-filter");
 		if (input) input.addEventListener("input", () => ((st.query = input.value.trim()), (st.shown = pageSize), draw()));
 		const csv = container.querySelector(".tbl-csv");
-		if (csv) csv.addEventListener("click", () => exportCsv(columns, container._rows || rows, name));
+		if (csv) csv.addEventListener("click", () => exportCsv(visible(), container._rows || rows, name));
+		const colsBtn = container.querySelector(".tbl-cols");
+		if (colsBtn) {
+			const listBox = container.querySelector(".col-list");
+			const drawList = () => {
+				listBox.innerHTML = columns
+					.map((c) => `<label class="check"><input type="checkbox" data-col="${esc(c.key)}" ${prefs.hidden.includes(c.key) ? "" : "checked"}> ${esc(c.label)}</label>`)
+					.join("") + `<button class="btn small col-reset">Как было</button>`;
+			};
+			colsBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				drawList();
+				listBox.hidden = !listBox.hidden;
+			});
+			listBox.addEventListener("click", (e) => e.stopPropagation());
+			listBox.addEventListener("change", (e) => {
+				const key = e.target.dataset.col;
+				prefs.hidden = e.target.checked ? prefs.hidden.filter((k) => k !== key) : [...prefs.hidden, key];
+				if (prefs.hidden.length >= columns.length) prefs.hidden = prefs.hidden.slice(1);
+				savePrefs();
+				draw();
+			});
+			listBox.addEventListener("click", (e) => {
+				if (!e.target.classList.contains("col-reset")) return;
+				prefs = { widths: {}, hidden: [] };
+				savePrefs();
+				drawList();
+				draw();
+			});
+			document.addEventListener("click", () => (listBox.hidden = true));
+		}
 		draw();
 	}
 
@@ -1730,7 +1820,7 @@
 			try {
 				const data = await api("run_report", { name, filters: JSON.stringify(filters) });
 				view.querySelector(".report-message").innerHTML = data.message ? `<div class="alert amber">${esc(String(data.message).replace(/<[^>]+>/g, ""))}</div>` : "";
-				table(box, { name: meta.title, rows: data.rows, columns: data.columns, empty: "Нет данных с такими фильтрами", pageSize: 200 });
+				table(box, { name: meta.title, rows: data.rows, columns: data.columns, empty: "Нет данных с такими фильтрами", pageSize: 200, resizable: true });
 			} catch (e) {
 				box.innerHTML = `<div class="error-box">${esc(e.message)}</div>`;
 			}

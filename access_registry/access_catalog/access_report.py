@@ -4,6 +4,7 @@ One row per 1C user of a base (or per profile with «По профилям»): e
 and main place of work from the HR layer (ZUP), then the access itself.
 """
 
+import re
 from collections import defaultdict
 
 import frappe
@@ -11,6 +12,75 @@ from frappe import _
 
 MAIN_KIND = "ОсновноеМестоРаботы"
 ACTIVE = ("Работает", "Увольняется")
+# kinds of employment of ZUP (code or presentation) → a short word for the report
+KIND_SHORT = {
+	"ОсновноеМестоРаботы": "основное",
+	"Основное место работы": "основное",
+	"ВнешнееСовместительство": "внешн. совм.",
+	"Внешнее совместительство": "внешн. совм.",
+	"ВнутреннееСовместительство": "внутр. совм.",
+	"Внутреннее совместительство": "внутр. совм.",
+	"Совместительство": "совм.",
+	"Подработка": "подработка",
+}
+LEGAL_FORMS = [
+	("Публичное акционерное общество", "ПАО"),
+	("Непубличное акционерное общество", "АО"),
+	("Закрытое акционерное общество", "ЗАО"),
+	("Открытое акционерное общество", "ОАО"),
+	("Акционерное общество", "АО"),
+	("Общество с ограниченной ответственностью", "ООО"),
+	("Индивидуальный предприниматель", "ИП"),
+	("Автономная некоммерческая организация", "АНО"),
+	("Некоммерческая организация", "НКО"),
+	("Государственное бюджетное учреждение", "ГБУ"),
+	("Федеральное государственное унитарное предприятие", "ФГУП"),
+	("Муниципальное унитарное предприятие", "МУП"),
+]
+# modes of the «Организации» restriction of a 1C profile that give every organization
+ALL_MODES = ("all", "unrestricted")
+
+
+def short_org(title: str | None) -> str:
+	"""«Общество с ограниченной ответственностью "Ромашка"» → «ООО «Ромашка»»."""
+	if not title:
+		return ""
+	text = title.strip()
+	for full, short in LEGAL_FORMS:
+		text = re.sub(re.escape(full), short, text, flags=re.IGNORECASE)
+	text = re.sub(r'"([^"]+)"', r"«\1»", text)
+	return re.sub(r"\s+", " ", text)
+
+
+def short_kind(kind: str | None, status: str | None = None) -> str:
+	text = KIND_SHORT.get(kind or "", (kind or "").lower())
+	if status and status not in ACTIVE:
+		return f"{text}, {status.lower()}" if text else status.lower()
+	return text
+
+
+def orgs_summary(user_profiles: list, all_orgs: int, fallback: str | None) -> str:
+	"""Organizations of a user with the profile that gives them.
+
+	In 1C the organizations of an access group restrict only the rights of its own profile: one profile
+	may give every organization and another only some. The summary says which is which instead of a
+	bare «все» next to a list that seems to contradict it."""
+	by_text = defaultdict(list)
+	for p in user_profiles:
+		if p.orgs_mode in ALL_MODES:
+			text = "все"
+		elif p.orgs_mode == "only":
+			text = ", ".join(short_org(x) for x in (p.orgs_text or "").split(", ") if x) or "ни одной"
+		else:
+			text = p.orgs_text or ""
+		if p.profile_name and p.profile_name not in by_text[text]:
+			by_text[text].append(p.profile_name)
+	if not by_text:
+		return "все" if all_orgs else ", ".join(short_org(x) for x in (fallback or "").split(", ") if x)
+	if len(by_text) == 1:
+		return next(iter(by_text))
+	order = sorted(by_text, key=lambda t: (t != "все", t))
+	return "; ".join(f"{t} — {', '.join(by_text[t])}" for t in order)
 
 
 def execute(filters=None):
@@ -38,12 +108,16 @@ def execute(filters=None):
 			"department": place.get("department"),
 			"department_title": place.get("department_title"),
 			"organization": place.get("organization"),
-			"organization_title": place.get("organization_title"),
-			"employment_kind": place.get("employment_kind"),
+			"organization_title": short_org(place.get("organization_title")),
+			"employment_kind": short_kind(
+				place.get("employment_kind_code") or place.get("employment_kind"), place.get("status")
+			)
+			if place
+			else "",
 			"base_code": user.base_code,
 			"base_configuration": user.base_configuration,
 			"login_allowed": user.login_allowed,
-			"orgs_text": user.orgs_text,
+			"orgs_text": orgs_summary(profiles.get(user.name, []), user.all_orgs, user.orgs_text),
 			"extra_roles": (user.extra_roles or "").replace("\n", ", "),
 			"link_note": user.person_link_note if not user.person else user.person_link_method,
 		}
@@ -64,7 +138,14 @@ def execute(filters=None):
 				sorted({p.profile_name for p in user_profiles if p.profile_name})
 			)
 			rows.append(base_row)
-	return columns(filters), rows
+	return columns(filters), rows, MESSAGE
+
+
+MESSAGE = _(
+	"Организации в 1С ограничивают каждый профиль отдельно: «все — Администратор; ООО «Альфа» — Бухгалтер» "
+	"значит, что с правами профиля «Администратор» видны все организации, а с правами «Бухгалтера» — "
+	"только ООО «Альфа». «По профилям» покажет строку на каждый профиль."
+)
 
 
 def load_users(filters):
@@ -85,7 +166,7 @@ def load_users(filters):
 		conditions.append("ifnull(u.person, '') = ''")
 	return frappe.db.sql(
 		f"""select u.name, u.user_name, u.login, u.ad_login, u.person, u.person_link_method,
-			u.person_link_note, u.base_code, u.base_configuration, u.login_allowed, u.orgs_text,
+			u.person_link_note, u.base_code, u.base_configuration, u.login_allowed, u.orgs_text, u.all_orgs,
 			u.extra_roles, p.full_name, p.status as person_status
 		from `tabIB User` u left join `tabPerson` p on p.name = u.person
 		where {" and ".join(conditions)}
@@ -137,7 +218,7 @@ def load_profiles(users: list) -> dict:
 	if not users:
 		return {}
 	rows = frappe.db.sql(
-		"""select parent, profile_name, access_group_name, orgs_text, restrictions_text
+		"""select parent, profile_name, access_group_name, orgs_mode, orgs_text, restrictions_text
 		from `tabIB User Profile` where parenttype = 'IB User' and parent in %(users)s
 		order by parent, profile_name""",
 		{"users": tuple(users)},
@@ -153,15 +234,15 @@ def columns(filters):
 	cols = [
 		{"fieldname": "employee", "label": _("Сотрудник"), "fieldtype": "Data", "width": 220},
 		{"fieldname": "user_name", "label": _("Пользователь 1С"), "fieldtype": "Data", "width": 220},
-		{"fieldname": "position", "label": _("Должность"), "fieldtype": "Data", "width": 180},
-		{"fieldname": "department_title", "label": _("Подразделение"), "fieldtype": "Data", "width": 200},
+		{"fieldname": "position", "label": _("Должность"), "fieldtype": "Data", "width": 140},
+		{"fieldname": "department_title", "label": _("Подразделение"), "fieldtype": "Data", "width": 140},
 		{
 			"fieldname": "organization_title",
-			"label": _("Основное место работы"),
+			"label": _("Место работы"),
 			"fieldtype": "Data",
-			"width": 200,
+			"width": 130,
 		},
-		{"fieldname": "employment_kind", "label": _("Вид занятости"), "fieldtype": "Data", "width": 160},
+		{"fieldname": "employment_kind", "label": _("Занятость"), "fieldtype": "Data", "width": 95},
 		{
 			"fieldname": "base_code",
 			"label": _("База"),
@@ -195,7 +276,12 @@ def columns(filters):
 	else:
 		cols += [
 			{"fieldname": "profiles", "label": _("Профили"), "fieldtype": "Data", "width": 300},
-			{"fieldname": "orgs_text", "label": _("Организации"), "fieldtype": "Data", "width": 220},
+			{
+				"fieldname": "orgs_text",
+				"label": _("Организации (по профилям)"),
+				"fieldtype": "Data",
+				"width": 260,
+			},
 		]
 	cols += [
 		{"fieldname": "extra_roles", "label": _("Роли в обход профилей"), "fieldtype": "Data", "width": 220},

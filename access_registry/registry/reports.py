@@ -12,6 +12,7 @@ import re
 
 import frappe
 from frappe import _
+from frappe.utils import cint
 
 # group → [(report, title, explanation, needs personal data)]
 CATALOG = [
@@ -355,6 +356,7 @@ def run(name: str, filters: dict) -> dict:
 				else COLUMN_TYPES.get(c.get("fieldtype"), "text"),
 				"doctype": c.get("options") if c.get("fieldtype") == "Link" else None,
 				"app_link": APP_LINKS.get(c.get("options")) if c.get("fieldtype") == "Link" else None,
+				"width": cint(c.get("width")) or None,
 			}
 		)
 	rows = []

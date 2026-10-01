@@ -582,14 +582,14 @@ class TestAccessCatalog(FrappeTestCase):
 		self.hr_sync()
 		self.imp()
 		self.imp(base=BP)
-		_columns, rows = execute({})
+		_columns, rows, _message = execute({})
 		by_key = {(r["user"]): r for r in rows}
 		ivanov = by_key[f"{S1}:{USR(1)}"]
 		self.assertEqual(ivanov["employee"], "Иванов Иван Иванович")
 		self.assertEqual(ivanov["position"], "Генеральный директор")
 		self.assertEqual(ivanov["department_title"], "Дирекция")
 		self.assertEqual(ivanov["organization_title"], "Ромашка ООО")
-		self.assertEqual(ivanov["employment_kind"], "Основное место работы")
+		self.assertEqual(ivanov["employment_kind"], "основное")
 		self.assertEqual(ivanov["profiles"], "Кадровик")
 		self.assertEqual(ivanov["base_configuration"], "ЗУП")
 		# The same employee in the accounting base, found by full name
