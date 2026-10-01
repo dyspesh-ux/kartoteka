@@ -1,0 +1,72 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:snapshot_date",
+ "creation": "2026-10-09 07:00:00.000000",
+ "description": "Показатели реестра на конец дня: из них строится динамика на странице «Руководству»",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "snapshot_date",
+  "taken_on",
+  "metrics"
+ ],
+ "fields": [
+  {
+   "fieldname": "snapshot_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Дата",
+   "read_only": 1,
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "taken_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Посчитано",
+   "read_only": 1
+  },
+  {
+   "fieldname": "metrics",
+   "fieldtype": "JSON",
+   "label": "Показатели",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-09 07:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Registry Metric Snapshot",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "delete": 1,
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager"
+  },
+  {
+   "delete": 1,
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  }
+ ],
+ "sort_field": "snapshot_date",
+ "sort_order": "DESC",
+ "states": []
+}

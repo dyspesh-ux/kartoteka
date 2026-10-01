@@ -113,6 +113,8 @@
 		roles: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>',
 		flow: '<rect x="3" y="3" width="7" height="6" rx="1.5"/><rect x="14" y="15" width="7" height="6" rx="1.5"/><path d="M6.5 9v4a2 2 0 0 0 2 2H14"/>',
 		shield: '<path d="M12 3 4.5 6v6c0 4.5 3.2 8 7.5 9 4.3-1 7.5-4.5 7.5-9V6z"/><path d="m9 12 2 2 4-4"/>',
+		chart: '<path d="M4 4v16h16"/><path d="m7 15 4-4 3 3 5-6"/>',
+		report: '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 17v-4M12 17v-6M15 17v-2"/>',
 		db: '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
 		search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
 		moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
@@ -178,7 +180,15 @@
 				return pill(fmtDate(v), tone);
 			}
 			case "number":
-				return fmtNum(v);
+				return v === null || v === undefined || v === "" ? "" : fmtNum(v);
+			case "check":
+				return v ? "✓" : "";
+			case "link": {
+				if (v === null || v === undefined || v === "") return "";
+				if (col.app_link === "person") return `<a href="#/person/${enc(v)}">карточка</a>`;
+				if (col.app_link) return `<a href="#/${col.app_link}/${enc(v)}">${esc(v)}</a>`;
+				return DESK && col.doctype ? `<a href="${deskUrl(col.doctype, v)}" target="_blank" rel="noopener">${esc(v)}</a>` : esc(v);
+			}
 			case "problems":
 				return `<span style="color:var(--red)">${esc(v)}</span>`;
 			default:
@@ -191,6 +201,7 @@
 		if (col.csv) return col.csv(row);
 		if (["datetime"].includes(col.type)) return fmtDateTime(v);
 		if (["date", "deadline"].includes(col.type)) return fmtDate(v);
+		if (col.type === "check") return v ? "да" : "";
 		if (Array.isArray(v)) return v.join(", ");
 		return v === null || v === undefined ? "" : String(v);
 	}
@@ -272,16 +283,18 @@
 
 	const NAV = [
 		["home", "#/", "Обзор"],
+		["chart", "#/management", "Руководству"],
 		["people", "#/people", "Сотрудники"],
 		["shield", "#/control", "Контроль", "control"],
 		["key", "#/access", "Права доступа"],
 		["roles", "#/roles", "Роли доступа"],
 		["flow", "#/processes", "Бизнес-процессы"],
 		["check", "#/reviews", "Пересмотр доступа", "reviews"],
+		["report", "#/reports", "Отчёты"],
 		["db", "#/sources", "Источники"],
 	];
 	// menu item → section of the app (app_access.SECTIONS)
-	const NAV_SECTION = { "#/": "overview", "#/people": "people", "#/control": "control", "#/access": "access",
+	const NAV_SECTION = { "#/": "overview", "#/management": "management", "#/people": "people", "#/control": "control", "#/access": "access", "#/reports": "reports",
 		"#/roles": "roles", "#/processes": "processes", "#/sources": "sources" };
 	const canSee = (section) => ((state.boot.can.sections || {})[section] || 0) > 0;
 	const firstPage = () => {
@@ -410,6 +423,7 @@
 
 	const ROUTES = [
 		[/^\/?$/, viewDashboard],
+		[/^\/management$/, viewManagement],
 		[/^\/people$/, viewPeople],
 		[/^\/person\/(.+)$/, viewPerson],
 		[/^\/control(?:\/([a-z]+))?$/, viewControl],
@@ -423,6 +437,8 @@
 		[/^\/reviews$/, viewReviews],
 		[/^\/review\/(.+)$/, viewReview],
 		[/^\/app-access$/, viewAppAccess],
+		[/^\/reports$/, viewReports],
+		[/^\/report\/(.+)$/, viewReport],
 	];
 
 	async function route() {
@@ -430,11 +446,12 @@
 		if (!state.boot.can.read && !path.startsWith("/review")) path = "/reviews";
 		else if (path === "/" && !canSee("overview")) path = firstPage();
 		const view = document.getElementById("view");
+		view.classList.toggle("wide", /^\/(report\/|control|people|access$)/.test(path));
 		$app.querySelector(".shell").classList.remove("nav-open");
 		$app.querySelectorAll("[data-nav]").forEach((a) => {
 			const href = a.dataset.nav.slice(1);
 			a.classList.toggle("active", href === "/" ? path === "/" : path.startsWith(href) || (href === "/people" && path.startsWith("/person")) ||
-				(href === "/access" && path.startsWith("/entitlement")) || (href === "/roles" && path.startsWith("/role/")) || (href === "/processes" && path.startsWith("/process/")) || (href === "/reviews" && path.startsWith("/review/")));
+				(href === "/access" && path.startsWith("/entitlement")) || (href === "/roles" && path.startsWith("/role/")) || (href === "/processes" && path.startsWith("/process/")) || (href === "/reviews" && path.startsWith("/review/")) || (href === "/reports" && path.startsWith("/report/")));
 		});
 		for (const [re, fn] of ROUTES) {
 			const m = path.match(re);
@@ -543,6 +560,255 @@
 				)
 				.join("") || `<div class="empty">Источники не подключены</div>`
 		);
+	}
+
+	// ------------------------------------------------------------------ management dashboard
+
+	/* Charts are drawn in SVG by hand: one hue (--chart), hairline grid, a crosshair with a tooltip
+	   on hover and on the arrow keys, and a table of all figures as the accessible twin. */
+	const MGMT_METRICS = [
+		{ key: "dismissed_people", title: "Доступ у неработающих", unit: "чел.", lower: true, href: "#/control/dismissed", hint: "уволены, но учётки активны" },
+		{ key: "unlinked", title: "Учётки без сотрудника", lower: true, href: "#/control/unlinked", hint: "активные, владелец не найден" },
+		{ key: "excess", title: "Лишние доступы", lower: true, href: "#/control/excess", hint: "выданы сверх ролевой модели", model: true },
+		{ key: "sod", title: "Конфликты полномочий", lower: true, href: "#/control/sod", hint: "права, которые нельзя совмещать" },
+		{ key: "compliance", title: "Соответствие ролевой модели", percent: true, href: "#/roles", hint: "доступы, совпадающие с моделью", model: true },
+		{ key: "coverage", title: "Учётки привязаны к сотрудникам", percent: true, hint: "активные учётки 1С, AD, Битрикс24" },
+		{ key: "process_risks", title: "Риски бизнес-процессов", lower: true, href: "#/control/processes", hint: "роли без участников и заместителей" },
+		{ key: "events", title: "Кадровые события в работе", lower: true, href: "#/control/events", hint: "приёмы и увольнения: доступы не обработаны" },
+		{ key: "suppressed", title: "Погашенные замечания", hint: "приняты с объяснением, в журнале гашений" },
+		{ key: "missing", title: "Не хватает доступов", lower: true, href: "#/control/missing", hint: "положены по роли, но не выданы", model: true },
+	];
+	const MGMT_SYSTEMS = [["1c", "1С"], ["ad", "Active Directory"], ["b24", "Битрикс24"]];
+	const PERIOD_TITLES = { 7: "7 дней", 30: "30 дней", 90: "90 дней", 365: "год" };
+
+	const canOpen = (href) =>
+		!!href && (href.startsWith("#/control/") ? (state.boot.can.control_lists || []).includes(href.slice(10)) : canSee(NAV_SECTION[href]));
+
+	function withCoverage(p) {
+		const total = MGMT_SYSTEMS.reduce((a, [c]) => a + (p[`accounts_${c}`] || 0), 0);
+		const linked = MGMT_SYSTEMS.reduce((a, [c]) => a + (p[`linked_${c}`] || 0), 0);
+		return { ...p, coverage: total ? Math.round((1000 * linked) / total) / 10 : null };
+	}
+
+	const fmtValue = (m, v) => (v === null || v === undefined ? "—" : m.percent ? `${String(v).replace(".", ",")}%` : fmtNum(v));
+	const fmtShort = (date) => {
+		const d = parseDate(date);
+		return d ? `${pad(d.getDate())}.${pad(d.getMonth() + 1)}` : "";
+	};
+
+	function niceMax(v) {
+		if (v <= 4) return 4;
+		const p = Math.pow(10, Math.floor(Math.log10(v)));
+		const n = v / p;
+		return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+	}
+
+	function delta(m, points, days) {
+		const series = points.filter((p) => p[m.key] !== null && p[m.key] !== undefined);
+		if (series.length < 2) return { text: "динамика появится со следующего дня", cls: "" };
+		const first = series[0][m.key], last = series[series.length - 1][m.key];
+		const diff = Math.round((last - first) * 10) / 10;
+		const since = series.length < points.length || daysAgo(series[0].date) < days - 1 ? `с ${fmtShort(series[0].date)}` : `за ${PERIOD_TITLES[days]}`;
+		if (!diff) return { text: `без изменений ${since}`, cls: "" };
+		const better = m.lower ? diff < 0 : m.percent ? diff > 0 : null;
+		const abs = m.percent ? `${String(Math.abs(diff)).replace(".", ",")} п.п.` : fmtNum(Math.abs(diff));
+		return { text: `${diff > 0 ? "▲ +" : "▼ −"}${abs} ${since}`, cls: better === null ? "" : better ? "better" : "worse" };
+	}
+
+	/* line chart (or sparkline) of one figure into el; redrawn on resize */
+	function lineChart(el, points, m, { spark = false, height = 150 } = {}) {
+		const draw = () => {
+			const series = points.map((p, i) => ({ i, date: p.date, v: p[m.key] })).filter((p) => p.v !== null && p.v !== undefined);
+			const W = Math.max(el.clientWidth, 120), H = height;
+			const gap = spark ? { l: 2, r: 6, t: 6, b: 4 } : { l: 40, r: 14, t: 10, b: 26 };
+			if (!series.length) {
+				el.innerHTML = spark ? "" : `<div class="chart-empty">Нет данных</div>`;
+				return;
+			}
+			const values = series.map((p) => p.v);
+			let lo = 0, hi = niceMax(Math.max(...values, 1));
+			if (m.percent) {
+				hi = 100;
+				lo = Math.max(0, Math.floor((Math.min(...values) - 5) / 10) * 10);
+				if (lo >= 100) lo = 90;
+			}
+			const t = (d) => parseDate(d).getTime();
+			const t0 = t(points[0].date), t1 = t(points[points.length - 1].date);
+			const x = (d) => (t1 === t0 ? (gap.l + W - gap.r) / 2 : gap.l + ((t(d) - t0) / (t1 - t0)) * (W - gap.l - gap.r));
+			const y = (v) => gap.t + (1 - (v - lo) / (hi - lo)) * (H - gap.t - gap.b);
+			const line = series.map((p, k) => `${k ? "L" : "M"}${x(p.date).toFixed(1)},${y(p.v).toFixed(1)}`).join("");
+			const area = series.length > 1 ? `${line}L${x(series[series.length - 1].date).toFixed(1)},${y(lo)}L${x(series[0].date).toFixed(1)},${y(lo)}Z` : "";
+			const last = series[series.length - 1];
+			let grid = "";
+			if (!spark) {
+				const ticks = [lo, lo + (hi - lo) / 2, hi];
+				grid = ticks.map((v) => `<line class="grid" x1="${gap.l}" x2="${W - gap.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tick" x="${gap.l - 8}" y="${y(v) + 4}" text-anchor="end">${m.percent ? v + "%" : fmtNum(v)}</text>`).join("");
+				const labels = [points[0]];
+				if (W > 420 && points.length > 2) labels.push(points[Math.floor((points.length - 1) / 2)]);
+				if (points.length > 1) labels.push(points[points.length - 1]);
+				grid += labels.map((p, k) => `<text class="tick" x="${x(p.date)}" y="${H - 6}" text-anchor="${k === 0 && labels.length > 1 ? "start" : k === labels.length - 1 && labels.length > 1 ? "end" : "middle"}">${fmtShort(p.date)}</text>`).join("");
+			}
+			el.innerHTML = `<svg width="${W}" height="${H}" role="img" aria-label="${esc(m.title)}: ${esc(fmtValue(m, last.v))}">
+				${grid}${area ? `<path class="area" d="${area}"/>` : ""}<path class="line" d="${line}"/>
+				<circle class="end" cx="${x(last.date)}" cy="${y(last.v)}" r="${spark ? 3 : 4}"/>
+				${spark ? "" : `<line class="cross" y1="${gap.t}" y2="${H - gap.b}" visibility="hidden"/><circle class="hover" r="4" visibility="hidden"/><rect class="hit" x="0" y="0" width="${W}" height="${H}"/>`}
+			</svg>${spark ? "" : `<div class="tip" hidden></div>`}`;
+			if (spark) return;
+			const svg = el.querySelector("svg"), tip = el.querySelector(".tip");
+			const cross = svg.querySelector(".cross"), dot = svg.querySelector(".hover");
+			let current = series.length - 1;
+			const show = (k) => {
+				current = Math.max(0, Math.min(series.length - 1, k));
+				const p = series[current], px = x(p.date), py = y(p.v);
+				cross.setAttribute("x1", px);
+				cross.setAttribute("x2", px);
+				dot.setAttribute("cx", px);
+				dot.setAttribute("cy", py);
+				[cross, dot].forEach((n) => n.setAttribute("visibility", "visible"));
+				tip.hidden = false;
+				tip.innerHTML = `<small>${esc(fmtDate(p.date))}</small><b>${esc(fmtValue(m, p.v))}</b>`;
+				const left = Math.min(Math.max(px - tip.offsetWidth / 2, 0), W - tip.offsetWidth);
+				tip.style.left = `${left}px`;
+				tip.style.top = `${Math.max(py - tip.offsetHeight - 12, 0)}px`;
+			};
+			const hide = () => {
+				[cross, dot].forEach((n) => n.setAttribute("visibility", "hidden"));
+				tip.hidden = true;
+			};
+			const nearest = (clientX) => {
+				const px = clientX - svg.getBoundingClientRect().left;
+				let best = 0;
+				series.forEach((p, k) => Math.abs(x(p.date) - px) < Math.abs(x(series[best].date) - px) && (best = k));
+				return best;
+			};
+			svg.addEventListener("mousemove", (e) => show(nearest(e.clientX)));
+			svg.addEventListener("mouseleave", hide);
+			el.onkeydown = (e) => {
+				if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+					e.preventDefault();
+					show(current + (e.key === "ArrowLeft" ? -1 : 1));
+				}
+			};
+			el.onfocus = () => show(current);
+			el.onblur = hide;
+		};
+		draw();
+		if (window.ResizeObserver) {
+			let width = el.clientWidth;
+			new ResizeObserver(() => el.clientWidth !== width && ((width = el.clientWidth), draw())).observe(el);
+		}
+	}
+
+	/* horizontal bars of one figure by category: one hue, the value at the end of the bar */
+	function bars(items, { percent = false } = {}) {
+		const max = Math.max(...items.map((i) => i.value || 0), 1);
+		return `<div class="hbars">${items
+			.map((i) => {
+				const w = percent ? i.value || 0 : (100 * (i.value || 0)) / max;
+				const tag = i.href ? "a" : "div";
+				return `<${tag} class="hbar" ${i.href ? `href="${i.href}"` : ""} title="${esc(i.label)}: ${esc(i.text || fmtNum(i.value))}">
+					<span class="hbar-label">${esc(i.label)}${i.sub ? `<small>${esc(i.sub)}</small>` : ""}</span>
+					<span class="hbar-track"><i style="width:${Math.max(w, i.value ? 1.5 : 0)}%"></i></span>
+					<span class="hbar-value">${esc(i.text || fmtNum(i.value))}</span></${tag}>`;
+			})
+			.join("")}</div>`;
+	}
+
+	async function viewManagement(view, refresh) {
+		const days = +(storage("registry-mgmt-days") || 30);
+		const d = await api("management", { days, refresh: refresh ? 1 : 0 });
+		const points = d.history.map(withCoverage);
+		const now = points[points.length - 1];
+		const metrics = MGMT_METRICS.filter((m) => !m.model || now.model_enabled);
+		const tiles = metrics.slice(0, 6);
+		const trends = metrics.filter((m) => !["coverage", "compliance"].includes(m.key) || points.length > 1);
+		const tile = (m, i) => {
+			const dl = delta(m, points, d.days);
+			const tag = canOpen(m.href) ? "a" : "div";
+			return `<${tag} class="card kpi mtile" ${tag === "a" ? `href="${m.href}"` : ""}>
+				<div class="label">${esc(m.title)}</div>
+				<div class="value">${esc(fmtValue(m, now[m.key]))}</div>
+				<div class="delta ${dl.cls}">${esc(dl.text)}</div>
+				<div class="spark" data-spark="${i}" aria-hidden="true"></div>
+				<div class="hint">${esc(m.hint)}</div></${tag}>`;
+		};
+		const systemsDismissed = MGMT_SYSTEMS.map(([c, label]) => ({ label, value: now[`dismissed_${c}`] || 0 }));
+		const systemsUnlinked = MGMT_SYSTEMS.map(([c, label]) => ({ label, value: now[`unlinked_${c}`] || 0 }));
+		const coverage = MGMT_SYSTEMS.filter(([c]) => now[`accounts_${c}`]).map(([c, label]) => {
+			const total = now[`accounts_${c}`], linked = now[`linked_${c}`];
+			const share = Math.round((1000 * linked) / total) / 10;
+			return { label, value: share, text: `${String(share).replace(".", ",")}%`, sub: `${fmtNum(linked)} из ${fmtNum(total)}` };
+		});
+		const checked = now.ok + now.excess + now.missing;
+		const model = now.model_enabled
+			? `<div class="grid grid-2">
+				<div class="card card-pad"><div class="group-title">Соответствие модели</div>
+					<div class="hero-num">${esc(fmtValue({ percent: true }, now.compliance))}</div>
+					<div class="meter big" role="img" aria-label="соответствует ${now.ok} из ${checked}"><i style="width:${checked ? (100 * now.ok) / checked : 0}%;background:var(--chart)"></i></div>
+					<p class="muted small" style="margin-top:12px">${fmtNum(now.ok)} из ${fmtNum(checked)} доступов совпадают с тем, что положено по ролям и процессам.
+					Остальное — лишние доступы или недостающие.</p></div>
+				<div class="card card-pad"><div class="group-title">Из чего складывается</div>${bars([
+					{ label: "Соответствует модели", value: now.ok },
+					{ label: "Лишние доступы", value: now.excess, sub: now.excess_not_working ? `у неработающих: ${fmtNum(now.excess_not_working)}` : "" },
+					{ label: "Не хватает доступов", value: now.missing },
+					{ label: "Согласованные исключения", value: now.exceptions, sub: now.expiring ? `истекают за 2 недели: ${fmtNum(now.expiring)}` : "" },
+					{ label: "Привилегированный доступ", value: now.privileged + (now.extra_roles || 0) + (now.b24_admins || 0) },
+				])}</div></div>`
+			: `<div class="card card-pad"><b>Ролевая модель ещё не настроена.</b><p class="muted" style="margin-top:6px">Когда роли доступа будут описаны, здесь появится доля доступов,
+				совпадающих с моделью, и сколько выдано лишнего.</p></div>`;
+		const reviews = d.reviews.length
+			? `<div class="card list">${d.reviews
+					.map((r) => {
+						const share = r.items_total ? Math.round((100 * r.items_done) / r.items_total) : 0;
+						return `<div class="list-item review-progress"><div class="grow"><b>${esc(r.title || r.name)}</b>
+							<small>${r.status === "Идёт" ? `идёт${r.due_date ? `, срок ${esc(fmtDate(r.due_date))}` : ""}` : `завершён ${esc(fmtDate(r.finished_on))}`} ·
+							решений ${fmtNum(r.items_done)} из ${fmtNum(r.items_total)} · отозвать: ${fmtNum(r.items_revoke)}</small></div>
+							<div class="meter" role="img" aria-label="${share}%"><i style="width:${share}%;background:var(--chart)"></i></div><b class="nowrap">${share}%</b></div>`;
+					})
+					.join("")}</div>`
+			: `<div class="card empty"><b>Кампаний пересмотра за 90 дней не было</b>Пересмотр — это когда руководители подтверждают или отзывают доступы своих сотрудников.</div>`;
+		view.innerHTML = `
+			<div class="page-head"><div><h1>Руководству</h1><p>Итоги по доступам и как они меняются. Только цифры, без списков людей и учёток.
+				Данные на ${esc(fmtDateTime(d.generated))}.</p></div>
+				<div class="mgmt-tools"><div class="subnav period">${d.periods.map((p) => `<button class="chip ${p === d.days ? "on" : ""}" data-days="${p}">${PERIOD_TITLES[p]}</button>`).join("")}</div>
+				<button class="btn small refresh">${icon("refresh")} Обновить</button><button class="btn small print">Печать</button></div></div>
+			${block(1, "Главное", `${fmtNum(now.people_working)} ${plural(now.people_working, "сотрудник работает", "сотрудника работают", "сотрудников работают")}. Под цифрой — изменение за выбранный период.`,
+				`<div class="grid grid-3">${tiles.map(tile).join("")}</div>`)}
+			${block(2, "Динамика", points.length > 1 ? "Как менялись показатели день за днём. Наведите на график — покажет значение на дату." :
+				"Реестр сохраняет показатели каждый час; график по дням появится со следующего дня.",
+				`<div class="grid grid-3">${trends.map((m, i) => `<div class="card card-pad chart-card"><div class="chart-head"><span>${esc(m.title)}</span><b>${esc(fmtValue(m, now[m.key]))}</b></div>
+					<div class="chart" data-chart="${i}" tabindex="0"></div></div>`).join("")}</div>
+				<div class="card mgmt-table" style="margin-top:16px" hidden></div>`,
+				`<button class="btn small as-table">Таблицей</button>`)}
+			${block(3, "По системам", "Где проблемы: 1С, Active Directory, Битрикс24.", `<div class="grid grid-3">
+				<div class="card card-pad"><div class="group-title">Доступ у неработающих, чел.</div>${bars(systemsDismissed)}</div>
+				<div class="card card-pad"><div class="group-title">Учётки без сотрудника</div>${bars(systemsUnlinked)}</div>
+				<div class="card card-pad"><div class="group-title">Учётки привязаны к сотрудникам</div>${coverage.length ? bars(coverage, { percent: true }) : `<p class="muted">Учёток пока нет</p>`}</div></div>`)}
+			${block(4, "Ролевая модель", "Насколько выданные доступы совпадают с тем, что положено по должности и процессам.", model)}
+			${block(5, "Пересмотр доступа", "Кампании, где руководители подтверждают доступы сотрудников.", reviews)}
+			${block(6, "Источники данных", "Свежесть данных: когда реестр последний раз загрузил каждый источник.", `<div class="card list">${sourcesList(d.sources)}</div>`)}`;
+		view.querySelectorAll("[data-spark]").forEach((el) => lineChart(el, points, tiles[+el.dataset.spark], { spark: true, height: 36 }));
+		view.querySelectorAll("[data-chart]").forEach((el) => lineChart(el, points, trends[+el.dataset.chart]));
+		view.querySelectorAll("[data-days]").forEach((b) =>
+			b.addEventListener("click", () => {
+				storage("registry-mgmt-days", b.dataset.days);
+				viewManagement(view);
+			})
+		);
+		view.querySelector(".refresh").addEventListener("click", () => viewManagement(view, true));
+		view.querySelector(".print").addEventListener("click", () => window.print());
+		const cols = metrics.filter((m) => m.key !== "coverage" || points.some((p) => p.coverage !== null));
+		table(view.querySelector(".mgmt-table"), {
+			name: "показатели-реестра",
+			filter: false,
+			rows: [...points].reverse(),
+			columns: [{ key: "date", label: "Дата", type: "date" }, ...cols.map((m) => ({ key: m.key, label: m.title + (m.percent ? ", %" : ""), type: "number" }))],
+		});
+		view.querySelector(".as-table").addEventListener("click", (e) => {
+			const box = view.querySelector(".mgmt-table");
+			box.hidden = !box.hidden;
+			e.target.textContent = box.hidden ? "Таблицей" : "Скрыть таблицу";
+		});
 	}
 
 	// ------------------------------------------------------------------ people
@@ -1397,6 +1663,113 @@
 		});
 	}
 
+	// ------------------------------------------------------------------ reports
+
+	async function viewReports(view) {
+		const groups = await api("reports_catalog");
+		view.innerHTML = `
+			<div class="page-head"><div><h1>Отчёты</h1><p>Отчёты реестра: доступы в 1С, Active Directory, Битрикс24, общие папки, ролевая модель.
+				Фильтры, сортировка, выгрузка в Excel — без входа в рабочее пространство.</p></div></div>
+			${groups.map((g, i) => block(i + 1, g.group, "", `<div class="grid grid-3">${g.reports
+				.map((r) => `<a class="card card-pad report-card" href="#/report/${enc(r.name)}"><b>${esc(r.title)}</b>
+					<p class="muted small" style="margin-top:6px">${esc(r.description)}</p></a>`)
+				.join("")}</div>`)).join("") || `<div class="card empty"><b>Отчётов нет</b>Попросите администратора открыть вам раздел «Отчёты».</div>`}`;
+	}
+
+	async function viewReport(view, name) {
+		const meta = await api("report_meta", { name });
+		const values = {};
+		meta.filters.forEach((f) => {
+			if (f.default !== null && f.default !== undefined) values[f.fieldname] = f.default;
+		});
+		const field = (f) => {
+			const id = `f-${f.fieldname}`;
+			const label = `<span class="filter-label">${esc(f.label)}${f.reqd ? " *" : ""}</span>`;
+			const v = values[f.fieldname] ?? "";
+			if (f.fieldtype === "Check")
+				return `<label class="filter check"><input type="checkbox" data-f="${f.fieldname}" ${v ? "checked" : ""}> ${esc(f.label)}</label>`;
+			if (f.fieldtype === "Select") {
+				const opts = Array.isArray(f.options) ? f.options : [];
+				return `<label class="filter">${label}<select class="field" data-f="${f.fieldname}">${(opts.includes("") ? opts : ["", ...opts])
+					.map((o) => `<option value="${esc(o)}" ${String(v) === String(o) ? "selected" : ""}>${esc(o || "все")}</option>`).join("")}</select></label>`;
+			}
+			if (f.fieldtype === "Link" && f.link_options)
+				return `<label class="filter">${label}<select class="field" data-f="${f.fieldname}"><option value="">все</option>${f.link_options
+					.map((o) => `<option value="${esc(o.value)}" ${v === o.value ? "selected" : ""}>${esc(o.label)}</option>`).join("")}</select></label>`;
+			if (f.fieldtype === "Link" && f.options === "Person")
+				return `<label class="filter person-filter">${label}<input class="field" data-person="${f.fieldname}" placeholder="ФИО" autocomplete="off">
+					<input type="hidden" data-f="${f.fieldname}"><div class="results"></div></label>`;
+			const type = f.fieldtype === "Date" ? "date" : f.fieldtype === "Int" ? "number" : "text";
+			return `<label class="filter">${label}<input class="field" type="${type}" data-f="${f.fieldname}" value="${esc(v)}"></label>`;
+		};
+		view.innerHTML = `
+			<div class="crumbs"><a href="#/reports">Отчёты</a> / ${esc(meta.group)}</div>
+			<div class="page-head"><div><h1>${esc(meta.title)}</h1><p>${esc(meta.description)}</p></div>
+				<div style="display:flex;gap:8px"><button class="btn xlsx">${icon("download")} Excel</button></div></div>
+			${meta.filters.length ? `<div class="card card-pad filters">${meta.filters.map(field).join("")}
+				<button class="btn primary run">Показать</button></div>` : ""}
+			<div class="report-message"></div>
+			<div class="card rep" style="margin-top:16px"></div>`;
+		const read = () => {
+			const out = {};
+			view.querySelectorAll("[data-f]").forEach((el) => {
+				const v = el.type === "checkbox" ? (el.checked ? 1 : 0) : el.value;
+				if (v !== "" && v !== 0) out[el.dataset.f] = v;
+			});
+			return out;
+		};
+		const box = view.querySelector(".rep");
+		const run = async () => {
+			const filters = read();
+			const missing = meta.filters.filter((f) => f.reqd && !filters[f.fieldname]);
+			if (missing.length) {
+				box.innerHTML = `<div class="empty"><b>Заполните фильтр: ${esc(missing.map((f) => f.label).join(", "))}</b></div>`;
+				return;
+			}
+			box.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+			try {
+				const data = await api("run_report", { name, filters: JSON.stringify(filters) });
+				view.querySelector(".report-message").innerHTML = data.message ? `<div class="alert amber">${esc(String(data.message).replace(/<[^>]+>/g, ""))}</div>` : "";
+				table(box, { name: meta.title, rows: data.rows, columns: data.columns, empty: "Нет данных с такими фильтрами", pageSize: 200 });
+			} catch (e) {
+				box.innerHTML = `<div class="error-box">${esc(e.message)}</div>`;
+			}
+		};
+		view.querySelector(".run")?.addEventListener("click", run);
+		view.querySelectorAll("select[data-f], input[type=checkbox][data-f]").forEach((el) => el.addEventListener("change", run));
+		view.querySelectorAll("input[data-f]:not([type=checkbox]):not([type=hidden])").forEach((el) => el.addEventListener("keydown", (e) => e.key === "Enter" && run()));
+		view.querySelectorAll("[data-person]").forEach((input) => {
+			const wrap = input.closest(".person-filter");
+			const hidden = wrap.querySelector("[data-f]");
+			const results = wrap.querySelector(".results");
+			let timer;
+			input.addEventListener("input", () => {
+				hidden.value = "";
+				clearTimeout(timer);
+				timer = setTimeout(async () => {
+					if (input.value.trim().length < 2) return results.classList.remove("open");
+					const found = (await api("search", { query: input.value })).filter((r) => r.kind === "person");
+					results.innerHTML = found.map((r) => `<a class="result" data-id="${esc(r.id)}" data-t="${esc(r.title)}"><div><b>${esc(r.title)}</b><small>${esc(r.subtitle || "")}</small></div></a>`).join("") || `<div class="empty">Не найдено</div>`;
+					results.classList.add("open");
+				}, 250);
+			});
+			results.addEventListener("click", (e) => {
+				const r = e.target.closest("[data-id]");
+				if (!r) return;
+				hidden.value = r.dataset.id;
+				input.value = r.dataset.t;
+				results.classList.remove("open");
+				run();
+			});
+		});
+		view.querySelector(".xlsx").addEventListener("click", () => {
+			const qs = new URLSearchParams({ name, filters: JSON.stringify(read()) });
+			window.location.href = `${API}export_report?${qs}`;
+		});
+		if (!meta.filters.some((f) => f.reqd)) run();
+		else box.innerHTML = `<div class="empty"><b>Выберите ${esc(meta.filters.filter((f) => f.reqd).map((f) => f.label).join(", "))}</b></div>`;
+	}
+
 	// ------------------------------------------------------------------ access to the app (administrators)
 
 	const LEVEL_NAMES = ["нет", "просмотр", "работа"];
@@ -1463,7 +1836,7 @@
 	}
 
 	function editProfile(d, profile, done) {
-		const p = profile || { profile_name: "", description: "", enabled: 1, sections: {}, personal: false, control_lists: [], members: [] };
+		const p = profile || { profile_name: "", description: "", enabled: 1, sections: {}, personal: false, control_lists: [], reports: [], members: [] };
 		const members = new Map(p.members.map((m) => [m.user, m.full_name]));
 		const back = document.createElement("div");
 		back.className = "modal-back";
@@ -1481,6 +1854,11 @@
 			<div class="lists-box"><label>Списки «Контроля» <span class="muted">(ничего не отмечено — все)</span></label><div class="sec-grid">${Object.entries(d.controls)
 				.map(([k, t]) => `<label class="check"><input type="checkbox" data-list="${k}" ${p.control_lists.includes(k) ? "checked" : ""}> ${esc(t)}</label>`)
 				.join("")}</div></div>
+			<div class="reports-box"><label>Отчёты <span class="muted">(ничего не отмечено — все)</span></label>${d.report_catalog
+				.map((g) => `<div class="group-title" style="margin:12px 0 6px">${esc(g.group)}</div><div class="sec-grid">${g.reports
+					.map((r) => `<label class="check"><input type="checkbox" data-report="${esc(r.name)}" ${(p.reports || []).includes(r.name) ? "checked" : ""}> ${esc(r.title)}${r.personal ? " · перс. данные" : ""}</label>`)
+					.join("")}</div>`)
+				.join("")}</div>
 			<label>Пользователи</label><div class="tags members"></div>
 			<div style="position:relative"><input class="user-q" placeholder="Найти пользователя по имени или почте" autocomplete="off"><div class="results user-results"></div></div>
 			<label class="check"><input type="checkbox" name="enabled" ${p.enabled ? "checked" : ""}> Профиль действует</label>
@@ -1493,10 +1871,14 @@
 				[...members].map(([u, n]) => `<span class="tag">${esc(n)} <a href="#" data-rm="${esc(u)}" title="Убрать">×</a></span>`).join("") ||
 				`<span class="muted small">никому не выдан</span>`;
 		};
-		const toggleLists = () => (form.querySelector(".lists-box").hidden = form.querySelector('[data-sec="control"]').value === "0");
+		const toggleLists = () => {
+			form.querySelector(".lists-box").hidden = form.querySelector('[data-sec="control"]').value === "0";
+			form.querySelector(".reports-box").hidden = form.querySelector('[data-sec="reports"]').value === "0";
+		};
 		drawMembers();
 		toggleLists();
 		form.querySelector('[data-sec="control"]').addEventListener("change", toggleLists);
+		form.querySelector('[data-sec="reports"]').addEventListener("change", toggleLists);
 		form.querySelector(".members").addEventListener("click", (e) => {
 			const rm = e.target.closest("[data-rm]");
 			if (!rm) return;
@@ -1536,6 +1918,7 @@
 				personal: form.personal.checked ? 1 : 0,
 				sections,
 				control_lists: [...form.querySelectorAll("[data-list]:checked")].map((x) => x.dataset.list),
+				reports: [...form.querySelectorAll("[data-report]:checked")].map((x) => x.dataset.report),
 				members: [...members.keys()],
 			};
 			try {

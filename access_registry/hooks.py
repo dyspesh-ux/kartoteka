@@ -13,6 +13,9 @@ after_migrate = "access_registry.install.after_migrate"
 # Sync Log retention in days; adjustable in Log Settings.
 default_log_clearing_doctypes = {"Sync Log": [180]}
 
+# desk in full width by default (wide report tables); users can still switch it off
+app_include_js = "/assets/access_registry/js/registry_desk.js"
+
 # Day: every 30 minutes from 07:00 to 21:00; night: once an hour.
 # The jobs only enqueue one "long" job per enabled source. Two methods, because Frappe keys
 # Scheduled Job Type by method: one method with two cron lines would keep only one of them.
@@ -33,5 +36,7 @@ scheduler_events = {
 		"5 0 * * *": ["access_registry.access_roles.suppression.expire"],
 		# Morning digest: checked hourly at :05, sent once a day in the hour chosen in its settings.
 		"5 * * * *": ["access_registry.access_roles.digest.scheduled"],
+		# Figures of the day for the management dashboard (the last count of the day stays).
+		"50 * * * *": ["access_registry.registry.metrics.scheduled"],
 	}
 }

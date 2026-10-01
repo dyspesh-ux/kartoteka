@@ -21,6 +21,7 @@ LEVEL_OF = {"": NONE, None: NONE, "Просмотр": VIEW, "Работа": WORK
 # section code → title (the order of the app menu)
 SECTIONS = {
 	"overview": "Обзор",
+	"management": "Руководству",
 	"people": "Сотрудники",
 	"control": "Контроль",
 	"access": "Права доступа",
@@ -28,6 +29,7 @@ SECTIONS = {
 	"processes": "Бизнес-процессы",
 	"reviews": "Пересмотр доступа: кампании",
 	"sources": "Источники",
+	"reports": "Отчёты",
 }
 # sections with a working level; the others are only seen or not
 WORK_SECTIONS = {"control", "roles"}
@@ -66,11 +68,13 @@ def _empty():
 		"personal": False,
 		"control_lists": set(),
 		"all_lists": False,
+		"report_lists": set(),
+		"all_reports": False,
 		"via": [],
 	}
 
 
-def _merge(result, sections, personal, lists=None, via=None):
+def _merge(result, sections, personal, lists=None, via=None, reports=None):
 	for section, level in sections.items():
 		result["sections"][section] = max(result["sections"][section], level)
 	result["personal"] = result["personal"] or personal
@@ -79,6 +83,11 @@ def _merge(result, sections, personal, lists=None, via=None):
 			result["control_lists"] |= set(lists)
 		else:
 			result["all_lists"] = True
+	if sections.get("reports"):
+		if reports:
+			result["report_lists"] |= set(reports)
+		else:
+			result["all_reports"] = True
 	if via:
 		result["via"].append(via)
 
@@ -97,6 +106,7 @@ def profiles_of(user: str) -> list:
 def profile_access(profile) -> tuple[dict, bool, list]:
 	sections = {
 		"overview": VIEW if profile.s_overview else NONE,
+		"management": VIEW if profile.get("s_management") else NONE,
 		"people": VIEW if profile.s_people else NONE,
 		"control": LEVEL_OF.get(profile.s_control, NONE),
 		"access": VIEW if profile.s_access else NONE,
@@ -104,11 +114,16 @@ def profile_access(profile) -> tuple[dict, bool, list]:
 		"processes": VIEW if profile.s_processes else NONE,
 		"reviews": VIEW if profile.s_reviews else NONE,
 		"sources": VIEW if profile.s_sources else NONE,
+		"reports": VIEW if profile.get("s_reports") else NONE,
 	}
 	lists = [
 		CONTROL_BY_TITLE[r.control_list] for r in profile.control_lists if r.control_list in CONTROL_BY_TITLE
 	]
 	return sections, bool(profile.s_personal), lists
+
+
+def profile_reports(profile) -> list[str]:
+	return [r.report for r in profile.get("report_lists") or [] if r.report]
 
 
 def compute(user: str | None = None) -> dict:
@@ -127,7 +142,14 @@ def compute(user: str | None = None) -> dict:
 			_merge(result, sections, personal, via=_("роль «{0}»").format(role))
 	for profile in profiles_of(user):
 		sections, personal, lists = profile_access(profile)
-		_merge(result, sections, personal, lists, via=_("профиль «{0}»").format(profile.profile_name))
+		_merge(
+			result,
+			sections,
+			personal,
+			lists,
+			via=_("профиль «{0}»").format(profile.profile_name),
+			reports=profile_reports(profile),
+		)
 	result["reviewer"] = REVIEWER in roles
 	return result
 
@@ -181,3 +203,26 @@ def personal() -> bool:
 def can_open_app(user: str | None = None) -> bool:
 	a = access(user)
 	return any(a["sections"].values()) or bool(a.get("reviewer"))
+
+
+def report_names(user: str | None = None) -> list[str]:
+	"""Reports of the catalog the user may run in the app (personal-data reports need that flag)."""
+	from access_registry.registry.reports import CATALOG
+
+	a = access(user)
+	if not a["sections"].get("reports"):
+		return []
+	names = []
+	for _group, items in CATALOG:
+		for name, _title, _text, needs_personal in items:
+			if needs_personal and not a["personal"]:
+				continue
+			if a["all_reports"] or name in a["report_lists"]:
+				names.append(name)
+	return names
+
+
+def require_report(name: str):
+	require_section("reports")
+	if name not in report_names():
+		raise frappe.PermissionError(_("Нет доступа к отчёту «{0}»").format(name))

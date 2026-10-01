@@ -1454,6 +1454,7 @@ def mark_event_processed(event: str) -> str:
 
 PROFILE_FIELDS = {
 	"overview": "s_overview",
+	"management": "s_management",
 	"people": "s_people",
 	"control": "s_control",
 	"access": "s_access",
@@ -1461,6 +1462,7 @@ PROFILE_FIELDS = {
 	"processes": "s_processes",
 	"reviews": "s_reviews",
 	"sources": "s_sources",
+	"reports": "s_reports",
 }
 LEVEL_TITLE = {aa.NONE: "", VIEW: "Просмотр", WORK: "Работа"}
 
@@ -1475,6 +1477,7 @@ def _profile_dict(p) -> dict:
 		"sections": sections,
 		"personal": personal,
 		"control_lists": lists,
+		"reports": aa.profile_reports(p),
 		"members": [{"user": m.user, "full_name": m.full_name or m.user} for m in p.members],
 	}
 
@@ -1523,6 +1526,7 @@ def access_admin() -> dict:
 		"sections": aa.SECTIONS,
 		"work_sections": sorted(aa.WORK_SECTIONS),
 		"controls": CONTROLS,
+		"report_catalog": _report_catalog(all_reports=True),
 		"profiles": profiles,
 		"users": people,
 		"roles": [
@@ -1570,6 +1574,9 @@ def save_profile(data) -> str:
 		"control_lists",
 		[{"control_list": CONTROLS[k]} for k in data.get("control_lists") or [] if k in CONTROLS],
 	)
+	from access_registry.registry.reports import BY_NAME
+
+	doc.set("report_lists", [{"report": r} for r in data.get("reports") or [] if r in BY_NAME])
 	users = []
 	for user in data.get("members") or []:
 		if user not in users and frappe.db.exists("User", user):
@@ -1618,3 +1625,71 @@ def profile_history(name: str) -> list:
 			}
 		)
 	return rows
+
+
+# --------------------------------------------------------------------------- management
+
+
+@frappe.whitelist()
+def management(days: int = 30, refresh: int = 0) -> dict:
+	"""Dashboard for the management: totals, their trend, sources and access reviews (no names)."""
+	from access_registry.registry import metrics
+
+	_check("management")
+	return metrics.dashboard(days, bool(cint(refresh)))
+
+
+# --------------------------------------------------------------------------- reports
+
+
+def _report_catalog(all_reports: bool = False) -> list:
+	from access_registry.registry.reports import CATALOG
+
+	allowed = None if all_reports else set(aa.report_names())
+	groups = []
+	for group, items in CATALOG:
+		reports = [
+			{"name": name, "title": title, "description": text, "personal": personal}
+			for name, title, text, personal in items
+			if (allowed is None or name in allowed) and frappe.db.exists("Report", name)
+		]
+		if reports:
+			groups.append({"group": group, "reports": reports})
+	return groups
+
+
+@frappe.whitelist()
+def reports_catalog() -> list:
+	"""Reports the user may run, by groups."""
+	_check("reports")
+	return _report_catalog()
+
+
+@frappe.whitelist()
+def report_meta(name: str) -> dict:
+	from access_registry.registry import reports
+
+	aa.require_report(name)
+	return reports.describe(name)
+
+
+@frappe.whitelist()
+def run_report(name: str, filters=None) -> dict:
+	from access_registry.registry import reports
+
+	aa.require_report(name)
+	filters = frappe.parse_json(filters) if isinstance(filters, str) else (filters or {})
+	return reports.run(name, filters)
+
+
+@frappe.whitelist()
+def export_report(name: str, filters=None):
+	"""The report as an Excel file (the same rows as on the screen)."""
+	from access_registry.registry import reports
+
+	aa.require_report(name)
+	filters = frappe.parse_json(filters) if isinstance(filters, str) else (filters or {})
+	data = reports.run(name, filters)
+	frappe.response["filename"] = f"{reports.BY_NAME[name][1]}.xlsx"
+	frappe.response["filecontent"] = reports.to_xlsx(name, data)
+	frappe.response["type"] = "binary"

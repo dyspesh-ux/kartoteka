@@ -5,25 +5,16 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "user",
-  "full_name"
+  "report"
  ],
  "fields": [
   {
-   "fieldname": "user",
+   "fieldname": "report",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Пользователь",
-   "options": "User",
+   "label": "Отчёт",
+   "options": "Report",
    "reqd": 1
-  },
-  {
-   "fetch_from": "user.full_name",
-   "fieldname": "full_name",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Имя",
-   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 0,
@@ -32,7 +23,7 @@
  "modified": "2026-10-09 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
- "name": "Registry Access Member",
+ "name": "Registry Access Report",
  "owner": "Administrator",
  "permissions": [],
  "sort_field": "modified",

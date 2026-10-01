@@ -130,6 +130,10 @@ docker compose -p registry -f compose.registry.generated.yaml up -d
 dc exec backend bench --site all migrate
 ```
 
+Обновление всегда через новый образ: в нём собраны статические файлы приложения (например,
+`assets/access_registry/js/registry_desk.js` — полноширинный desk). `git pull` внутри контейнера
+не подходит: контейнер пересоздаётся из образа.
+
 Откат — вернуть прежний `CUSTOM_TAG` и `up -d` (если `migrate` уже изменил базу — восстановить
 бэкап, сделанный перед обновлением).
 

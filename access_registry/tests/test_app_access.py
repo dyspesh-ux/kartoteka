@@ -99,7 +99,9 @@ class TestAppAccess(RegistryFixture):
 		self.as_user()
 		journal = api.control("journal")["rows"]
 		self.assertEqual({r["alert_kind"] for r in journal}, {"unlinked"})
-		self.assertEqual(api.dashboard(refresh=1)["suppressed"], 1)  # the other list's suppression is not counted
+		self.assertEqual(
+			api.dashboard(refresh=1)["suppressed"], 1
+		)  # the other list's suppression is not counted
 		self.assertFalse(api.bootstrap()["can"]["search"])
 		dismissed = frappe.get_all("Alert Suppression", filters={"alert_kind": "dismissed"}, pluck="name")[0]
 		self.assertRaises(frappe.PermissionError, api.restore_alert, dismissed, "нет")

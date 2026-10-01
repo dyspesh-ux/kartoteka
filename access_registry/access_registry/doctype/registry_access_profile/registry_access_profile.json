@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 0,
  "autoname": "field:profile_name",
- "creation": "2026-10-07 07:00:00.000000",
+ "creation": "2026-10-09 07:00:00.000000",
  "description": "Кто и какие разделы приложения /registry видит",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -12,11 +12,14 @@
   "description",
   "section_break_1",
   "s_overview",
+  "s_management",
   "s_people",
   "s_personal",
   "s_access",
   "s_processes",
   "s_sources",
+  "s_reports",
+  "report_lists",
   "column_break_1",
   "s_control",
   "control_lists",
@@ -60,6 +63,12 @@
    "label": "Обзор"
   },
   {
+   "description": "Дашборд для руководства: итоговые цифры и динамика, без списков людей и учёток",
+   "fieldname": "s_management",
+   "fieldtype": "Check",
+   "label": "Руководству"
+  },
+  {
    "description": "Список и карточки сотрудников со всеми их учётками и доступами",
    "fieldname": "s_people",
    "fieldtype": "Check",
@@ -88,6 +97,20 @@
    "fieldname": "s_sources",
    "fieldtype": "Check",
    "label": "Источники"
+  },
+  {
+   "description": "Отчёты реестра в приложении: доступы 1С, AD, Битрикс24, папки, роли",
+   "fieldname": "s_reports",
+   "fieldtype": "Check",
+   "label": "Отчёты"
+  },
+  {
+   "depends_on": "s_reports",
+   "description": "Пусто — все отчёты",
+   "fieldname": "report_lists",
+   "fieldtype": "Table",
+   "label": "Только эти отчёты",
+   "options": "Registry Access Report"
   },
   {
    "fieldname": "column_break_1",
@@ -136,7 +159,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-07 07:00:00.000000",
+ "modified": "2026-10-09 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Registry Access Profile",
