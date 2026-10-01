@@ -121,6 +121,7 @@
 		download: '<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
 		refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
 		menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+		chevron: '<path d="m9 6 6 6-6 6"/>',
 		check: '<rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/>',
 		external: '<path d="M14 4h6v6"/><path d="m20 4-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
 	};
@@ -137,6 +138,8 @@
 	const RISK_TONE = { Критичный: "t-red", Критичная: "t-red", Высокий: "t-amber", Высокая: "t-amber", Средний: "t-blue", Средняя: "t-blue", Низкий: "" };
 	const SYSTEM_TONE = { "1С": "t-amber", AD: "t-blue", "Active Directory": "t-blue", Битрикс24: "t-violet", Другое: "" };
 
+	// rights on a folder: the wider, the heavier the pill (no red: the strongest is dark gray)
+	const LEVEL_TONE = { "Полный доступ": "t-red", Изменение: "t-amber", Чтение: "t-green", "Особые права": "", Запрет: "" };
 	const pill = (text, tone) => (text ? `<span class="pill ${tone || ""}">${esc(text)}</span>` : "");
 	const statusPill = (s) => pill(s, STATUS_TONE[s]);
 	const systemBadge = (s) => (s ? `<span class="badge ${SYSTEM_TONE[s] || (String(s).startsWith("Битрикс24") ? "t-violet" : String(s).startsWith("AD") ? "t-blue" : "")}">${esc(s)}</span>` : "");
@@ -1037,24 +1040,65 @@
 					})
 				);
 				const shares = body.querySelector(".shares-access");
-				if (shares)
-					table(shares, {
-						name: "общие-папки",
-						rows: d.shares,
-						filter: d.shares.length > 8,
-						empty: "Доступа к общим папкам нет",
-						columns: [
-							{ key: "share_name", label: "Общая папка", type: "badge" },
-							{ key: "path", label: "Папка" },
-							{ key: "level", label: "Доступ" },
-							{ key: "via", label: "Через" },
-							{ key: "login", label: "Учётка" },
-						],
-					});
+				if (shares) shareTree(shares, d.shares);
 			}
 		};
 		view.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => open(b.dataset.tab)));
 		open("access");
+	}
+
+	/* Folders of the person on the file servers as a tree: the shares (top-level folders) first;
+	   a share opens to the folders inside it with their own rights. Folders the person has no rights
+	   on but that lead to an accessible one are shown as the path, without a level. */
+	function shareTree(container, rows) {
+		const shares = new Map();
+		for (const r of rows) {
+			const key = `${r.server}|${r.share_name}`;
+			if (!shares.has(key)) shares.set(key, { name: r.share_name, server: r.server, access: [], children: new Map() });
+			let node = shares.get(key);
+			for (const part of (r.path || "/").split("/").filter(Boolean)) {
+				if (!node.children.has(part)) node.children.set(part, { name: part, access: [], children: new Map() });
+				node = node.children.get(part);
+			}
+			node.access.push(r);
+		}
+		const count = (node) => [...node.children.values()].reduce((a, c) => a + (c.access.length ? 1 : 0) + count(c), 0);
+		// the collector keeps only folders whose rights differ from the parent's: a folder without its
+		// own record has the rights of the nearest parent that has them
+		const levels = (node, parent) =>
+			node.access.length
+				? node.access.map((a) => `${pill(a.level, LEVEL_TONE[a.level] || "")} <span class="muted small">через ${esc(a.via || "—")} · ${esc(a.login || "")}</span>`).join("<br>")
+				: parent
+					? `${pill(parent.access[0].level, LEVEL_TONE[parent.access[0].level] || "")} <span class="muted small">как у папки «${esc(parent.name)}»</span>`
+					: `<span class="muted small">нет прав на саму папку — только на вложенные</span>`;
+		const render = (node, depth, top, parent) => {
+			const source = node.access.length ? node : parent;
+			const kids = [...node.children.values()].sort((a, b) => a.name.localeCompare(b.name, "ru"));
+			const inner = count(node);
+			return `<li class="${top ? "share-top" : ""}">
+				<div class="tree-row" style="--depth:${depth}">
+					${kids.length ? `<button class="tree-toggle" aria-expanded="false" title="Показать вложенные папки">${icon("chevron")}</button>` : `<span class="tree-toggle-space"></span>`}
+					<div class="grow"><b>${esc(node.name)}</b>${top ? ` <span class="muted small">${esc(node.server || "")}</span>` : ""}
+						${inner ? `<span class="tree-count">${inner} ${plural(inner, "вложенная папка", "вложенные папки", "вложенных папок")} с доступом</span>` : ""}</div>
+					<div class="tree-level">${levels(node, parent)}</div>
+				</div>
+				${kids.length ? `<ul hidden>${kids.map((k) => render(k, depth + 1, false, source)).join("")}</ul>` : ""}
+			</li>`;
+		};
+		const list = [...shares.values()].sort((a, b) => a.name.localeCompare(b.name, "ru"));
+		container.innerHTML = `<div class="tree-head"><span>${list.length} ${plural(list.length, "общая папка", "общие папки", "общих папок")}</span>
+			<span><button class="btn small tree-all" data-open="1">Раскрыть всё</button> <button class="btn small tree-all" data-open="0">Свернуть</button></span></div>
+			<ul class="tree">${list.map((n) => render(n, 0, true, null)).join("")}</ul>`;
+		const toggle = (btn, open) => {
+			const ul = btn.closest("li").querySelector(":scope > ul");
+			if (!ul) return;
+			ul.hidden = !open;
+			btn.setAttribute("aria-expanded", String(open));
+		};
+		container.querySelectorAll(".tree-toggle").forEach((b) => b.addEventListener("click", () => toggle(b, b.getAttribute("aria-expanded") !== "true")));
+		container.querySelectorAll(".tree-all").forEach((b) =>
+			b.addEventListener("click", () => container.querySelectorAll(".tree-toggle").forEach((t) => toggle(t, b.dataset.open === "1")))
+		);
 	}
 
 	function personAccess(d) {

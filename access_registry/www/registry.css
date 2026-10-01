@@ -549,6 +549,23 @@ a.hbar:hover .hbar-label { color: var(--accent-text); }
 .meter.big { height: 12px; }
 .review-progress .meter { width: 180px; flex: none; }
 
+/* folders of a person: shares first, nested folders open on demand */
+.tree-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; color: var(--text-2); }
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree ul[hidden] { display: none; }
+.tree li.share-top + li.share-top { border-top: 1px solid var(--border); }
+.tree-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 16px 10px calc(16px + var(--depth) * 24px); }
+.tree ul .tree-row { padding-top: 7px; padding-bottom: 7px; }
+.tree-row:hover { background: var(--surface-2); }
+.tree-row .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.tree-count { display: block; color: var(--muted); font-size: var(--font-size-small-maxi); }
+.tree-level { flex: 0 1 46%; text-align: right; line-height: 24px; }
+.tree-toggle { width: 24px; height: 24px; border: 0; background: transparent; padding: 0; border-radius: 6px; display: grid; place-items: center; cursor: pointer; color: var(--text-2); flex: none; }
+.tree-toggle:hover { background: var(--gray-soft); color: var(--text); }
+.tree-toggle svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform .15s; }
+.tree-toggle[aria-expanded="true"] svg { transform: rotate(90deg); }
+.tree-toggle-space { width: 24px; flex: none; }
+
 @media (max-width: 1100px) {
 	.split { grid-template-columns: 1fr; }
 	.grid-2 { grid-template-columns: 1fr; }
@@ -573,6 +590,8 @@ a.hbar:hover .hbar-label { color: var(--accent-text); }
 	.profile { padding: 20px; }
 	.grid-2, .grid-3 { grid-template-columns: 1fr; }
 	.review-progress .meter { width: 80px; min-width: 0; }
+	.tree-row { flex-wrap: wrap; }
+	.tree-level { flex-basis: 100%; text-align: left; padding-left: 34px; }
 }
 @media print {
 	.sidebar, .topbar, .toolbar, .btn, .mgmt-tools { display: none !important; }
