@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 0,
  "autoname": "field:profile_name",
- "creation": "2026-10-10 07:00:00.000000",
+ "creation": "2026-10-12 07:00:00.000000",
  "description": "Кто и какие разделы приложения /registry видит",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -25,6 +25,12 @@
   "control_lists",
   "s_roles",
   "s_reviews",
+  "section_break_3",
+  "sys_1c",
+  "sys_ad",
+  "column_break_3",
+  "sys_b24",
+  "sys_shares",
   "section_break_2",
   "members"
  ],
@@ -145,6 +151,40 @@
    "label": "Пересмотр доступа: кампании"
   },
   {
+   "description": "Чьи данные видны: учётки, права, замечания, отчёты. Ничего не отмечено — все системы",
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Системы"
+  },
+  {
+   "description": "Пользователи и права баз 1С, БИТ.Финанс",
+   "fieldname": "sys_1c",
+   "fieldtype": "Check",
+   "label": "1С"
+  },
+  {
+   "description": "Учётки и группы AD",
+   "fieldname": "sys_ad",
+   "fieldtype": "Check",
+   "label": "Active Directory"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Пользователи, группы и права портала",
+   "fieldname": "sys_b24",
+   "fieldtype": "Check",
+   "label": "Битрикс24"
+  },
+  {
+   "description": "Права на общих папках Synology",
+   "fieldname": "sys_shares",
+   "fieldtype": "Check",
+   "label": "Общие папки"
+  },
+  {
    "fieldname": "section_break_2",
    "fieldtype": "Section Break",
    "label": "Кому"
@@ -159,7 +199,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-10 07:00:00.000000",
+ "modified": "2026-10-12 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Registry Access Profile",

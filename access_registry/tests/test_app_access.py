@@ -154,3 +154,50 @@ class TestAppAccess(RegistryFixture):
 		context = frappe._dict()
 		page.get_context(context)
 		self.assertTrue(context.allowed)
+
+	def test_profile_limited_to_systems(self):
+		frappe.set_user("Administrator")
+		api.save_profile(
+			{
+				"profile_name": "Администратор AD",
+				"sections": {"overview": 1, "people": 1, "control": 1, "access": 1, "reports": 1},
+				"systems": ["ad"],
+				"members": [self.user],
+			}
+		)
+		frappe.cache().delete_value(api.CACHE_KEY)
+		self.as_user()
+		self.assertEqual(api.bootstrap()["can"]["systems"], ["ad"])
+		self.assertNotIn("shares", app_access.control_lists())
+		for kind in ("dismissed", "unlinked", "stale", "privileged", "excess"):
+			systems = {r.get("system") for r in api.control(kind)["rows"]}
+			self.assertTrue(systems <= {"AD", "Active Directory"}, (kind, systems))
+		# the person card: only AD
+		frappe.set_user("Administrator")
+		person = frappe.get_all("IB User", filters={"person": ["is", "set"]}, pluck="person")[0]
+		self.as_user()
+		card = api.person(person)
+		self.assertEqual((card["ib"], card["b24"], card["shares"]), ([], [], []))
+		self.assertTrue(all(r["system"] == "Active Directory" for r in card["reconciliation"]))
+		self.assertTrue(all(e["system"] == "Active Directory" for e in api.entitlements()))
+		self.assertFalse(
+			[r for r in api.search("Ива") if r.get("subtitle", "").startswith(("1С", "Битрикс24"))]
+		)
+		# reports: AD only, mixed reports keep their AD rows
+		names = app_access.report_names()
+		self.assertIn("AD Without Employee", names)
+		self.assertNotIn("IB Access Report", names)
+		self.assertNotIn("B24 Section Access", names)
+		self.assertRaises(frappe.PermissionError, api.run_report, "IB Access Report")
+		# the overview counts AD only and sends nothing internal
+		d = api.dashboard(refresh=1)
+		self.assertEqual(set(d["unlinked"]) - {"AD"}, set())
+		self.assertEqual(set(d["dismissed_access"]["by_system"]) - {"AD"}, set())
+		self.assertFalse([k for k in d if k.startswith("_")])
+		self.assertTrue(all(not s["kind"].startswith(("Права 1С", "Битрикс24")) for s in d["sources"]))
+
+	def test_no_system_chosen_means_all(self):
+		self.profile(people=1, control=1)
+		self.as_user()
+		self.assertEqual(app_access.systems(), list(app_access.SYSTEMS))
+		self.assertIn("shares", app_access.control_lists())

@@ -391,6 +391,8 @@
 	const NAV_SECTION = { "#/": "overview", "#/management": "management", "#/people": "people", "#/control": "control", "#/access": "access", "#/reports": "reports",
 		"#/roles": "roles", "#/processes": "processes", "#/sources": "sources" };
 	const canSee = (section) => ((state.boot.can.sections || {})[section] || 0) > 0;
+	// systems whose data the user sees (access profiles may be limited to some of them)
+	const seesSystem = (code) => (state.boot.can.systems || ["1c", "ad", "b24", "shares"]).includes(code);
 	const firstPage = () => {
 		const href = Object.keys(NAV_SECTION).find((h) => canSee(NAV_SECTION[h]));
 		return href ? href.slice(1) : "/reviews";
@@ -944,7 +946,8 @@
 					{
 						key: "systems",
 						label: "Учётки",
-						render: (r) => `<span class="sys"><span class="${r.ib ? "on" : ""}">1С${r.ib > 1 ? "×" + r.ib : ""}</span><span class="${r.ad ? "on" : ""}">AD</span><span class="${r.b24 ? "on" : ""}">Б24</span></span>`,
+						render: (r) => `<span class="sys">${seesSystem("1c") ? `<span class="${r.ib ? "on" : ""}">1С${r.ib > 1 ? "×" + r.ib : ""}</span>` : ""}${
+							seesSystem("ad") ? `<span class="${r.ad ? "on" : ""}">AD</span>` : ""}${seesSystem("b24") ? `<span class="${r.b24 ? "on" : ""}">Б24</span>` : ""}</span>`,
 						csv: (r) => [r.ib ? `1С:${r.ib}` : "", r.ad ? "AD" : "", r.b24 ? "Б24" : ""].filter(Boolean).join(" "),
 					},
 					{ key: "flags", label: "Внимание", render: (r) => r.flags.map((x) => pill(FLAGS[x][0], FLAGS[x][1])).join(" "), csv: (r) => r.flags.map((x) => FLAGS[x][0]).join(", ") },
@@ -1184,6 +1187,9 @@
 			["shares", "Общие папки", d.shares.length, risky(d.shares, () => true),
 				`<div class="group"><h3>Папки Synology, к которым есть доступ</h3>${d.shares.length ? `<div class="card shares-access"></div>` : `<div class="card empty">Доступа к общим папкам нет</div>`}</div>`],
 		];
+		const SYSTEM_OF_PANEL = { ib: "1c", ad: "ad", b24: "b24", shares: "shares" };
+		panels.splice(0, panels.length, ...panels.filter(([key]) => seesSystem(SYSTEM_OF_PANEL[key])));
+		if (!panels.length) return `<div class="card empty">Учётки этих систем вам не открыты</div>`;
 		const first = (panels.find((x) => x[3]) || panels.find((x) => x[2]) || panels[0])[0];
 		return `<div class="subnav">${panels
 			.map(([key, label, n, alarm]) => `<button class="chip ${key === first ? "on" : ""}" data-panel-btn="${key}">${label} <span class="n ${alarm ? "alarm" : ""}">${n}</span></button>`)
@@ -1933,13 +1939,15 @@
 
 	async function viewAppAccess(view) {
 		const d = await api("access_admin");
-		const sectionPills = (sections, personal, lists) =>
+		const systemsText = (codes) => (codes && codes.length && codes.length < Object.keys(d.systems).length ? codes.map((c) => d.systems[c]).join(", ") : "");
+		const sectionPills = (sections, personal, lists, systems) =>
 			Object.entries(d.sections)
 				.filter(([code]) => sections[code])
 				.map(([code, title]) => pill(`${title}${sections[code] > 1 ? " · работа" : ""}`, sections[code] > 1 ? "t-green" : ""))
 				.join(" ") +
 			(personal ? " " + pill("персональные данные", "t-amber") : "") +
-			(sections.control && lists && lists.length ? `<div class="muted small" style="margin-top:6px">Списки «Контроля»: ${esc(lists.map((k) => d.controls[k]).join(", "))}</div>` : "");
+			(sections.control && lists && lists.length ? `<div class="muted small" style="margin-top:6px">Списки «Контроля»: ${esc(lists.map((k) => d.controls[k]).join(", "))}</div>` : "") +
+			(systemsText(systems) ? `<div class="muted small" style="margin-top:6px">Только системы: ${esc(systemsText(systems))}</div>` : "");
 		const profiles = d.profiles
 			.map(
 				(p, i) => `<div class="card card-pad ${p.enabled ? "" : "acct off"}">
@@ -1947,7 +1955,7 @@
 						<div><b style="font-size:16px">${esc(p.profile_name)}</b> ${p.enabled ? "" : pill("выключен", "")}
 						${p.description ? `<div class="muted small" style="margin-top:4px">${esc(p.description)}</div>` : ""}</div>
 						<div style="display:flex;gap:6px"><button class="btn small edit" data-i="${i}">Изменить</button><button class="btn small hist" data-name="${esc(p.name)}">История</button></div></div>
-					<div class="tags" style="margin-top:12px">${sectionPills(p.sections, p.personal, p.control_lists) || `<span class="muted">разделы не выбраны</span>`}</div>
+					<div class="tags" style="margin-top:12px">${sectionPills(p.sections, p.personal, p.control_lists, p.systems) || `<span class="muted">разделы не выбраны</span>`}</div>
 					<div class="group-title" style="margin:16px 0 8px">Пользователи · ${p.members.length}</div>
 					<div class="tags">${p.members.map((m) => `<span class="tag">${esc(m.full_name)}</span>`).join("") || `<span class="muted small">никому не выдан</span>`}</div>
 				</div>`
@@ -1965,12 +1973,14 @@
 		table(view.querySelector(".who"), {
 			name: "доступ-к-приложению",
 			rows: d.users.map((u) => ({ ...u, ...Object.fromEntries(Object.keys(d.sections).map((k) => ["s_" + k, short(u.sections[k])])),
-				pd: u.personal ? "✓" : "", via_text: u.via.join(", "), lists_text: u.lists ? u.lists.map((k) => d.controls[k]).join(", ") : "" })),
+				pd: u.personal ? "✓" : "", via_text: u.via.join(", "), lists_text: u.lists ? u.lists.map((k) => d.controls[k]).join(", ") : "",
+				systems_text: u.systems ? u.systems.map((k) => d.systems[k]).join(", ") : "все" })),
 			empty: "Доступа пока ни у кого нет",
 			columns: [
 				{ key: "full_name", label: "Пользователь" },
 				...Object.entries(d.sections).map(([k, title]) => ({ key: "s_" + k, label: title.replace("Пересмотр доступа: кампании", "Пересмотр") })),
 				{ key: "pd", label: "Перс. данные" },
+				{ key: "systems_text", label: "Системы" },
 				{ key: "lists_text", label: "Только списки" },
 				{ key: "via_text", label: "Через" },
 			],
@@ -1993,7 +2003,7 @@
 	}
 
 	function editProfile(d, profile, done) {
-		const p = profile || { profile_name: "", description: "", enabled: 1, sections: {}, personal: false, control_lists: [], reports: [], members: [] };
+		const p = profile || { profile_name: "", description: "", enabled: 1, sections: {}, personal: false, control_lists: [], reports: [], systems: [], members: [] };
 		const members = new Map(p.members.map((m) => [m.user, m.full_name]));
 		const back = document.createElement("div");
 		back.className = "modal-back";
@@ -2007,6 +2017,10 @@
 			<label>Название</label><input name="profile_name" value="${esc(p.profile_name)}" required>
 			<label>Для кого и зачем</label><input name="description" value="${esc(p.description || "")}">
 			<label>Разделы</label><div class="sec-grid">${Object.entries(d.sections).map(sectionRow).join("")}</div>
+			<label>Системы <span class="muted">(чьи учётки, права, замечания и отчёты видны; ничего не отмечено — все)</span></label>
+			<div class="sec-grid">${Object.entries(d.systems)
+				.map(([k, t]) => `<label class="check"><input type="checkbox" data-system="${k}" ${(p.systems || []).includes(k) ? "checked" : ""}> ${esc(t)}</label>`)
+				.join("")}</div><div style="height:12px"></div>
 			<label class="check"><input type="checkbox" name="personal" ${p.personal ? "checked" : ""}> Персональные данные (даты рождения)</label>
 			<div class="lists-box"><label>Списки «Контроля» <span class="muted">(ничего не отмечено — все)</span></label><div class="sec-grid">${Object.entries(d.controls)
 				.map(([k, t]) => `<label class="check"><input type="checkbox" data-list="${k}" ${p.control_lists.includes(k) ? "checked" : ""}> ${esc(t)}</label>`)
@@ -2076,6 +2090,7 @@
 				sections,
 				control_lists: [...form.querySelectorAll("[data-list]:checked")].map((x) => x.dataset.list),
 				reports: [...form.querySelectorAll("[data-report]:checked")].map((x) => x.dataset.report),
+				systems: [...form.querySelectorAll("[data-system]:checked")].map((x) => x.dataset.system),
 				members: [...members.keys()],
 			};
 			try {

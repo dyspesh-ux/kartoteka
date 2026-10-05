@@ -322,7 +322,13 @@ def recipients(settings) -> list[str]:
 			continue
 		# the letter shows every control list: only for those who see «Обзор» and all of «Контроль»
 		a = app_access.access(row.user)
-		if a["sections"]["overview"] and a["sections"]["control"] and a["all_lists"]:
+		# the digest shows every list of every system
+		if (
+			a["sections"]["overview"]
+			and a["sections"]["control"]
+			and a["all_lists"]
+			and len(app_access.systems_of(a)) == len(app_access.SYSTEMS)
+		):
 			emails.append(user.email)
 	return sorted(set(emails))
 

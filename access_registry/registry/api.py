@@ -4,6 +4,7 @@ Every method checks the registry roles itself (see permissions.py). Personal dat
 goes only to administrators and auditors.
 """
 
+import copy
 from collections import Counter, defaultdict
 
 import frappe
@@ -67,6 +68,7 @@ def bootstrap() -> dict:
 			"read": any(a["sections"].values()),
 			"sections": a["sections"],
 			"control_lists": aa.control_lists(),
+			"systems": aa.systems(),
 			"via": a["via"],
 			"personal": a["personal"],
 			# desk editing needs desk roles; the app only links to the desk forms
@@ -137,7 +139,8 @@ def dashboard(refresh: int = 0) -> dict:
 	if not data:
 		data = _dashboard()
 		frappe.cache().set_value(CACHE_KEY, data, expires_in_sec=300)
-	return _trim_dashboard(data)
+	data = _trim_systems(_trim_dashboard(data))
+	return {k: v for k, v in data.items() if not k.startswith("_")}
 
 
 # which dashboard counters belong to which control list
@@ -158,6 +161,8 @@ def _trim_dashboard(data: dict) -> dict:
 	trimmed = {
 		"generated": data["generated"],
 		"sources": data["sources"] if aa.has_section("sources") else [],
+		"_dismissed_by_system": data.get("_dismissed_by_system"),
+		"_recon_by_system": data.get("_recon_by_system"),
 	}
 	for key, kind in DASHBOARD_LISTS.items():
 		if kind in lists:
@@ -182,6 +187,10 @@ def _dashboard() -> dict:
 	dismissed_rows = suppression.split("dismissed", _control_dismissed()[1], suppressed)[0]
 	dismissed = {r.person for r in dismissed_rows}
 	by_system = Counter(system for system, _person in {(r.system, r.person) for r in dismissed_rows})
+	# for users who see only some systems (trimmed in _trim_dashboard, never sent as is)
+	dismissed_by_system = defaultdict(set)
+	for r in dismissed_rows:
+		dismissed_by_system[r.system].add(r.person)
 	unlinked = Counter({"1С": 0, "AD": 0, "Битрикс24": 0})
 	for r in suppression.split("unlinked", _control_unlinked()[1], suppressed)[0]:
 		unlinked[r.system] += 1
@@ -190,11 +199,14 @@ def _dashboard() -> dict:
 	has_model = bool(model.roles or model.process_roles)
 	statuses = Counter()
 	privileged = 0
+	by_system_recon = defaultdict(Counter)
 	if has_model or frappe.db.count("Entitlement"):
 		for row in engine.reconcile(model=model):
 			statuses[row["status"]] += 1
+			by_system_recon[row["system"]][row["status"]] += 1
 			if row["privileged"] and row["status"] != engine.MISSING:
 				privileged += 1
+				by_system_recon[row["system"]]["privileged"] += 1
 	sod = (
 		len(suppression.split("sod", engine.sod_conflicts(), suppressed)[0])
 		if frappe.db.count("SoD Rule", {"active": 1})
@@ -249,7 +261,61 @@ def _dashboard() -> dict:
 			),
 		},
 		"sources": sources(),
+		"_dismissed_by_system": {k: sorted(v) for k, v in dismissed_by_system.items()},
+		"_recon_by_system": {k: dict(v) for k, v in by_system_recon.items()},
 	}
+
+
+SOURCE_SYSTEM = {"Active Directory": "AD", "Битрикс24": "Битрикс24", "Общие папки Synology": "Общие папки"}
+
+
+def _source_allowed(kind: str, allowed: list) -> bool:
+	if kind.startswith("Права 1С"):
+		return aa.system_allowed("1С", allowed)
+	label = SOURCE_SYSTEM.get(kind)
+	return aa.system_allowed(label, allowed) if label else True  # HR (ZUP) is shared by all
+
+
+def _trim_systems(data: dict) -> dict:
+	"""Counters of the systems the user sees only (profiles limited to some systems)."""
+	allowed = aa.systems()
+	if len(allowed) == len(aa.SYSTEMS):
+		return data
+	data = frappe._dict(copy.deepcopy(data))
+	if "dismissed_access" in data:
+		people = set()
+		by_system = {}
+		for system, persons in (data.get("_dismissed_by_system") or {}).items():
+			if aa.system_allowed(system, allowed):
+				people |= set(persons)
+				by_system[system] = len(persons)
+		data["dismissed_access"] = {"people": len(people), "by_system": by_system}
+	if "unlinked" in data:
+		data["unlinked"] = {k: v for k, v in data["unlinked"].items() if aa.system_allowed(k, allowed)}
+	if "reconciliation" in data:
+		total = Counter()
+		for system, counts in (data.get("_recon_by_system") or {}).items():
+			if aa.system_allowed(system, allowed):
+				total.update(counts)
+		r = data["reconciliation"]
+		data["reconciliation"] = {
+			"enabled": r["enabled"],
+			"missing": total[engine.MISSING],
+			"excess": total[engine.EXCESS],
+			"excess_not_working": total[engine.EXCESS_NOT_WORKING],
+			"exceptions": total[engine.EXCEPTION],
+			"ok": total[engine.OK],
+			"privileged": total["privileged"],
+		}
+	if "quality" in data:
+		q = dict(data["quality"])
+		if "1c" not in allowed:
+			q["extra_roles"] = 0
+		if "b24" not in allowed:
+			q["b24_admins"] = 0
+		data["quality"] = q
+	data["sources"] = [s for s in data.get("sources") or [] if _source_allowed(s["kind"], allowed)]
+	return data
 
 
 def sources() -> list:
@@ -372,20 +438,23 @@ def people(
 		persons = [p for p in persons if needle in (p.full_name or "").lower()]
 	accounts = Accounts()
 	places = main_places([p.name for p in persons])
+	allowed = aa.systems()
+	labels = {"1С": "1c", "AD": "ad", "Битрикс24": "b24"}
 	rows = []
 	for p in persons:
 		place = places.get(p.name, {})
 		if organization and place.get("organization") != organization:
 			continue
-		active = accounts.active(p.name)
+		# only the systems the user sees: counters, «уволен, но доступ есть», «нет учёток»
+		active = {k: v for k, v in accounts.active(p.name).items() if labels[k] in allowed}
 		flags = []
 		if p.status != "Работает" and any(active.values()):
 			flags.append("dismissed_access")
 		if p.status == "Работает" and not any(active.values()):
 			flags.append("no_access")
-		if accounts.ib[p.name]["extra"] if p.name in accounts.ib else 0:
+		if "1c" in allowed and (accounts.ib[p.name]["extra"] if p.name in accounts.ib else 0):
 			flags.append("extra_roles")
-		if accounts.b24[p.name]["admin"] if p.name in accounts.b24 else 0:
+		if "b24" in allowed and (accounts.b24[p.name]["admin"] if p.name in accounts.b24 else 0):
 			flags.append("b24_admin")
 		if flag and flag not in flags:
 			continue
@@ -398,9 +467,9 @@ def people(
 				"position": place.get("position_title"),
 				"department": place.get("department_title"),
 				"organization": place.get("organization_title"),
-				"ib": active["1С"],
-				"ad": active["AD"],
-				"b24": active["Битрикс24"],
+				"ib": active.get("1С", 0),
+				"ad": active.get("AD", 0),
+				"b24": active.get("Битрикс24", 0),
 				"flags": flags,
 			}
 		)
@@ -515,7 +584,15 @@ def person(name: str) -> dict:
 				"how": how,
 			}
 		)
+	allowed = aa.systems()
+	ib = _accounts({"person": name, "missing_in_source": 0}) if "1c" in allowed else []
+	ad = _ad_accounts({"person": name}) if "ad" in allowed else []
+	if "b24" not in allowed:
+		b24_users, b24_access = [], []
+	if "shares" not in allowed:
+		shares = []
 	return {
+		"systems": allowed,
 		"person": {
 			"name": doc.name,
 			"full_name": doc.full_name,
@@ -530,14 +607,14 @@ def person(name: str) -> dict:
 		"employments": employments,
 		"events": events,
 		"absences": absences,
-		"ib": _accounts({"person": name, "missing_in_source": 0}),
-		"ad": _ad_accounts({"person": name}),
+		"ib": ib,
+		"ad": ad,
 		"b24": b24_users,
 		"b24_access": b24_access,
 		"shares": shares,
 		"roles": roles,
 		"process_roles": process_roles,
-		"reconciliation": engine.reconcile({name}, model),
+		"reconciliation": aa.filter_rows(engine.reconcile({name}, model)),
 		"sod": engine.sod_conflicts({name}),
 	}
 
@@ -549,6 +626,9 @@ def person(name: str) -> dict:
 def entitlements(system: str | None = None) -> list:
 	_check("access")
 	filters = {"system": system} if system else {}
+	if not aa.all_systems():
+		visible = [aa.SYSTEMS[c] for c in aa.systems() if c != "shares"]
+		filters["system"] = (system if system in visible else "") if system else ["in", visible or [""]]
 	rows = frappe.get_all(
 		"Entitlement",
 		filters=filters,
@@ -586,6 +666,8 @@ def entitlements(system: str | None = None) -> list:
 def entitlement(name: str) -> dict:
 	_check("access")
 	doc = frappe.get_doc("Entitlement", name)
+	if not aa.system_allowed(doc.system):
+		raise frappe.PermissionError(_("Нет доступа к правам системы «{0}»").format(doc.system))
 	actual, _other = engine.actual_entitlements()
 	holders = [p for p, held in actual.items() if name in held]
 	names = frappe.get_all(
@@ -855,6 +937,12 @@ JML_PLAN = ("Предстоящее увольнение", "Уход в отпу
 
 
 def _control_rows(kind):
+	"""Columns and rows of a control list, only of the systems the user sees."""
+	columns, rows = _control_rows_all(kind)
+	return columns, aa.filter_rows(rows)
+
+
+def _control_rows_all(kind):
 	if kind not in CONTROLS:
 		frappe.throw(_("Неизвестный раздел контроля"))
 	return globals()[f"_control_{kind}"]()
@@ -1067,7 +1155,7 @@ def _control_privileged():
 def _control_exceptions():
 	rows = []
 	for e in frappe.db.sql(
-		"""select e.person, p.full_name, p.status as person_status, en.title, e.valid_to, e.reason, e.approved_by
+		"""select e.person, p.full_name, p.status as person_status, en.title, en.system, e.valid_to, e.reason, e.approved_by
 		from `tabAccess Exception` e join `tabPerson` p on p.name = e.person
 		join `tabEntitlement` en on en.name = e.entitlement order by e.valid_to is null, e.valid_to""",
 		as_dict=True,
@@ -1142,6 +1230,7 @@ def _control_quality():
 					"person": r["person"],
 					"full_name": r["user_name"],
 					"area": "Битрикс24: " + r["field"],
+					"system": "Битрикс24",
 					"current": r["b24_value"],
 					"expected": r["hr_value"],
 				}
@@ -1152,6 +1241,7 @@ def _control_quality():
 					"person": None,
 					"full_name": r.department_name,
 					"area": "Битрикс24: руководитель",
+					"system": "Битрикс24",
 					"current": r.b24_head_name or "—",
 					"expected": r.hr_head_name or r.status,
 				}
@@ -1166,6 +1256,7 @@ def _control_quality():
 				"person": r.person,
 				"full_name": r.full_name,
 				"area": "AD: employeeNumber",
+				"system": "AD",
 				"current": r.employee_number or "—",
 				"expected": r.person,
 			}
@@ -1249,6 +1340,7 @@ def _control_shares():
 	for r in rows:
 		r["full_name"] = names.get(r.get("person")) or ""
 		r["ref"], r["ref_doctype"] = r["folder"], "Folder ACL"
+		r["system"] = "Общие папки"
 	return [
 		_column("share_name", _("Общая папка"), "badge"),
 		_column("path", _("Папка"), "ref"),
@@ -1282,11 +1374,15 @@ def search(query: str) -> list:
 	):
 		results.append({"kind": "person", "id": p.name, "title": p.full_name, "subtitle": p.status})
 	for doctype, title_field, extra, link in (
-		(
-			("IB User", "user_name", "login", "1С"),
-			("AD Account", "display_name", "sam_account_name", "AD"),
-			("B24 User", "full_name", "email", "Битрикс24"),
-		)
+		[
+			a
+			for a in (
+				("IB User", "user_name", "login", "1С"),
+				("AD Account", "display_name", "sam_account_name", "AD"),
+				("B24 User", "full_name", "email", "Битрикс24"),
+			)
+			if aa.system_allowed(a[3])
+		]
 		if people
 		else ()
 	):
@@ -1326,7 +1422,8 @@ def search(query: str) -> list:
 		if catalog_ok
 		else []
 	):
-		results.append({"kind": "entitlement", "id": e.name, "title": e.title, "subtitle": e.system})
+		if aa.system_allowed(e.system):
+			results.append({"kind": "entitlement", "id": e.name, "title": e.title, "subtitle": e.system})
 	return results
 
 
@@ -1478,6 +1575,7 @@ def _profile_dict(p) -> dict:
 		"personal": personal,
 		"control_lists": lists,
 		"reports": aa.profile_reports(p),
+		"systems": aa.profile_systems(p),
 		"members": [{"user": m.user, "full_name": m.full_name or m.user} for m in p.members],
 	}
 
@@ -1519,6 +1617,7 @@ def access_admin() -> dict:
 				"sections": a["sections"],
 				"personal": a["personal"],
 				"lists": None if a["all_lists"] else sorted(a["control_lists"]),
+				"systems": None if len(aa.systems_of(a)) == len(aa.SYSTEMS) else aa.systems_of(a),
 				"via": a["via"] or ([_("только свои задания пересмотра")] if a.get("reviewer") else []),
 			}
 		)
@@ -1526,6 +1625,7 @@ def access_admin() -> dict:
 		"sections": aa.SECTIONS,
 		"work_sections": sorted(aa.WORK_SECTIONS),
 		"controls": CONTROLS,
+		"systems": aa.SYSTEMS,
 		"report_catalog": _report_catalog(all_reports=True),
 		"profiles": profiles,
 		"users": people,
@@ -1570,6 +1670,9 @@ def save_profile(data) -> str:
 		else:
 			doc.set(field, 1 if value else 0)
 	doc.s_personal = cint(data.get("personal"))
+	chosen = set(data.get("systems") or [])
+	for code in aa.SYSTEMS:
+		doc.set(f"sys_{code}", int(code in chosen))
 	doc.set(
 		"control_lists",
 		[{"control_list": CONTROLS[k]} for k in data.get("control_lists") or [] if k in CONTROLS],

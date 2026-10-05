@@ -201,6 +201,8 @@ CATALOG = [
 		],
 	),
 ]
+# report groups that belong to one system (profiles limited to some systems see only theirs)
+GROUP_SYSTEM = {"Доступы в 1С": "1c", "Active Directory": "ad", "Битрикс24": "b24", "Общие папки": "shares"}
 BY_NAME = {
 	name: (group, title, text, personal) for group, items in CATALOG for name, title, text, personal in items
 }
@@ -366,6 +368,11 @@ def run(name: str, filters: dict) -> dict:
 			}
 		)
 	raw = [r for r in result.get("result") or [] if isinstance(r, dict)]
+	# mixed reports (role model): only rows of the systems the user sees
+	if any(c.get("fieldname") == "system" for c in result.get("columns") or []):
+		from access_registry import app_access
+
+		raw = app_access.filter_rows(raw)
 	hr_columns = add_hr_columns(result.get("columns") or [], columns, raw)
 	rows = []
 	for r in raw:

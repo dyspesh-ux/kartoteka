@@ -51,6 +51,20 @@ CONTROLS = {
 }
 CONTROL_BY_TITLE = {title: code for code, title in CONTROLS.items()}
 
+# systems whose data a profile may be limited to (accounts, rights, alerts, reports); none — all
+SYSTEMS = {"1c": "1С", "ad": "Active Directory", "b24": "Битрикс24", "shares": "Общие папки"}
+# how the systems are written in rows of lists and reports
+SYSTEM_OF_LABEL = {
+	"1С": "1c",
+	"AD": "ad",
+	"Active Directory": "ad",
+	"Битрикс24": "b24",
+	"Общие папки": "shares",
+	"Общие папки Synology": "shares",
+}
+# control lists that belong to one system
+CONTROL_SYSTEM = {"shares": "shares"}
+
 ALL_VIEW = {s: VIEW for s in SECTIONS}
 # what the registry roles give (unchanged behaviour of the roles)
 ROLE_ACCESS = {
@@ -70,11 +84,19 @@ def _empty():
 		"all_lists": False,
 		"report_lists": set(),
 		"all_reports": False,
+		"systems": set(),
+		"all_systems": False,
 		"via": [],
 	}
 
 
-def _merge(result, sections, personal, lists=None, via=None, reports=None):
+def _merge(result, sections, personal, lists=None, via=None, reports=None, systems=None):
+	"""systems: None or empty — every system (roles of the registry, profiles without a choice)."""
+	if any(sections.values()):
+		if systems:
+			result["systems"] |= set(systems)
+		else:
+			result["all_systems"] = True
 	for section, level in sections.items():
 		result["sections"][section] = max(result["sections"][section], level)
 	result["personal"] = result["personal"] or personal
@@ -122,6 +144,10 @@ def profile_access(profile) -> tuple[dict, bool, list]:
 	return sections, bool(profile.s_personal), lists
 
 
+def profile_systems(profile) -> list[str]:
+	return [code for code in SYSTEMS if profile.get(f"sys_{code}")]
+
+
 def profile_reports(profile) -> list[str]:
 	return [r.report for r in profile.get("report_lists") or [] if r.report]
 
@@ -149,6 +175,7 @@ def compute(user: str | None = None) -> dict:
 			lists,
 			via=_("профиль «{0}»").format(profile.profile_name),
 			reports=profile_reports(profile),
+			systems=profile_systems(profile),
 		)
 	result["reviewer"] = REVIEWER in roles
 	return result
@@ -185,7 +212,52 @@ def control_lists(user: str | None = None) -> list[str]:
 	a = access(user)
 	if not a["sections"]["control"]:
 		return []
-	return [k for k in CONTROLS if a["all_lists"] or k in a["control_lists"]]
+	allowed = systems_of(a)
+	return [
+		k
+		for k in CONTROLS
+		if (a["all_lists"] or k in a["control_lists"])
+		and (k not in CONTROL_SYSTEM or CONTROL_SYSTEM[k] in allowed)
+	]
+
+
+# --------------------------------------------------------------------------- systems
+
+
+def systems_of(a: dict) -> list[str]:
+	return (
+		list(SYSTEMS)
+		if a.get("all_systems") or not a.get("systems")
+		else [code for code in SYSTEMS if code in a["systems"]]
+	)
+
+
+def systems(user: str | None = None) -> list[str]:
+	"""Systems whose data the user sees (codes of SYSTEMS)."""
+	return systems_of(access(user))
+
+
+def all_systems(user: str | None = None) -> bool:
+	return len(systems(user)) == len(SYSTEMS)
+
+
+def system_allowed(label, allowed: list[str] | None = None) -> bool:
+	"""A row of a list or report with this system («1С», «AD», «Битрикс24»…) may be shown.
+
+	Rows without a system are shown; «Другое» (systems the registry does not read) only to those
+	who see every system."""
+	allowed = systems() if allowed is None else allowed
+	if not label:
+		return True
+	code = SYSTEM_OF_LABEL.get(str(label).strip())
+	return code in allowed if code else len(allowed) == len(SYSTEMS)
+
+
+def filter_rows(rows: list, key: str = "system", allowed: list[str] | None = None) -> list:
+	allowed = systems() if allowed is None else allowed
+	if len(allowed) == len(SYSTEMS):
+		return rows
+	return [r for r in rows if system_allowed(r.get(key), allowed)]
 
 
 def require_control(kind: str, need: int = VIEW):
@@ -207,13 +279,17 @@ def can_open_app(user: str | None = None) -> bool:
 
 def report_names(user: str | None = None) -> list[str]:
 	"""Reports of the catalog the user may run in the app (personal-data reports need that flag)."""
-	from access_registry.registry.reports import CATALOG
+	from access_registry.registry.reports import CATALOG, GROUP_SYSTEM
 
 	a = access(user)
 	if not a["sections"].get("reports"):
 		return []
+	allowed = systems_of(a)
 	names = []
-	for _group, items in CATALOG:
+	for group, items in CATALOG:
+		system = GROUP_SYSTEM.get(group)  # mixed groups (role model) are filtered by rows instead
+		if system and system not in allowed:
+			continue
 		for name, _title, _text, needs_personal in items:
 			if needs_personal and not a["personal"]:
 				continue
