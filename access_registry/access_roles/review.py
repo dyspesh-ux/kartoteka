@@ -18,7 +18,7 @@ from access_registry.access_roles import engine
 KEEP = "Оставить"
 REVOKE = "Отозвать"
 DECISIONS = (KEEP, REVOKE)
-SYSTEM_OF_KEY = {"1c": "1С", "ad": "Active Directory", "b24wg": "Битрикс24", "b24": "Битрикс24"}
+SYSTEM_OF_KEY = {"1c": "1С", "bit": "1С", "ad": "Active Directory", "b24wg": "Битрикс24", "b24": "Битрикс24"}
 HIGH_RISK = ("Высокий", "Критичный")
 
 

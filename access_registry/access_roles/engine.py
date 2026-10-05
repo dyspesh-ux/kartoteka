@@ -220,7 +220,8 @@ def raw_accesses(persons=None) -> dict:
 	"""What each employee actually has in 1C, AD and Bitrix24, whether catalogued or not.
 
 	{person: {key: evidence}}; keys: 1c:<IB Access Profile>, ad:<AD Group>, b24wg:<B24 Workgroup>,
-	b24:<portal>|<via>|<resource or ''>.
+	b24:<portal>|<via>|<resource or ''>, bit:<base>|<kind>|<name> (treasury rights of BIT.Finance:
+	a visa, an executor role or access to a CFO).
 	"""
 	result = defaultdict(dict)
 	only = set(persons) if persons else None
@@ -236,6 +237,13 @@ def raw_accesses(persons=None) -> dict:
 			and ifnull(u.person, '') != '' and ifnull(r.profile, '') != ''"""
 	):
 		add(person, f"1c:{profile}", f"1С {base}: {login}")
+	for person, base, kind, name, login in frappe.db.sql(
+		"""select u.person, u.base_code, b.kind, b.right_name, ifnull(u.login, u.user_name)
+		from `tabIB User BIT Right` b join `tabIB User` u on u.name = b.parent
+		where b.parenttype = 'IB User' and u.login_allowed = 1 and u.invalid = 0 and u.missing_in_source = 0
+			and ifnull(u.person, '') != '' and ifnull(b.right_name, '') != ''"""
+	):
+		add(person, bit_key(base, kind, name), f"1С {base}: {login} (БИТ.Финанс)")
 	from access_registry.active_directory.groups import effective_account_groups
 
 	security = set(frappe.get_all("AD Group", filters={"security": 1}, pluck="name", limit_page_length=0))
@@ -280,6 +288,10 @@ def b24_key(portal, via, resource) -> str:
 	return f"b24:{portal}|{via}|{resource if via == 'Права на папку' else ''}"
 
 
+def bit_key(base: str, kind: str, name: str) -> str:
+	return f"bit:{base}|{kind}|{name}"
+
+
 def entitlement_keys() -> dict:
 	"""{entitlement: [keys it covers]} for active catalogued entitlements."""
 	keys = defaultdict(list)
@@ -295,9 +307,16 @@ def entitlement_keys() -> dict:
 			"b24_portal",
 			"b24_via",
 			"b24_resource",
+			"bit_kind",
+			"bit_name",
+			"bit_base",
 		],
 		limit_page_length=0,
 	):
+		if e.bit_kind and e.bit_name:
+			bases = [e.bit_base] if e.bit_base else frappe.get_all("Info Base", pluck="name")
+			for base in bases:
+				keys[e.name].append(bit_key(base, e.bit_kind, e.bit_name.strip()))
 		if e.ib_profile:
 			keys[e.name].append(f"1c:{e.ib_profile}")
 		if e.ad_group:
@@ -479,6 +498,18 @@ def role_design_conflicts() -> list[dict]:
 def describe_key(key: str) -> dict:
 	"""Title, system and link fields of an entitlement for a raw access key."""
 	kind, _, ref = key.partition(":")
+	if kind == "bit":
+		base, bit_kind, name = (ref.split("|", 2) + ["", ""])[:3]
+		what = {"Виза": "виза", "Роль исполнителя": "роль", "Доступ к ЦФО": "доступ к ЦФО"}.get(
+			bit_kind, bit_kind
+		)
+		return {
+			"title": f"БИТ.Финанс {base}: {what} «{name}»",
+			"system": "1С",
+			"bit_base": base,
+			"bit_kind": bit_kind,
+			"bit_name": name,
+		}
 	if kind == "1c":
 		profile = (
 			frappe.db.get_value("IB Access Profile", ref, ["profile_name", "base_code"], as_dict=True) or {}

@@ -1,0 +1,115 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-10-11 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "kind",
+  "right_name",
+  "object",
+  "access",
+  "condition",
+  "details",
+  "direct",
+  "assigned_to",
+  "deputy_for",
+  "cfo",
+  "article",
+  "ref"
+ ],
+ "fields": [
+  {
+   "fieldname": "kind",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Вид",
+   "options": "Виза\nРоль исполнителя\nДоступ к ЦФО",
+   "read_only": 1
+  },
+  {
+   "description": "Виза («Казначей», «Руководитель ЦФО»), роль исполнителя или «Доступ»",
+   "fieldname": "right_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Право",
+   "read_only": 1
+  },
+  {
+   "description": "ЦФО и статья оборотов (для доступа), объекты роли исполнителя",
+   "fieldname": "object",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Объект",
+   "read_only": 1
+  },
+  {
+   "fieldname": "access",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Чтение / запись",
+   "read_only": 1
+  },
+  {
+   "fieldname": "condition",
+   "fieldtype": "Data",
+   "label": "Условие визы",
+   "read_only": 1
+  },
+  {
+   "fieldname": "details",
+   "fieldtype": "Small Text",
+   "label": "Подробно",
+   "read_only": 1
+  },
+  {
+   "fieldname": "direct",
+   "fieldtype": "Check",
+   "label": "Напрямую",
+   "read_only": 1
+  },
+  {
+   "fieldname": "assigned_to",
+   "fieldtype": "Data",
+   "label": "Кому назначено",
+   "read_only": 1
+  },
+  {
+   "fieldname": "deputy_for",
+   "fieldtype": "Data",
+   "label": "Замещает",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cfo",
+   "fieldtype": "Data",
+   "label": "ЦФО",
+   "read_only": 1
+  },
+  {
+   "fieldname": "article",
+   "fieldtype": "Data",
+   "label": "Статья оборотов",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ref",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Ключ",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-11 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Catalog",
+ "name": "IB User BIT Right",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

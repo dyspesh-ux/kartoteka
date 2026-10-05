@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 0,
  "autoname": "field:role_name",
- "creation": "2026-10-01 03:00:00.000000",
+ "creation": "2026-10-11 12:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -109,7 +109,7 @@
    "link_fieldname": "filled_by_access_role"
   }
  ],
- "modified": "2026-10-01 03:00:00.000000",
+ "modified": "2026-10-11 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Roles",
  "name": "Access Role",

@@ -5,7 +5,7 @@ Only reads the source: nothing is ever written back to 1C.
 
 import hashlib
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -209,6 +209,101 @@ def sync_child_table(doc, fieldname: str, key_fields: tuple, rows: list[dict]) -
 	doc.set(fieldname, result)
 
 
+# --------------------------------------------------------------------------- BIT.Finance
+
+BIT_VISA, BIT_ROLE, BIT_CFO = "Виза", "Роль исполнителя", "Доступ к ЦФО"
+
+
+def _text(value) -> str:
+	return "" if value is None else str(value).strip()
+
+
+def bit_rows(bit: dict) -> dict:
+	"""Rights of the treasury (BIT.Finance) from the «bit» section of a snapshot: {user_id: [rows]}.
+
+	visa_rights — who approves requests (visa, condition, deputy); executor_roles — responsible for
+	a CFO or a cash flow item; rls_rights — read/write access by CFO and cash flow item.
+	"""
+	result = defaultdict(list)
+	for v in bit.get("visa_rights") or []:
+		details = [_text(v.get("visa_kind")), _text(v.get("link_kind"))]
+		if _text(v.get("visa_group")):
+			details.append(f"группа виз: {_text(v.get('visa_group'))}")
+		result[v.get("user_id")].append(
+			{
+				"kind": BIT_VISA,
+				"right_name": _text(v.get("visa_name")),
+				"object": _text(v.get("link_object")),
+				"access": "",
+				"condition": _text(v.get("condition")),
+				"details": "; ".join(x for x in details if x),
+				"direct": cint(v.get("direct")),
+				"assigned_to": _text(v.get("assigned_to")),
+				"deputy_for": _text(v.get("deputy_for")),
+				"cfo": "",
+				"article": "",
+				"ref": "|".join(
+					_text(v.get(k))
+					for k in ("visa_id", "condition", "link_object", "visa_group", "deputy_for")
+				),
+			}
+		)
+	for e in bit.get("executor_roles") or []:
+		objects = ", ".join(_text(o) for o in e.get("objects") or [] if _text(o))
+		role = _text(e.get("role"))
+		result[e.get("user_id")].append(
+			{
+				"kind": BIT_ROLE,
+				"right_name": role,
+				"object": objects,
+				"access": "",
+				"condition": "",
+				"details": "",
+				"direct": 1,
+				"assigned_to": _text(e.get("user_name")),
+				"deputy_for": _text(e.get("deputy_for")),
+				"cfo": objects if "ЦФО" in role else "",
+				"article": objects if "стать" in role.lower() else "",
+				"ref": "|".join([role, objects, _text(e.get("deputy_for"))]),
+			}
+		)
+	for r in bit.get("rls_rights") or []:
+		read, write = cint(r.get("read")), cint(r.get("write"))
+		access = "чтение и запись" if read and write else "запись" if write else "чтение" if read else "нет"
+		cfo = _text(r.get("cfo")) or "все ЦФО"
+		article = _text(r.get("article")) or "все"
+		details = [f"{_text(r.get('setting'))}: {_text(r.get('area'))}".strip(": ")]
+		if _text(r.get("by_user")):
+			details.append(f"по пользователю: {_text(r.get('by_user'))}")
+		if _text(r.get("project")):
+			details.append(f"проект: {_text(r.get('project'))}")
+		result[r.get("user_id")].append(
+			{
+				"kind": BIT_CFO,
+				"right_name": cfo,
+				"object": f"статья: {article}",
+				"access": access,
+				"condition": "",
+				"details": "; ".join(x for x in details if x),
+				"direct": cint(r.get("direct")),
+				"assigned_to": _text(r.get("assigned_to")),
+				"deputy_for": _text(r.get("instead_of")) if cint(r.get("substitution")) else "",
+				"cfo": cfo,
+				"article": article,
+				"ref": "|".join(
+					_text(r.get(k))
+					for k in ("cfo_id", "article_id", "by_user", "project", "instead_of", "setting")
+				),
+			}
+		)
+	for user, rows in result.items():
+		unique = {(x["kind"], x["ref"]): x for x in rows}  # the same right twice in a snapshot
+		result[user] = sorted(
+			unique.values(), key=lambda x: (x["kind"], x["right_name"], x["object"], x["ref"])
+		)
+	return result
+
+
 # --------------------------------------------------------------------------- snapshot
 
 
@@ -235,6 +330,15 @@ class SnapshotImport:
 			if item.get("user_id") in rights:
 				self.warn(f"права пользователя {item.get('user_id')} встречаются в снимке несколько раз")
 			rights[item.get("user_id")] = item
+		# treasury rights of BIT.Finance: only in snapshots of bases that have it; a snapshot without
+		# the section leaves the stored rights as they are
+		bit = data.get("bit")
+		self.bit = bit_rows(bit) if isinstance(bit, dict) else None
+		if self.bit is not None:
+			unknown = set(self.bit) - {u["id"] for u in users}
+			if unknown:
+				self.warn(f"права БИТ.Финанс у пользователей, которых нет в снимке: {len(unknown)}")
+			self.counters["bit_rights"] = sum(len(rows) for rows in self.bit.values())
 		self.persons = PersonResolver(self.base, self.configuration)
 		seen = set()
 		for user in users:
@@ -252,13 +356,16 @@ class SnapshotImport:
 		self.counters["profiles"] = len(profiles)
 		self.counters["users"] = len(users)
 		self.counters["orphans"] = len(orphans)
-		return {
+		result = {
 			"profiles": self.counters["profiles"],
 			"users": self.counters["users"],
 			"orphans": self.counters["orphans"],
 			"changed": self.counters["changed"],
 			"missing": self.counters["missing"],
 		}
+		if self.bit is not None:
+			result["bit_rights"] = self.counters["bit_rights"]
+		return result
 
 	def check_guard(self, received: int):
 		threshold = cint(self.settings.shrink_threshold_pct)
@@ -329,6 +436,7 @@ class SnapshotImport:
 			expected |= profile_roles.get(p.get("profile_id"), set())
 		person, link_method, link_note = self.persons.resolve(user, ib)
 		ad_account, _ad_person = self.persons.ad_account(ib)
+		bit = None if self.bit is None or orphan else self.bit.get(user.get("id"), [])
 		payload = {
 			"u": {**user, "ib": ib},
 			"r": rights,
@@ -339,6 +447,8 @@ class SnapshotImport:
 			"configuration": self.configuration,
 			"v": DERIVED_VERSION,
 		}
+		if bit is not None:
+			payload["bit"] = bit
 		h = src_hash(payload)
 		doc = self.load("IB User", uid, h)
 		if doc is None:
@@ -410,6 +520,8 @@ class SnapshotImport:
 			("role_name",),
 			[{"role_name": r, "in_profiles": int(r in expected)} for r in roles],
 		)
+		if bit is not None:
+			sync_child_table(doc, "bit_rights", ("kind", "ref"), bit)
 		extra = sorted(set(roles) - expected)
 		doc.extra_roles = "\n".join(extra)
 		doc.has_extra_roles = int(bool(extra))

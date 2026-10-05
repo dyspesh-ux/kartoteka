@@ -279,7 +279,17 @@ def _accounts(filters: dict) -> list:
 		)
 	}
 	profiles = load_profiles([a.name for a in accounts])
+	bit = defaultdict(list)  # treasury rights of BIT.Finance
+	for row in frappe.get_all(
+		"IB User BIT Right",
+		filters={"parenttype": "IB User", "parent": ["in", [a.name for a in accounts] or [""]]},
+		fields=["parent", "kind", "right_name", "object", "access", "condition", "deputy_for"],
+		order_by="idx",
+		limit_page_length=0,
+	):
+		bit[row.parent].append({k: row[k] for k in row if k != "parent"})
 	for account in accounts:
+		account.bit = bit.get(account.name, [])
 		account.profiles = [
 			{
 				"profile": p.profile_name,

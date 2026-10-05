@@ -1103,6 +1103,26 @@
 		);
 	}
 
+	/* treasury rights of BIT.Finance under a 1C account: visas, executor roles, access by CFO */
+	function bitRights(rows) {
+		if (!rows || !rows.length) return "";
+		const groups = [
+			["Виза", "Визы (согласование заявок)", (r) => `${esc(r.right_name)}${r.condition ? ` <span class="muted">· ${esc(r.condition)}</span>` : ""}`],
+			["Роль исполнителя", "Роли исполнителей", (r) => `${esc(r.right_name)}${r.object ? `: ${esc(r.object)}` : ""}`],
+			["Доступ к ЦФО", "Доступ к ЦФО и статьям", (r) => `${esc(r.right_name)} <span class="muted">· ${esc(r.object || "")}${r.access ? ` · ${esc(r.access)}` : ""}</span>`],
+		];
+		return `<div class="bit-rights"><div class="group-title">Казначейство (БИТ.Финанс)</div>${groups
+			.map(([kind, title, text]) => {
+				const items = rows.filter((r) => r.kind === kind);
+				return items.length
+					? `<div class="bit-group"><span class="muted small">${title}</span><ul>${items
+							.map((r) => `<li>${text(r)}${r.deputy_for ? ` <span class="muted">· замещает ${esc(r.deputy_for)}</span>` : ""}</li>`)
+							.join("")}</ul></div>`
+					: "";
+			})
+			.join("")}</div>`;
+	}
+
 	function personAccess(d) {
 		const ib = d.ib
 			.map((a) => {
@@ -1116,6 +1136,7 @@
 						<dt>Организации</dt><dd>${esc(a.orgs_text || "—")}</dd>
 						<dt>Профили</dt><dd>${a.profiles.map((p) => `<span class="tag" title="${esc((p.restrictions || []).join("\n"))}">${esc(p.profile)}</span>`).join(" ") || "—"}</dd></dl>
 					${a.extra_roles.length ? `<div class="tags">${a.extra_roles.map((r) => pill(r, "t-red")).join("")}</div><div class="muted small">роли в обход профилей</div>` : ""}
+					${bitRights(a.bit)}
 				</div>`;
 			})
 			.join("");
