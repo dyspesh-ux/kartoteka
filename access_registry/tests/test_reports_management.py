@@ -67,6 +67,17 @@ class TestReportsAndManagement(RegistryFixture):
 		self.profile({"reports": 1}, ["IB Access Report", "B24 Profile Differences"], personal=1)
 		self.assertIn("B24 Profile Differences", app_access.report_names())
 
+	def test_hr_columns_in_reports_about_people(self):
+		frappe.set_user("Administrator")
+		data = reports.run("Access Reconciliation", {})
+		keys = [c["key"] for c in data["columns"]]
+		self.assertIn("_hr_organization", keys)
+		self.assertEqual(keys.index("_hr_organization"), keys.index("full_name") + 1)
+		self.assertTrue(any(r["_hr_position"] for r in data["rows"]))
+		# a report that already has them gets no second set
+		full = reports.run("IB Access Report", {})
+		self.assertNotIn("_hr_organization", [c["key"] for c in full["columns"]])
+
 	def test_all_reports_when_list_empty_and_export(self):
 		self.profile({"reports": 1})
 		names = app_access.report_names()

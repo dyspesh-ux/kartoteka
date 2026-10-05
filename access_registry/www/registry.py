@@ -16,3 +16,5 @@ def get_context(context):
 	context.allowed = app_access.can_open_app()  # registry roles or an access profile
 	context.title = "Реестр доступа"
 	context.desk = has_any("System Manager", "Registry Admin")
+	# the admin (desk) opens for system users; website users (profiles only) do not get the link
+	context.admin = frappe.get_cached_value("User", frappe.session.user, "user_type") == "System User"

@@ -5,12 +5,12 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="robots" content="noindex">
 	<title>Реестр доступа</title>
-	<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232e9e6a'/%3E%3Cpath d='M10 16.5l4 4 8-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+	<link rel="icon" href="/assets/access_registry/images/registry-logo.svg" type="image/svg+xml">
 	<style>{{ colocated_css | safe }}</style>
 </head>
 <body>
 	{% if allowed %}
-	<div id="app" data-desk="{{ 1 if desk else 0 }}">
+	<div id="app" data-desk="{{ 1 if desk else 0 }}" data-admin="{{ 1 if admin else 0 }}">
 		<div class="boot"><div class="spinner"></div></div>
 	</div>
 	<script>window.frappe = window.frappe || {};</script>
@@ -19,9 +19,9 @@
 	{% else %}
 	<main class="denied">
 		<h1>Нет доступа к реестру</h1>
-		<p>Попросите администратора реестра выдать вам одну из ролей: Registry Auditor, Access Catalog Viewer,
-		Access Role Manager или Process Manager.</p>
-		<p><a href="/app">Перейти в рабочее пространство</a> · <a href="/?cmd=web_logout">Выйти</a></p>
+		<p>Попросите администратора реестра выдать вам профиль доступа к приложению или одну из ролей
+		реестра.</p>
+		<p>{% if admin %}<a href="/app">Перейти в админку</a> · {% endif %}<a href="/?cmd=web_logout">Выйти</a></p>
 	</main>
 	{% endif %}
 </body>

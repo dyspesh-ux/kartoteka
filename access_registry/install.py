@@ -19,6 +19,9 @@ NO_DESK_ROLES = ("Access Reviewer",)
 
 
 def after_install():
+	from access_registry import branding
+
+	branding.apply()
 	create_roles()
 	create_sync_users()
 	ensure_root()
@@ -26,6 +29,9 @@ def after_install():
 
 
 def after_migrate():
+	from access_registry import branding
+
+	branding.apply()
 	sync_workspace()
 	create_roles()
 	create_sync_users()

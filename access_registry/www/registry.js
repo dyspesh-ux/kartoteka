@@ -6,6 +6,7 @@
 	const API = "/api/method/access_registry.registry.api.";
 	const $app = document.getElementById("app");
 	const DESK = $app.dataset.desk === "1";
+	const ADMIN = $app.dataset.admin === "1"; // may open the admin (desk)
 	const state = { boot: null, dashboard: null, peopleFilters: { query: "", organization: "", status: "Работает", flag: "" } };
 
 	// ------------------------------------------------------------------ helpers
@@ -413,7 +414,7 @@
 						<div class="user"><span class="avatar">${esc(initials(b.user.full_name))}</span><div><b>${esc(b.user.full_name)}</b><span class="muted small">${esc(
 							b.can.admin ? "администратор" : (b.can.via || []).join(", ") || "свои задания пересмотра"
 						)}</span></div></div>
-						<div class="links">${DESK || b.can.roles || b.can.processes ? `<a href="/app/access-registry">Рабочее пространство</a>` : ""}<a href="/?cmd=web_logout">Выйти</a></div>
+						<div class="links">${ADMIN ? `<a href="/app/access-registry">Админка</a>` : ""}<a href="/?cmd=web_logout">Выйти</a></div>
 					</div>
 				</aside>
 				<div class="main">
@@ -426,6 +427,7 @@
 							<div class="results"></div>
 						</div>
 						<div class="top-actions">
+							${ADMIN ? `<a class="btn small admin-link" href="/app/access-registry" title="Источники, загрузки, настройки, карточки записей">${icon("external")} Админка</a>` : ""}
 							<button class="icon-btn theme" title="Тема">${icon("moon")}</button>
 						</div>
 					</header>
@@ -1932,11 +1934,11 @@
 			.join("");
 		view.innerHTML = `
 			<div class="page-head"><div><h1>Доступ к приложению</h1><p>Кто какие разделы видит. Профиль — набор разделов с уровнем («просмотр» или «работа»); выдайте его людям,
-				и приложение откроется им без ролей desk. Доступы из нескольких профилей и ролей складываются. Все изменения профилей сохраняются в истории.</p></div>
+				и приложение откроется им без ролей и доступа в админку. Доступы из нескольких профилей и ролей складываются. Все изменения профилей сохраняются в истории.</p></div>
 				<button class="btn primary new">Новый профиль</button></div>
 			${block(1, "Профили доступа", "Разделы, уровень и кому выдан профиль.", profiles ? `<div class="grid grid-2">${profiles}</div>` : `<div class="card empty"><b>Профилей пока нет</b>Создайте первый: например «Главный бухгалтер» — сотрудники, права доступа и роли на просмотр.</div>`)}
 			${block(2, "Кто что видит", "Итоговый доступ каждого пользователя и откуда он: из ролей реестра или из профилей.", `<div class="card who"></div>`)}
-			${block(3, "Роли реестра", "Роли desk по-прежнему дают доступ к приложению — как встроенные профили. Назначаются в карточке пользователя Frappe.",
+			${block(3, "Роли реестра", "Роли реестра по-прежнему дают доступ к приложению — как встроенные профили. Назначаются в админке: «Пользователи» → карточка пользователя → «Роли».",
 				`<div class="card list">${d.roles.map((r) => `<div class="list-item"><div class="grow"><b>${esc(r.role)}</b><small>${esc(r.gives)}</small></div></div>`).join("")}</div>`)}`;
 		const short = (level) => (level > 1 ? "работа" : level ? "✓" : "");
 		table(view.querySelector(".who"), {

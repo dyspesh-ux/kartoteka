@@ -1,0 +1,37 @@
+/* Sign-in page of the registry: the same green and grays as the app, light and dark. */
+:root {
+	--bg: #f3f5f4; --surface: #ffffff; --border: #e5e8e6; --text: #1e2421; --muted: #7b837f;
+	--accent: #2e9e6a; --accent-hover: #26885a; --on-accent: #ffffff; --focus: #9fcfb5; --strong: #2b312e;
+	--font: "CenturyGothic", "Century Gothic", "URW Gothic", "Questrial", "Avenir Next", "Segoe UI", sans-serif;
+	color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+	:root { --bg: #131614; --surface: #1a1e1c; --border: #2c322f; --text: #e8ecea; --muted: #8e9692;
+		--accent: #4cbb85; --accent-hover: #5fcb96; --on-accent: #0f1311; --focus: #2f6b4d; --strong: #e8ecea; color-scheme: dark; }
+}
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--bg); color: var(--text); font: 16px/1.5 var(--font); min-height: 100vh; }
+.login { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+.login-card { width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 40px 32px 32px; text-align: center; }
+.login-logo { width: 56px; height: 56px; }
+h1 { font-size: 24px; line-height: 32px; margin-top: 16px; }
+.login-lead { color: var(--muted); margin-top: 4px; font-size: 14px; }
+.sso { margin-top: 28px; display: flex; flex-direction: column; gap: 10px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 48px; padding: 0 24px; border-radius: 44px;
+	border: 1px solid var(--border); background: var(--surface); color: var(--text); font: 700 15px var(--font); text-decoration: none; cursor: pointer; width: 100%; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sso-icon { display: inline-flex; width: 20px; height: 20px; }
+.sso-icon img, .sso-icon svg { width: 20px; height: 20px; }
+.hint { color: var(--muted); font-size: 13px; }
+.note { margin-top: 28px; text-align: left; font-size: 14px; color: var(--text); background: var(--bg); border-radius: 12px; padding: 14px 16px; }
+.local { margin-top: 24px; text-align: left; display: flex; flex-direction: column; gap: 6px; }
+.local label { font-size: 13px; color: var(--muted); margin-top: 8px; }
+.local input { height: 44px; border: 1px solid var(--border); border-radius: 12px; padding: 0 14px; font: 15px var(--font); background: var(--surface); color: var(--text); }
+.local .btn { margin-top: 18px; }
+.divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+.divider::before, .divider::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
+.error { color: var(--strong); font-weight: 700; font-size: 14px; margin-top: 8px; }
+.otp-qr { width: 180px; height: 180px; align-self: center; margin: 8px 0; }
+[hidden] { display: none !important; }

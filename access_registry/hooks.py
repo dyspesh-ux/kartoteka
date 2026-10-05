@@ -13,6 +13,14 @@ after_migrate = "access_registry.install.after_migrate"
 # Sync Log retention in days; adjustable in Log Settings.
 default_log_clearing_doctypes = {"Sync Log": [180]}
 
+# own name and logo instead of the platform's (see branding.py)
+app_logo_url = "/assets/access_registry/images/registry-logo.svg"
+website_context = {
+	"favicon": "/assets/access_registry/images/registry-logo.svg",
+	"splash_image": "/assets/access_registry/images/registry-logo.svg",
+}
+boot_session = "access_registry.branding.boot_session"
+
 # desk in full width by default (wide report tables); users can still switch it off
 app_include_js = "/assets/access_registry/js/registry_desk.js"
 

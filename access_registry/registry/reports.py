@@ -359,11 +359,93 @@ def run(name: str, filters: dict) -> dict:
 				"width": cint(c.get("width")) or None,
 			}
 		)
+	raw = [r for r in result.get("result") or [] if isinstance(r, dict)]
+	hr_columns = add_hr_columns(result.get("columns") or [], columns, raw)
 	rows = []
-	for r in result.get("result") or []:
-		if isinstance(r, dict):
-			rows.append({c["key"]: _plain(r.get(c["key"])) for c in columns})
-	return {"columns": columns, "rows": rows, "message": result.get("message")}
+	for r in raw:
+		rows.append({c["key"]: _plain(r.get(c["key"])) for c in columns})
+	return {"columns": columns, "rows": rows, "message": result.get("message"), "hr_columns": hr_columns}
+
+
+# Every report about people shows where the person works: organization, department and position
+# from HR (the main place of work). The person of a row is found by a link to the employee card,
+# by the «person» field of the row, or by the account the row is about.
+HR_FIELDS = {
+	"position",
+	"position_title",
+	"department",
+	"department_title",
+	"organization",
+	"organization_title",
+}
+ACCOUNT_DOCTYPES = ("IB User", "AD Account", "B24 User")
+HR_KEYS = ("_hr_organization", "_hr_department", "_hr_position")
+NAME_KEYS = ("full_name", "employee", "person_name", "user_name", "display_name")
+
+
+def _row_persons(source_columns: list, rows: list) -> list:
+	person_col = next((c.get("fieldname") for c in source_columns if c.get("options") == "Person"), None)
+	account_cols = [
+		(c.get("fieldname"), c.get("options"))
+		for c in source_columns
+		if c.get("fieldtype") == "Link" and c.get("options") in ACCOUNT_DOCTYPES
+	]
+	persons = [r.get(person_col) if person_col else r.get("person") for r in rows]
+	for field, doctype in account_cols:
+		missing = {r.get(field) for r, p in zip(rows, persons, strict=True) if not p and r.get(field)}
+		if not missing:
+			continue
+		owner = dict(
+			frappe.get_all(
+				doctype,
+				filters={"name": ["in", list(missing)], "person": ["is", "set"]},
+				fields=["name", "person"],
+				as_list=True,
+				limit_page_length=0,
+			)
+		)
+		persons = [p or owner.get(r.get(field)) for r, p in zip(rows, persons, strict=True)]
+	return persons
+
+
+def add_hr_columns(source_columns: list, columns: list, rows: list) -> bool:
+	"""Adds «Организация», «Подразделение», «Должность» after the employee column (in place)."""
+	if not rows or any(c.get("fieldname") in HR_FIELDS for c in source_columns):
+		return False
+	persons = _row_persons(source_columns, rows)
+	if not any(persons):
+		return False
+	from access_registry.access_catalog.access_report import main_places, short_org
+
+	places = main_places([p for p in persons if p])
+	for r, p in zip(rows, persons, strict=True):
+		place = places.get(p) or {}
+		r["_hr_organization"] = short_org(place.get("organization_title")) or None
+		r["_hr_department"] = place.get("department_title")
+		r["_hr_position"] = place.get("position_title")
+	labels = {c["label"] for c in columns}
+	new = [
+		{"key": "_hr_organization", "label": _("Организация"), "type": "text", "width": 140},
+		{
+			"key": "_hr_department",
+			"label": _("Подразделение по кадрам") if _("Подразделение") in labels else _("Подразделение"),
+			"type": "text",
+			"width": 150,
+		},
+		{"key": "_hr_position", "label": _("Должность"), "type": "text", "width": 150},
+	]
+	for c in new:
+		c.update({"doctype": None, "app_link": None})
+	# after the employee column; else after the account name; else after the first column
+	employee = [
+		i
+		for i, c in enumerate(columns)
+		if c["label"] == _("Сотрудник") or c["key"] in ("full_name", "employee")
+	]
+	named = [i for i, c in enumerate(columns) if c["key"] in NAME_KEYS and c["type"] == "text"]
+	at = (employee or named or [0])[0] + 1
+	columns[at:at] = new
+	return True
 
 
 def _plain(value):
