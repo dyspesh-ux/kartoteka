@@ -157,3 +157,18 @@ dc exec backend bench --site all migrate
 - Источники: из контейнеров должны быть доступны HTTP-сервисы 1С, контроллеры домена (LDAPS 636),
   Битрикс24; NAS и n8n присылают данные на `https://<сайт>/api/method/...`.
 - Логи: `dc logs -f backend queue-long scheduler`.
+
+## 8. Если сборка падает
+
+`build.sh` перед сборкой проверяет Docker: свободное место (нужно от 15 ГБ, `MIN_FREE_GB`),
+драйвер и файловую систему хранилища, запуск внутри LXC. Пропустить проверку — `SKIP_PREFLIGHT=1`.
+
+| Ошибка | Причина | Что сделать |
+|---|---|---|
+| `git clone … fatal: update_ref failed for ref 'HEAD': … unable to create directory for '…/.git/logs/HEAD': No such file or directory` (шаг `bench init`) | Docker не может писать в своё хранилище: кончилось место или overlay2 стоит на неподходящей файловой системе | `df -h /var/lib/docker`; освободить: `docker builder prune -af`, `docker image prune -a` (старые образы реестра — `docker images access-registry`); `docker info` → `Storage Driver`, `Backing Filesystem`, `Supports d_type: true`. Хранилище Docker — на ext4 или XFS с `ftype=1`, не на ZFS/btrfs/NFS; внутри LXC (Proxmox) — включить nesting или собрать в виртуальной машине |
+| `Could not resolve host` / таймауты | нет выхода в интернет из сборки | `DOCKER_BUILD_ARGS="--network=host --build-arg HTTPS_PROXY=…"` |
+| `fatal: could not read Username` при клонировании приложения | закрытый репозиторий без токена | токен в URL в `apps.json` |
+
+Образ можно собрать и на другой машине (рабочая станция, CI) и перенести:
+`docker save access-registry:<тег> | ssh <сервер> docker load`.
+
