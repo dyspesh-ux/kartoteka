@@ -79,8 +79,22 @@ cp apps.json.example apps.json
 ```bash
 cp registry.env.example registry.env     # DB_HOST, DB_PORT, CUSTOM_TAG, имя сайта, порты
 ./compose.sh own-cert                    # или http, или letsencrypt
-docker compose -p registry -f compose.registry.generated.yaml up -d
+./dc.sh up -d
 ```
+
+Все дальнейшие команды — через **`./dc.sh`** из `deploy/docker` (можно вызывать из любого каталога
+по полному пути): он сам подставляет файл стека и имя проекта `registry`. `./dc.sh bench …` — это
+`bench` в контейнере `backend`:
+
+```bash
+./dc.sh ps                                  # состояние сервисов
+./dc.sh bench --site all migrate            # = docker compose -p registry -f compose.registry.generated.yaml exec backend bench …
+./dc.sh logs -f backend queue-long scheduler
+```
+
+Голый `docker compose …` без `-p registry -f compose.registry.generated.yaml` стек не найдёт
+(«no configuration file provided: not found»). Без обёртки можно обращаться к контейнеру по имени:
+`docker exec registry-backend-1 bench --site all migrate`.
 
 Режимы HTTPS:
 
@@ -99,15 +113,13 @@ AD и Битрикс24.
 
 ```bash
 S=registry.company.local         # то же, что FRAPPE_SITE_NAME_HEADER
-dc() { docker compose -p registry -f compose.registry.generated.yaml "$@"; }
-
-dc exec backend bench new-site $S \
+./dc.sh bench new-site $S \
     --mariadb-user-host-login-scope='<IP сервера приложения>' \
     --db-root-password '<пароль root MariaDB>' \
     --admin-password '<пароль Administrator>' \
     --install-app access_registry
-dc exec backend bench --site $S enable-scheduler
-dc exec backend bench --site $S set-config host_name "https://$S"   # ссылки в утренней сводке
+./dc.sh bench --site $S enable-scheduler
+./dc.sh bench --site $S set-config host_name "https://$S"   # ссылки в утренней сводке
 ```
 
 `--mariadb-user-host-login-scope` — с какого адреса пользователь сайта входит в MariaDB: для
@@ -116,7 +128,7 @@ dc exec backend bench --site $S set-config host_name "https://$S"   # ссылк
 пояс (System Settings) и почта (Email Account), как в [deployment.md](deployment.md#2-сайт).
 
 **Сохраните `encryption_key`** из `site_config.json` отдельно от бэкапов:
-`dc exec backend cat sites/$S/site_config.json`. Без него пароли источников не расшифровать.
+`./dc.sh exec backend cat sites/$S/site_config.json`. Без него пароли источников не расшифровать.
 
 ## 5. Обновление
 
@@ -125,9 +137,9 @@ cd kartoteka && git pull            # свежие deploy/docker и инстру
 cd deploy/docker && ./build.sh 2026-11-15
 sed -i 's/^CUSTOM_TAG=.*/CUSTOM_TAG=2026-11-15/' registry.env
 ./compose.sh own-cert
-dc exec backend bench --site all backup
-docker compose -p registry -f compose.registry.generated.yaml up -d
-dc exec backend bench --site all migrate
+./dc.sh bench --site all backup
+./dc.sh up -d
+./dc.sh bench --site all migrate
 ```
 
 Обновление всегда через новый образ: в нём собраны статические файлы приложения (например,
@@ -147,16 +159,16 @@ dc exec backend bench --site all migrate
       sh -c 'cp -u /sites/*/private/backups/* /out/'
   ```
 - **На сервере базы** — свои дампы (`mariadb-dump --single-transaction`) или снимки тома.
-- Восстановление: `dc exec backend bench --site $S restore <файл.sql.gz>` + тот же `encryption_key`.
+- Восстановление: `./dc.sh bench --site $S restore <файл.sql.gz>` + тот же `encryption_key`.
 
 ## 7. Что проверить после запуска
 
 - `https://<сайт>/registry` открывается, вход под Administrator.
-- `dc ps` — все сервисы `running`, `configurator` — `exited (0)`.
-- `dc exec backend bench --site $S doctor` — планировщик включён, воркеры видны.
+- `./dc.sh ps` — все сервисы `running`, `configurator` — `exited (0)`.
+- `./dc.sh bench --site $S doctor` — планировщик включён, воркеры видны.
 - Источники: из контейнеров должны быть доступны HTTP-сервисы 1С, контроллеры домена (LDAPS 636),
   Битрикс24; NAS и n8n присылают данные на `https://<сайт>/api/method/...`.
-- Логи: `dc logs -f backend queue-long scheduler`.
+- Логи: `./dc.sh logs -f backend queue-long scheduler`.
 
 ## 8. Если сборка падает
 

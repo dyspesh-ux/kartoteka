@@ -68,7 +68,7 @@ Client ID, секрет или Base URL, либо не стоит «Включи
 Если SSO сломался и войти нельзя, вход по паролю возвращается с сервера:
 
 ```bash
-bench --site <сайт> console          # в Docker: docker compose … exec backend bench --site <сайт> console
+bench --site <сайт> console          # в Docker: deploy/docker/dc.sh bench --site <сайт> console
 >>> frappe.db.set_single_value("System Settings", "disable_user_pass_login", 0); frappe.db.commit()
 ```
 

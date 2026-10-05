@@ -26,4 +26,4 @@ case "$MODE" in
 esac
 
 docker compose --project-name "${PROJECT:-registry}" --project-directory . --env-file "$ENV_FILE" "${files[@]}" config > compose.registry.generated.yaml
-echo "compose.registry.generated.yaml is ready. Start: docker compose -p registry -f compose.registry.generated.yaml up -d"
+echo "compose.registry.generated.yaml is ready. Start: ./dc.sh up -d (then ./dc.sh ps, ./dc.sh bench ...)"
