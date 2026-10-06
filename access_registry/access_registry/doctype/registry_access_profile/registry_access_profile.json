@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 0,
  "autoname": "field:profile_name",
- "creation": "2026-10-17 07:00:00.000000",
+ "creation": "2026-10-18 07:00:00.000000",
  "description": "Кто и какие разделы приложения /registry видит",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -17,6 +17,7 @@
   "s_equipment",
   "s_people",
   "s_personal",
+  "s_ad_approve",
   "s_access",
   "s_processes",
   "s_sources",
@@ -100,6 +101,12 @@
    "fieldname": "s_personal",
    "fieldtype": "Check",
    "label": "Персональные данные"
+  },
+  {
+   "description": "Для ИБ: одобрять или отклонять планы отключения и изменения учёток AD. Собрать план может тот, у кого «Контроль» на уровне «Работа»; одобрить свой план нельзя",
+   "fieldname": "s_ad_approve",
+   "fieldtype": "Check",
+   "label": "Одобряет план изменений AD"
   },
   {
    "description": "Каталог прав: у кого есть право",
@@ -220,7 +227,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-17 07:00:00.000000",
+ "modified": "2026-10-18 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Registry Access Profile",

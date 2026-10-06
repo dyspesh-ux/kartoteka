@@ -1,0 +1,123 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-10-18 07:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "include",
+  "action",
+  "account",
+  "sam_account_name",
+  "display_name",
+  "person",
+  "attribute",
+  "before",
+  "after",
+  "reason",
+  "object_guid",
+  "distinguished_name"
+ ],
+ "fields": [
+  {
+   "columns": 1,
+   "default": "1",
+   "description": "Снимите, чтобы исключить строку до одобрения",
+   "fieldname": "include",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "В плане"
+  },
+  {
+   "columns": 1,
+   "fieldname": "action",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Действие",
+   "options": "\nОтключить\nИзменить",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Учётка AD",
+   "options": "AD Account",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sam_account_name",
+   "fieldtype": "Data",
+   "label": "Логин",
+   "read_only": 1
+  },
+  {
+   "fieldname": "display_name",
+   "fieldtype": "Data",
+   "label": "Имя в AD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "label": "Сотрудник",
+   "options": "Person",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "attribute",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Атрибут",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "before",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Было",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "after",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Станет",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Почему",
+   "read_only": 1
+  },
+  {
+   "fieldname": "object_guid",
+   "fieldtype": "Data",
+   "label": "objectGUID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "distinguished_name",
+   "fieldtype": "Small Text",
+   "label": "DN",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-18 07:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Active Directory",
+ "name": "AD Change Plan Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

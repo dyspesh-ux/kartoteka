@@ -78,6 +78,7 @@ def bootstrap() -> dict:
 			"exceptions": a["sections"]["roles"] >= WORK,
 			"suppress": a["sections"]["control"] >= WORK,
 			"reviewer": bool(a.get("reviewer")),
+			"ad_plans": _ad_plan_rights(a)["see"],
 			"search": any(a["sections"][s] for s in ("people", "roles", "processes", "access")),
 		},
 		"layers": {
@@ -1763,6 +1764,7 @@ def _profile_dict(p) -> dict:
 		"description": p.description,
 		"sections": sections,
 		"personal": personal,
+		"ad_approve": bool(p.get("s_ad_approve")),
 		"control_lists": lists,
 		"reports": aa.profile_reports(p),
 		"systems": aa.profile_systems(p),
@@ -1860,6 +1862,7 @@ def save_profile(data) -> str:
 		else:
 			doc.set(field, 1 if value else 0)
 	doc.s_personal = cint(data.get("personal"))
+	doc.s_ad_approve = cint(data.get("ad_approve"))
 	chosen = set(data.get("systems") or [])
 	for code in aa.SYSTEMS:
 		doc.set(f"sys_{code}", int(code in chosen))
@@ -1951,6 +1954,197 @@ def equipment(days: int = 90) -> dict:
 
 	_check("equipment")
 	return board.snapshot(days)
+
+
+# --------------------------------------------------------------------------- AD change plans
+
+
+def _ad_plan_rights(a=None) -> dict:
+	"""Build: «Контроль» at the working level and AD among the systems. Decide: ИБ (profile flag, auditor
+	role or an administrator). Seeing the plans: either of them."""
+	a = a or aa.access()
+	ad = "ad" in aa.systems_of(a)
+	build = ad and a["sections"].get("control", 0) >= WORK
+	approve = bool(a.get("ad_approver"))
+	return {
+		"build": build,
+		"approve": approve,
+		"see": build or approve or (ad and a["sections"].get("control", 0) >= VIEW),
+	}
+
+
+def _require_ad_plans(right: str = "see"):
+	if not _ad_plan_rights()[right]:
+		raise frappe.PermissionError(
+			{
+				"see": _("Нет доступа к планам изменений AD"),
+				"build": _("Собирать план может тот, у кого «Контроль» на уровне «Работа» и система AD"),
+				"approve": _(
+					"Одобрять план может только ИБ (флаг «Одобряет план изменений AD» в профиле доступа)"
+				),
+			}[right]
+		)
+
+
+def _user_name(user):
+	return frappe.db.get_value("User", user, "full_name") or user if user else None
+
+
+@frappe.whitelist()
+def ad_plans() -> dict:
+	_require_ad_plans()
+	rights = _ad_plan_rights()
+	plans = frappe.get_all(
+		"AD Change Plan",
+		fields=[
+			"name",
+			"domain",
+			"status",
+			"disable_count",
+			"update_count",
+			"owner",
+			"creation",
+			"approved_by",
+			"decided_on",
+		],
+		order_by="creation desc",
+		limit=100,
+	)
+	for p in plans:
+		p.owner_name, p.approved_by_name = _user_name(p.owner), _user_name(p.approved_by)
+		p.creation, p.decided_on = str(p.creation), str(p.decided_on) if p.decided_on else None
+	return {
+		"rights": rights,
+		"plans": plans,
+		"domains": frappe.get_all(
+			"AD Domain", filters={"enabled": 1}, fields=["name", "title", "last_sync", "plan_disabled_ou"]
+		),
+	}
+
+
+@frappe.whitelist()
+def ad_plan(name: str) -> dict:
+	from access_registry.active_directory import plan as adplan
+
+	_require_ad_plans()
+	rights = _ad_plan_rights()
+	doc = frappe.get_doc("AD Change Plan", name)
+	me = frappe.session.user
+	states = adplan.states(doc) if doc.status == "Одобрен" else {}
+	names = _names({i.person for i in doc.items if i.person})
+	return {
+		"name": doc.name,
+		"domain": doc.domain,
+		"status": doc.status,
+		"owner": doc.owner,
+		"owner_name": _user_name(doc.owner),
+		"creation": str(doc.creation),
+		"data_as_of": str(doc.data_as_of) if doc.data_as_of else None,
+		"approved_by_name": _user_name(doc.approved_by),
+		"decided_on": str(doc.decided_on) if doc.decided_on else None,
+		"decision_comment": doc.decision_comment,
+		"skipped": [line for line in (doc.skipped or "").splitlines() if line.strip()],
+		"items": [
+			{
+				"name": i.name,
+				"include": i.include,
+				"action": i.action,
+				"account": i.account,
+				"sam_account_name": i.sam_account_name,
+				"display_name": i.display_name,
+				"person": i.person,
+				"full_name": names.get(i.person) or i.display_name,
+				"attribute": i.attribute,
+				"before": i.before,
+				"after": i.after,
+				"reason": i.reason,
+				"state": states.get(i.name),
+			}
+			for i in doc.items
+		],
+		"can": {
+			"edit": doc.status == "Черновик" and (rights["approve"] or (rights["build"] and doc.owner == me)),
+			"decide": doc.status == "Черновик" and rights["approve"] and doc.owner != me,
+			"own": doc.owner == me,
+			"download": doc.status == "Одобрен" and (rights["build"] or rights["approve"]),
+		},
+	}
+
+
+@frappe.whitelist(methods=["POST"])
+def create_ad_plan(domain: str) -> str:
+	from access_registry.active_directory import plan as adplan
+
+	_require_ad_plans("build")
+	try:
+		return adplan.create(domain)
+	except adplan.PlanStopped as e:
+		frappe.throw(str(e), title=_("План не собран"))
+
+
+@frappe.whitelist(methods=["POST"])
+def set_ad_plan_items(name: str, excluded=None) -> int:
+	"""Draft only: the rows unchecked are left out of the plan (and of the script)."""
+	_require_ad_plans()
+	excluded = set(frappe.parse_json(excluded) if isinstance(excluded, str) else excluded or [])
+	doc = frappe.get_doc("AD Change Plan", name)
+	rights = _ad_plan_rights()
+	if doc.status != "Черновик" or not (
+		rights["approve"] or (rights["build"] and doc.owner == frappe.session.user)
+	):
+		raise frappe.PermissionError(_("Менять состав можно только в черновике: автору плана или ИБ"))
+	for i in doc.items:
+		i.include = 0 if i.name in excluded else 1
+	_recount(doc)
+	doc.save(ignore_permissions=True)
+	return doc.disable_count + doc.update_count
+
+
+def _recount(doc):
+	doc.disable_count = sum(1 for i in doc.items if i.include and i.action == "Отключить")
+	doc.update_count = sum(1 for i in doc.items if i.include and i.action != "Отключить")
+
+
+@frappe.whitelist(methods=["POST"])
+def decide_ad_plan(name: str, decision: str, comment: str | None = None) -> str:
+	"""ИБ approves or rejects a draft; the author of the plan cannot decide on it."""
+	_require_ad_plans("approve")
+	doc = frappe.get_doc("AD Change Plan", name)
+	if doc.status != "Черновик":
+		frappe.throw(_("Решение по плану уже принято: {0}").format(doc.status))
+	if doc.owner == frappe.session.user:
+		raise frappe.PermissionError(_("Свой план одобрить нельзя: нужен второй человек"))
+	if decision not in ("Одобрен", "Отклонён"):
+		frappe.throw(_("Неизвестное решение"))
+	_recount(doc)
+	if decision == "Одобрен" and not (doc.disable_count + doc.update_count):
+		frappe.throw(_("В плане не осталось ни одного изменения"))
+	if decision == "Отклонён" and not (comment or "").strip():
+		frappe.throw(_("Напишите, почему план отклонён"))
+	doc.status = decision
+	doc.approved_by = frappe.session.user
+	doc.decided_on = now_datetime()
+	doc.decision_comment = (comment or "").strip()
+	doc.save(ignore_permissions=True)
+	return doc.status
+
+
+@frappe.whitelist()
+def download_ad_script(name: str):
+	"""The PowerShell script of an approved plan (UTF-8 with BOM for Windows PowerShell 5.1)."""
+	from access_registry.active_directory.script import render
+
+	_require_ad_plans()
+	rights = _ad_plan_rights()
+	doc = frappe.get_doc("AD Change Plan", name)
+	if doc.status != "Одобрен":
+		frappe.throw(_("Скрипт выдаётся только для одобренного плана"))
+	if not (rights["build"] or rights["approve"]):
+		raise frappe.PermissionError(_("Скачать скрипт может автор плана или ИБ"))
+	doc.add_comment("Info", _("Скрипт скачал(а) {0}").format(_user_name(frappe.session.user)))
+	frappe.response["filename"] = f"{doc.name}.ps1"
+	frappe.response["filecontent"] = "\ufeff" + render(doc, frappe.get_doc("AD Domain", doc.domain))
+	frappe.response["type"] = "download"
 
 
 # --------------------------------------------------------------------------- reports

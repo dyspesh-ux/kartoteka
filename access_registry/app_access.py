@@ -98,6 +98,7 @@ def _empty():
 		"systems": set(),
 		"all_systems": False,
 		"via": [],
+		"ad_approver": False,
 	}
 
 
@@ -175,11 +176,13 @@ def compute(user: str | None = None) -> dict:
 		sections, personal = ROLE_ACCESS["admin"]
 		_merge(result, sections, personal, via=_("администратор"))
 		result["admin"] = True
+		result["ad_approver"] = True
 		return result
 	for role, (sections, personal) in ROLE_ACCESS.items():
 		if role in roles:
 			_merge(result, sections, personal, via=_("роль «{0}»").format(role))
 	for profile in profiles_of(user):
+		result["ad_approver"] = result["ad_approver"] or bool(profile.get("s_ad_approve"))
 		sections, personal, lists = profile_access(profile)
 		_merge(
 			result,
@@ -191,6 +194,7 @@ def compute(user: str | None = None) -> dict:
 			systems=profile_systems(profile),
 		)
 	result["reviewer"] = REVIEWER in roles
+	result["ad_approver"] = result["ad_approver"] or AUDITOR in roles
 	return result
 
 

@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 0,
  "autoname": "field:domain_code",
- "creation": "2026-09-30 12:00:00.000000",
+ "creation": "2026-10-18 07:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -24,6 +24,19 @@
   "column_break_3",
   "user_search_bases",
   "group_search_bases",
+  "section_break_5",
+  "plan_disabled_ou",
+  "plan_grace_days",
+  "plan_remove_groups",
+  "plan_max_items",
+  "plan_max_disable_share",
+  "column_break_5",
+  "plan_attr_title",
+  "plan_attr_department",
+  "plan_attr_company",
+  "plan_attr_employee_number",
+  "plan_exclude",
+  "plan_protected_groups",
   "section_break_4",
   "last_sync",
   "column_break_4",
@@ -143,6 +156,87 @@
    "label": "OU групп"
   },
   {
+   "collapsible": 1,
+   "description": "Реестр сам ничего не меняет в AD: он собирает план (отключить уволенных, обновить атрибуты из ЗУП), ИБ одобряет его в приложении, администратор запускает PowerShell-скрипт. Скрипт без -Apply только показывает, что сделает",
+   "fieldname": "section_break_5",
+   "fieldtype": "Section Break",
+   "label": "План изменений AD"
+  },
+  {
+   "description": "Куда переносить отключённые учётки, например OU=Disabled,OU=Users,DC=corp,DC=example,DC=local. Пусто — не переносить",
+   "fieldname": "plan_disabled_ou",
+   "fieldtype": "Data",
+   "label": "OU для отключённых учёток"
+  },
+  {
+   "default": "1",
+   "description": "Отсчёт от даты увольнения с последнего места работы: пока у сотрудника есть хоть одно место работы (основное или совместительство), учётка не отключается",
+   "fieldname": "plan_grace_days",
+   "fieldtype": "Int",
+   "label": "Отключать через, дней после увольнения"
+  },
+  {
+   "default": "1",
+   "description": "Список групп сохраняется в скрипте отката",
+   "fieldname": "plan_remove_groups",
+   "fieldtype": "Check",
+   "label": "Снимать группы при отключении"
+  },
+  {
+   "default": "100",
+   "fieldname": "plan_max_items",
+   "fieldtype": "Int",
+   "label": "Не больше изменений в одном плане"
+  },
+  {
+   "default": "5",
+   "description": "Доля от включённых учёток сотрудников: столько увольнений сразу — скорее ошибка выгрузки ЗУП, план не собирается",
+   "fieldname": "plan_max_disable_share",
+   "fieldtype": "Float",
+   "label": "Остановить, если отключить нужно больше, %"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "plan_attr_title",
+   "fieldtype": "Check",
+   "label": "Обновлять должность (title)"
+  },
+  {
+   "default": "1",
+   "fieldname": "plan_attr_department",
+   "fieldtype": "Check",
+   "label": "Обновлять отдел (department)"
+  },
+  {
+   "default": "1",
+   "fieldname": "plan_attr_company",
+   "fieldtype": "Check",
+   "label": "Обновлять организацию (company)"
+  },
+  {
+   "default": "0",
+   "fieldname": "plan_attr_employee_number",
+   "fieldtype": "Check",
+   "label": "Обновлять табельный номер (employeeNumber)"
+  },
+  {
+   "description": "Логины (sAMAccountName) или OU (DN), по одному на строку: эти учётки в план не попадают",
+   "fieldname": "plan_exclude",
+   "fieldtype": "Small Text",
+   "label": "Не трогать"
+  },
+  {
+   "default": "Domain Admins\nEnterprise Admins\nSchema Admins\nAdministrators\nAccount Operators\nBackup Operators\nАдминистраторы домена\nАдминистраторы предприятия\nАдминистраторы схемы\nАдминистраторы",
+   "description": "Участники этих групп в план не попадают. Скрипт дополнительно пропускает учётки с adminCount=1",
+   "fieldname": "plan_protected_groups",
+   "fieldtype": "Small Text",
+   "label": "Не трогать участников групп"
+  },
+  {
    "fieldname": "section_break_4",
    "fieldtype": "Section Break",
    "label": "Последняя загрузка"
@@ -169,7 +263,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-09-30 12:00:00.000000",
+ "modified": "2026-10-18 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Active Directory",
  "name": "AD Domain",

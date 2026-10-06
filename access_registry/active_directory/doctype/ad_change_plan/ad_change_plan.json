@@ -1,0 +1,175 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:ADP-{YYYY}-{####}",
+ "creation": "2026-10-18 07:00:00.000000",
+ "description": "План изменений в AD: реестр собирает, ИБ одобряет, администратор выполняет скриптом",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "domain",
+  "status",
+  "disable_count",
+  "update_count",
+  "column_break_1",
+  "approved_by",
+  "decided_on",
+  "decision_comment",
+  "data_as_of",
+  "section_break_2",
+  "items",
+  "section_break_3",
+  "skipped"
+ ],
+ "fields": [
+  {
+   "fieldname": "domain",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Домен",
+   "options": "AD Domain",
+   "read_only": 1
+  },
+  {
+   "default": "Черновик",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Статус",
+   "options": "Черновик\nОдобрен\nОтклонён",
+   "read_only": 1
+  },
+  {
+   "fieldname": "disable_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Отключить",
+   "read_only": 1
+  },
+  {
+   "fieldname": "update_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Изменить",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Решение принял",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "decided_on",
+   "fieldtype": "Datetime",
+   "label": "Когда",
+   "read_only": 1
+  },
+  {
+   "fieldname": "decision_comment",
+   "fieldtype": "Small Text",
+   "label": "Комментарий к решению",
+   "read_only": 1
+  },
+  {
+   "description": "Последняя загрузка домена, по которой собран план",
+   "fieldname": "data_as_of",
+   "fieldtype": "Datetime",
+   "label": "Данные AD на",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Изменения"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Изменения",
+   "options": "AD Change Plan Item",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Сборка"
+  },
+  {
+   "description": "Учётки, которые реестр пропустил, и почему",
+   "fieldname": "skipped",
+   "fieldtype": "Small Text",
+   "label": "Не вошло в план",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-18 07:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Active Directory",
+ "name": "AD Change Plan",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

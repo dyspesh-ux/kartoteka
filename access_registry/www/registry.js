@@ -388,6 +388,7 @@
 		["roles", "#/roles", "Роли доступа"],
 		["flow", "#/processes", "Бизнес-процессы"],
 		["check", "#/reviews", "Пересмотр доступа", "reviews"],
+		["key", "#/ad-plans", "План изменений AD"],
 		["report", "#/reports", "Отчёты"],
 		["db", "#/sources", "Источники"],
 	];
@@ -411,7 +412,7 @@
 						<div>Реестр доступа<small>кто есть кто и у кого что</small></div></div>
 					<nav class="nav">
 						${[...NAV, ...(b.can.admin ? [["lock", "#/app-access", "Доступ к приложению"]] : [])].filter(([, href]) =>
-							href === "#/reviews" ? b.can.reviewer || b.pending_reviews || canSee("reviews") || !b.can.read : href === "#/app-access" ? b.can.admin : canSee(NAV_SECTION[href])).map(
+							href === "#/reviews" ? b.can.reviewer || b.pending_reviews || canSee("reviews") || !b.can.read : href === "#/ad-plans" ? b.can.ad_plans : href === "#/app-access" ? b.can.admin : canSee(NAV_SECTION[href])).map(
 							([ic, href, label, badge]) =>
 								`<a href="${href}" data-nav="${href}">${icon(ic)}<span>${label}</span>${badge ? `<span class="count" data-badge="${badge}" hidden></span>` : ""}</a>`
 						).join("")}
@@ -540,6 +541,8 @@
 		[/^\/reviews$/, viewReviews],
 		[/^\/review\/(.+)$/, viewReview],
 		[/^\/app-access$/, viewAppAccess],
+		[/^\/ad-plans$/, viewAdPlans],
+		[/^\/ad-plan\/(.+)$/, viewAdPlan],
 		[/^\/reports$/, viewReports],
 		[/^\/report\/(.+)$/, viewReport],
 	];
@@ -549,12 +552,12 @@
 		if (!state.boot.can.read && !path.startsWith("/review")) path = "/reviews";
 		else if (path === "/" && !canSee("overview")) path = firstPage();
 		const view = document.getElementById("view");
-		view.classList.toggle("wide", /^\/(report\/|control|people|access$|support$|equipment$)/.test(path));
+		view.classList.toggle("wide", /^\/(report\/|control|people|access$|support$|equipment$|ad-plan\/)/.test(path));
 		$app.querySelector(".shell").classList.remove("nav-open");
 		$app.querySelectorAll("[data-nav]").forEach((a) => {
 			const href = a.dataset.nav.slice(1);
 			a.classList.toggle("active", href === "/" ? path === "/" : path.startsWith(href) || (href === "/people" && path.startsWith("/person")) ||
-				(href === "/access" && path.startsWith("/entitlement")) || (href === "/roles" && path.startsWith("/role/")) || (href === "/processes" && path.startsWith("/process/")) || (href === "/reviews" && path.startsWith("/review/")) || (href === "/reports" && path.startsWith("/report/")));
+				(href === "/access" && path.startsWith("/entitlement")) || (href === "/roles" && path.startsWith("/role/")) || (href === "/processes" && path.startsWith("/process/")) || (href === "/reviews" && path.startsWith("/review/")) || (href === "/reports" && path.startsWith("/report/")) || (href === "/ad-plans" && path.startsWith("/ad-plan/")));
 		});
 		for (const [re, fn] of ROUTES) {
 			const m = path.match(re);
@@ -1123,6 +1126,126 @@
 				{ key: "date", label: "Дата", type: "date", width: 110 },
 			],
 		});
+	}
+
+	// ------------------------------------------------------------------ AD change plans (stage 1)
+
+	const PLAN_TONE = { Черновик: "t-amber", Одобрен: "t-green", Отклонён: "" };
+	const STATE_TONE = { выполнено: "t-green", "не выполнено": "t-amber", "изменено иначе": "t-red", "учётки нет в AD": "" };
+
+	async function viewAdPlans(view) {
+		const d = await api("ad_plans");
+		view.innerHTML = `
+			<div class="page-head"><div><h1>План изменений AD</h1><p>Реестр сам ничего не меняет в AD. Он собирает план: отключить уволенных
+				(когда закончились все места работы, включая совместительства) и обновить должность, отдел, организацию из ЗУП.
+				ИБ одобряет план, администратор запускает скрипт. После следующей загрузки AD видно, что выполнено.</p></div></div>
+			<div class="card card-pad steps"><ol>
+				<li><b>Собрать.</b> ${d.rights.build ? "Кнопка у домена ниже." : "Это делает ИТ (уровень «Работа» в «Контроле»)."} До одобрения лишние строки можно снять.</li>
+				<li><b>Одобрить.</b> ${d.rights.approve ? "Вы можете одобрять планы, кроме собранных вами." : "Это делает ИБ."}</li>
+				<li><b>Выполнить.</b> Скачать скрипт одобренного плана и запустить на машине с модулем ActiveDirectory: без параметров — проверка, с <code>-Apply</code> — выполнение и файл отката.</li>
+			</ol></div>
+			${d.rights.build ? block(1, "Собрать новый план", "По последней загрузке AD и ЗУП.", `<div class="card list">${d.domains
+				.map((dm) => `<div class="list-item"><div class="grow"><b>${esc(dm.title || dm.name)}</b><small>загрузка AD: ${dm.last_sync ? esc(fmtDateTime(dm.last_sync)) : "не было"}${dm.plan_disabled_ou ? ` · отключённые переносятся в ${esc(dm.plan_disabled_ou)}` : " · OU для отключённых не задана — учётки останутся на месте"}</small></div>
+					<button class="btn small primary" data-build="${esc(dm.name)}">Собрать план</button></div>`)
+				.join("") || `<div class="list-item muted">Доменов нет</div>`}</div>`) : ""}
+			${block(d.rights.build ? 2 : 1, "Планы", "Последние 100.", `<div class="card plans"></div>`)}`;
+		view.querySelectorAll("[data-build]").forEach((b) =>
+			b.addEventListener("click", async () => {
+				b.disabled = true;
+				try {
+					const name = await api("create_ad_plan", { domain: b.dataset.build }, true);
+					location.hash = `#/ad-plan/${enc(name)}`;
+				} catch (e) {
+					b.disabled = false;
+					toast(e.message);
+				}
+			})
+		);
+		table(view.querySelector(".plans"), {
+			name: "планы-ad",
+			rows: d.plans,
+			filter: d.plans.length > 10,
+			empty: "Планов ещё не было",
+			columns: [
+				{ key: "name", label: "План", render: (r) => `<a href="#/ad-plan/${enc(r.name)}">${esc(r.name)}</a>` },
+				{ key: "status", label: "Статус", render: (r) => pill(r.status, PLAN_TONE[r.status]) },
+				{ key: "domain", label: "Домен" },
+				{ key: "disable_count", label: "Отключить", type: "number" },
+				{ key: "update_count", label: "Изменить", type: "number" },
+				{ key: "owner_name", label: "Собрал" },
+				{ key: "creation", label: "Когда", type: "datetime" },
+				{ key: "approved_by_name", label: "Решение" },
+			],
+		});
+	}
+
+	async function viewAdPlan(view, name) {
+		const d = await api("ad_plan", { name });
+		const draft = d.status === "Черновик";
+		const included = d.items.filter((i) => i.include);
+		const states = included.reduce((acc, i) => (i.state ? ((acc[i.state] = (acc[i.state] || 0) + 1), acc) : acc), {});
+		const actions = [
+			d.can.edit ? `<button class="btn small save-items">Сохранить состав</button>` : "",
+			d.can.decide ? `<button class="btn small reject">Отклонить</button><button class="btn small primary approve">Одобрить</button>` : "",
+			d.can.download ? `<a class="btn small primary" href="/api/method/access_registry.registry.api.download_ad_script?name=${enc(d.name)}">${icon("download")} Скачать скрипт</a>` : "",
+		].join("");
+		view.innerHTML = `
+			<div class="crumbs"><a href="#/ad-plans">План изменений AD</a> / ${esc(d.name)}</div>
+			<div class="page-head"><div><h1>${esc(d.name)} ${pill(d.status, PLAN_TONE[d.status])}</h1>
+				<p>Домен ${esc(d.domain)} · собрал ${esc(d.owner_name)} ${esc(fmtDateTime(d.creation))} · данные AD на ${d.data_as_of ? esc(fmtDateTime(d.data_as_of)) : "—"}${
+					d.decided_on ? ` · ${d.status === "Одобрен" ? "одобрил" : "отклонил"} ${esc(d.approved_by_name)} ${esc(fmtDateTime(d.decided_on))}` : ""}</p></div>
+				<div class="mgmt-tools">${actions}</div></div>
+			${d.decision_comment ? `<div class="alert ${d.status === "Отклонён" ? "amber" : ""}">Комментарий к решению: ${esc(d.decision_comment)}</div>` : ""}
+			${draft && d.can.own ? `<div class="alert amber">План ждёт решения ИБ. Свой план одобрить нельзя — нужен второй человек.</div>` : ""}
+			${draft && d.can.decide ? `<div class="alert amber">Проверьте строки: снимите лишние, затем одобрите или отклоните план.</div>` : ""}
+			${d.status === "Одобрен" ? `<div class="alert">Запуск: <code>.\\${esc(d.name)}.ps1</code> — проверка, ничего не меняет; <code>.\\${esc(d.name)}.ps1 -Apply</code> — выполнение.
+				Рядом появятся журнал и скрипт отката. Колонка «Сейчас в AD» обновляется после загрузки AD${
+					Object.keys(states).length ? `: ${Object.entries(states).map(([k, n]) => `${k} — ${n}`).join(", ")}` : ""}.</div>` : ""}
+			${block(1, "Изменения", `Отключить: ${included.filter((i) => i.action === "Отключить").length}, изменить атрибутов: ${included.filter((i) => i.action !== "Отключить").length}${
+				d.items.length > included.length ? `, снято из плана: ${d.items.length - included.length}` : ""}.`, `<div class="card plan-items"></div>`)}
+			${d.skipped.length ? block(2, "Не вошло в план", "Эти учётки реестр не трогает — посмотрите вручную.", `<div class="card list">${d.skipped.map((x) => `<div class="list-item"><span>${esc(x)}</span></div>`).join("")}</div>`) : ""}`;
+		const columns = [
+			...(d.can.edit ? [{ key: "include", label: "В плане", width: 80, render: (r) => `<input type="checkbox" data-item="${esc(r.name)}" ${r.include ? "checked" : ""} aria-label="в плане">` }] : []),
+			{ key: "action", label: "Действие", width: 120, render: (r) => pill(r.action, r.action === "Отключить" ? "t-red" : "t-blue") + (r.include ? "" : ` <span class="muted small">снято</span>`) },
+			{ key: "full_name", label: "Сотрудник", width: 220, render: (r) => personLink(r.person, r.full_name) },
+			{ key: "sam_account_name", label: "Логин", width: 130 },
+			{ key: "attribute", label: "Атрибут", width: 120 },
+			{ key: "before", label: "Было", width: 200 },
+			{ key: "after", label: "Станет", width: 220 },
+			{ key: "reason", label: "Почему", width: 320 },
+			...(d.status === "Одобрен" ? [{ key: "state", label: "Сейчас в AD", width: 140, render: (r) => (r.include ? pill(r.state, STATE_TONE[r.state]) : "") }] : []),
+		];
+		table(view.querySelector(".plan-items"), { name: "план-ad-строки", rows: d.items, columns, resizable: true, pageSize: 500 });
+		const reload = () => viewAdPlan(view, name);
+		const excluded = () => [...view.querySelectorAll("[data-item]")].filter((x) => !x.checked).map((x) => x.dataset.item);
+		const saveItems = () => api("set_ad_plan_items", { name, excluded: JSON.stringify(excluded()) }, true);
+		view.querySelector(".save-items")?.addEventListener("click", async () => {
+			toast(`Состав сохранён: изменений ${await saveItems()}`);
+			reload();
+		});
+		view.querySelector(".approve")?.addEventListener("click", () =>
+			modal({
+				title: "Одобрить план",
+				text: "Снятые строки в план не войдут. После одобрения состав не меняется и скрипт можно скачать.",
+				fields: [{ name: "comment", label: "Комментарий (необязательно)", type: "textarea" }],
+				submit: async (v) => {
+					await saveItems();
+					await api("decide_ad_plan", { name, decision: "Одобрен", comment: v.comment }, true);
+					reload();
+				},
+			})
+		);
+		view.querySelector(".reject")?.addEventListener("click", () =>
+			modal({
+				title: "Отклонить план",
+				text: "Автор увидит причину и соберёт новый план.",
+				fields: [{ name: "comment", label: "Почему", type: "textarea", required: true }],
+				submit: async (v) => {
+					await api("decide_ad_plan", { name, decision: "Отклонён", comment: v.comment }, true);
+					reload();
+				},
+			})
+		);
 	}
 
 	function personTickets(t) {
@@ -2278,6 +2401,7 @@
 				.map(([k, t]) => `<label class="check"><input type="checkbox" data-system="${k}" ${(p.systems || []).includes(k) ? "checked" : ""}> ${esc(t)}</label>`)
 				.join("")}</div><div style="height:12px"></div>
 			<label class="check"><input type="checkbox" name="personal" ${p.personal ? "checked" : ""}> Персональные данные (даты рождения)</label>
+			<label class="check"><input type="checkbox" name="ad_approve" ${p.ad_approve ? "checked" : ""}> Одобряет план изменений AD (для ИБ)</label>
 			<div class="lists-box"><label>Списки «Контроля» <span class="muted">(ничего не отмечено — все)</span></label><div class="sec-grid">${Object.entries(d.controls)
 				.map(([k, t]) => `<label class="check"><input type="checkbox" data-list="${k}" ${p.control_lists.includes(k) ? "checked" : ""}> ${esc(t)}</label>`)
 				.join("")}</div></div>
@@ -2343,6 +2467,7 @@
 				description: form.description.value,
 				enabled: form.enabled.checked ? 1 : 0,
 				personal: form.personal.checked ? 1 : 0,
+				ad_approve: form.ad_approve.checked ? 1 : 0,
 				sections,
 				control_lists: [...form.querySelectorAll("[data-list]:checked")].map((x) => x.dataset.list),
 				reports: [...form.querySelectorAll("[data-report]:checked")].map((x) => x.dataset.report),

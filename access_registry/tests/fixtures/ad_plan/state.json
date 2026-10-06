@@ -1,0 +1,8 @@
+{ "users": {
+ "g-1": {"ObjectGUID":"g-1","SamAccountName":"ivanov","Enabled":true,"adminCount":null,"MemberOf":["CN=1C Users,OU=G,DC=sk,DC=ru","CN=VPN\\, office,OU=G,DC=sk,DC=ru"],"Description":"Бухгалтерия","DistinguishedName":"CN=Иванов\\, Иван,OU=Staff,DC=sk,DC=ru","title":"x","department":"y","company":"z","employeeNumber":"1"},
+ "g-2": {"ObjectGUID":"g-2","SamAccountName":"petrova","Enabled":true,"adminCount":null,"MemberOf":[],"Description":null,"DistinguishedName":"CN=P,OU=Staff,DC=sk,DC=ru","title":"Бухгалтер","department":"","company":"","employeeNumber":""},
+ "g-3": {"ObjectGUID":"g-3","SamAccountName":"sidorov","Enabled":true,"adminCount":null,"MemberOf":[],"Description":null,"DistinguishedName":"CN=S,OU=Staff,DC=sk,DC=ru","title":"","department":"Кто-то поменял","company":"","employeeNumber":""},
+ "g-4": {"ObjectGUID":"g-4","SamAccountName":"admin1","Enabled":true,"adminCount":1,"MemberOf":[],"Description":null,"DistinguishedName":"CN=A,OU=Staff,DC=sk,DC=ru","title":"","department":"","company":"","employeeNumber":""},
+ "g-6": {"ObjectGUID":"g-6","SamAccountName":"excluded","Enabled":true,"adminCount":null,"MemberOf":[],"Description":null,"DistinguishedName":"CN=E,OU=Staff,DC=sk,DC=ru","title":"","department":"","company":"","employeeNumber":""},
+ "g-7": {"ObjectGUID":"g-7","SamAccountName":"empty","Enabled":true,"adminCount":null,"MemberOf":[],"Description":null,"DistinguishedName":"CN=M,OU=Staff,DC=sk,DC=ru","title":"","department":"","company":null,"employeeNumber":""}
+}}
