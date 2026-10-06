@@ -518,10 +518,10 @@ dl.kv dd { margin: 0; overflow-wrap: anywhere; }
 .mtile .delta.better { color: var(--accent-text); font-weight: 700; }
 .mtile .delta.worse { color: var(--strong); font-weight: 700; }
 .mtile .spark { height: 36px; margin: 12px 0 10px; }
-.chart-card { display: flex; flex-direction: column; gap: 12px; }
+.chart-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; color: var(--text-2); }
 .chart-head b { font-size: var(--font-size-medium-maxi); color: var(--text); }
-.chart { position: relative; min-height: 150px; outline: none; border-radius: var(--radius-sm); }
+.chart { position: relative; min-height: 150px; min-width: 0; overflow: hidden; outline: none; border-radius: var(--radius-sm); }
 .chart:focus-visible { box-shadow: 0 0 0 2px var(--focus); }
 .spark, .chart { width: 100%; }
 .chart svg, .spark svg { display: block; overflow: visible; }

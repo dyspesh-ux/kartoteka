@@ -290,3 +290,103 @@ class TestSnipeITInApp(SnipeFixture):
 		self.assertEqual((card["ib"], card["ad"]), ([], []))
 		self.assertEqual(len(card["assets"]), 1)
 		self.assertTrue(all(r["system"] == "Техника" for r in api.control("unlinked")["rows"]))
+
+	def test_equipment_board(self):
+		from access_registry.it_assets import board
+		from access_registry.registry import api
+		from access_registry.tests.test_permissions import make_user
+
+		self.sync()
+		d = board.snapshot(days=365)
+		k = d["kpis"]
+		active = frappe.get_all(
+			"IT Asset",
+			filters={"missing_in_source": 0, "status_type": ["!=", "archived"]},
+			fields=["purchase_cost", "assigned_type"],
+		)
+		self.assertEqual(k["total"], len(active))
+		self.assertEqual(k["issued"], sum(1 for a in active if a.assigned_type))
+		self.assertAlmostEqual(k["cost"], sum(a.purchase_cost or 0 for a in active), places=2)
+		self.assertEqual(sum(c["total"] for c in d["categories"]), k["total"])
+		self.assertEqual(sum(a["value"] for a in d["ages"]), k["total"])
+		self.assertEqual(sum(r["count"] for r in d["departments"]), k["to_people"])
+		self.assertEqual(len(d["trend"]), 365)
+		self.assertGreaterEqual(d["movements"]["checkout"], 1)
+		at_dismissed = {r["asset_tag"] for r in d["attention"] if r["issue"] == "у неработающего сотрудника"}
+		self.assertIn("NB-0102", at_dismissed)
+		self.assertEqual(k["at_dismissed"], len(at_dismissed))
+		self.assertEqual(d["attention"][0]["tone"], "red")  # what needs a decision comes first
+
+		# the section is given by its own flag of an access profile
+		user = make_user("equipment-board@registry.test")
+		api.save_profile(
+			{"profile_name": "Техника: руководитель", "sections": {"people": 1}, "members": [user]}
+		)
+		frappe.set_user(user)
+		self.assertRaises(frappe.PermissionError, api.equipment)
+		frappe.set_user("Administrator")
+		name = frappe.db.get_value("Registry Access Profile", {"profile_name": "Техника: руководитель"})
+		api.save_profile(
+			{
+				"name": name,
+				"profile_name": "Техника: руководитель",
+				"sections": {"equipment": 1},
+				"members": [user],
+			}
+		)
+		frappe.set_user(user)
+		self.assertEqual(api.equipment(days=30)["kpis"]["total"], k["total"])
+
+	def test_other_organization(self):
+		from access_registry.it_assets import board, orgs
+		from access_registry.it_assets.reports import other_organization
+		from access_registry.registry import api
+
+		self.assertEqual(orgs.normalize_org("ООО &quot;Ромашка&quot;"), "ромашка")
+		self.assertEqual(orgs.normalize_org("Ромашка ООО"), "ромашка")
+		self.assertEqual(orgs.normalize_org("Общество с ограниченной ответственностью «Ромашка»"), "ромашка")
+		self.assertEqual(orgs.normalize_org("Ромашка Сервис, ООО"), "ромашка сервис")
+
+		self.sync()
+		matcher = orgs.OrgMatcher()
+		titles = {matcher.company(t): t for t in ("Ромашка ООО", "Ромашка Сервис ООО")}
+		self.assertEqual(len(titles), 2)
+		self.assertNotIn(None, titles)
+		# fixture: every asset is bought for «Ромашка»; holders of other organizations are reported
+		held = frappe.get_all(
+			"IT Asset",
+			filters={"missing_in_source": 0, "status_type": ["!=", "archived"], "person": ["is", "set"]},
+			fields=["name", "person", "company", "asset_tag"],
+		)
+		person_orgs = matcher.people({a.person for a in held})
+		expected = {a.asset_tag for a in held if matcher.company(a.company) not in person_orgs[a.person]}
+
+		# move one asset of a working employee to the organization they do not work in
+		working = next(a for a in held if frappe.db.get_value("Person", a.person, "status") == "Работает")
+		other_key = next(k for k in titles if k not in person_orgs[working.person])
+		frappe.db.set_value("IT Asset", working.name, "company", titles[other_key])
+		expected.add(working.asset_tag)
+		# and one to a company the HR data does not know
+		unknown = next(a for a in held if a.name != working.name)
+		frappe.db.set_value("IT Asset", unknown.name, "company", "ООО &quot;Неизвестная&quot;")
+		expected.discard(unknown.asset_tag)
+
+		columns, rows, message = other_organization({})
+		self.assertEqual({r.asset_tag for r in rows}, expected)
+		self.assertIn("Неизвестная", message)
+		row = next(r for r in rows if r.asset_tag == working.asset_tag)
+		self.assertEqual(row.company_org, matcher.title(other_key))
+
+		d = board.snapshot()
+		self.assertEqual(d["kpis"]["other_org"], len(expected))
+		self.assertEqual(sum(f["count"] for f in d["other_org"]), len(expected))
+		self.assertEqual(d["unmatched_companies"], [{"company": 'ООО "Неизвестная"', "count": 1}])
+		_cols, control = api._control_assets()
+		self.assertIn(working.name, {r.ref for r in control if r.issue.startswith("куплена на другую")})
+
+		# an unknown name mapped by hand on the server card
+		server = frappe.get_doc("Snipe-IT Server", SERVER)
+		target = frappe.db.get_value("HR Organization", {"title": titles[other_key]})
+		server.append("company_map", {"company": 'ООО "Неизвестная"', "organization": target})
+		server.save()
+		self.assertEqual(board.snapshot()["unmatched_companies"], [])

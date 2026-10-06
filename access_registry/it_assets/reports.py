@@ -120,3 +120,81 @@ def movements(filters=None):
 			"width": 140,
 		},
 	], rows
+
+
+def other_organization(filters=None):
+	"""Equipment bought for one organization and handed out to an employee of another."""
+	from access_registry.it_assets.orgs import other_org_assets
+
+	filters = frappe._dict(filters or {})
+	conditions = [
+		"a.missing_in_source = 0",
+		"ifnull(a.status_type, '') != 'archived'",
+		"ifnull(a.person, '') != ''",
+		"ifnull(a.company, '') != ''",
+	]
+	params = {}
+	if filters.get("server"):
+		conditions.append("a.server = %(server)s")
+		params["server"] = filters.server
+	assets = frappe.db.sql(
+		f"""select a.name as asset, a.asset_name, a.asset_tag, a.serial, a.category, a.company, a.person,
+			p.full_name as employee, p.status as person_status, a.assigned_name, a.last_checkout,
+			a.purchase_date, a.purchase_cost
+		from `tabIT Asset` a left join `tabPerson` p on p.name = a.person
+		where {" and ".join(conditions)}
+		order by a.company, p.full_name, a.asset_name""",
+		params,
+		as_dict=True,
+	)
+	rows, unmatched = other_org_assets(assets)
+	if filters.get("company_org"):
+		rows = [r for r in rows if r.company_org == filters.company_org]
+	message = None
+	if unmatched:
+		message = _(
+			"Не сопоставлены с организациями ЗУП компании Snipe-IT: {0}. Их техника в отчёт не попала — "
+			"укажите соответствие в карточке сервера Snipe-IT («Организации»)."
+		).format("; ".join(f"«{c}» ({n})" for c, n in sorted(unmatched.items())))
+	return (
+		[
+			{"fieldname": "asset_name", "label": _("Техника"), "fieldtype": "Data", "width": 220},
+			{"fieldname": "asset_tag", "label": _("Инв. номер"), "fieldtype": "Data", "width": 110},
+			{"fieldname": "category", "label": _("Категория"), "fieldtype": "Data", "width": 120},
+			{"fieldname": "company_org", "label": _("Куплена на"), "fieldtype": "Data", "width": 200},
+			{"fieldname": "employee", "label": _("Сотрудник"), "fieldtype": "Data", "width": 200},
+			{
+				"fieldname": "person_orgs",
+				"label": _("Организация сотрудника"),
+				"fieldtype": "Data",
+				"width": 220,
+			},
+			{
+				"fieldname": "person_status",
+				"label": _("Статус сотрудника"),
+				"fieldtype": "Data",
+				"width": 110,
+			},
+			{"fieldname": "purchase_cost", "label": _("Стоимость"), "fieldtype": "Float", "width": 100},
+			{"fieldname": "purchase_date", "label": _("Куплена"), "fieldtype": "Date", "width": 100},
+			{"fieldname": "last_checkout", "label": _("Выдана когда"), "fieldtype": "Datetime", "width": 140},
+			{"fieldname": "company", "label": _("Компания в Snipe-IT"), "fieldtype": "Data", "width": 170},
+			{"fieldname": "serial", "label": _("Серийный номер"), "fieldtype": "Data", "width": 130},
+			{
+				"fieldname": "asset",
+				"label": _("Карточка"),
+				"fieldtype": "Link",
+				"options": "IT Asset",
+				"width": 120,
+			},
+			{
+				"fieldname": "person",
+				"label": _("Карточка сотрудника"),
+				"fieldtype": "Link",
+				"options": "Person",
+				"width": 140,
+			},
+		],
+		rows,
+		message,
+	)

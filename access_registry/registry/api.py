@@ -1489,6 +1489,19 @@ def _control_assets():
 		"a.next_audit_date < %(today)s and ifnull(a.status_type, '') != 'archived'",
 		{"today": today()},
 	)
+	from access_registry.it_assets.orgs import other_org_assets
+
+	held = frappe.db.sql(
+		f"""select {ASSET_FIELDS}, a.company from `tabIT Asset` a
+			left join `tabPerson` p on p.name = a.person
+			left join `tabSnipe-IT User` u on u.name = a.assigned_user
+		where a.missing_in_source = 0 and ifnull(a.status_type, '') != 'archived'
+			and ifnull(a.person, '') != '' and ifnull(a.company, '') != ''""",
+		as_dict=True,
+	)
+	for r in other_org_assets(held)[0]:
+		r.issue = _("куплена на другую организацию: {0}").format(r.company_org)
+		rows.append(r)
 	for r in rows:
 		r.system = "Техника"
 		r.full_name = r.full_name or ""
@@ -1728,6 +1741,7 @@ PROFILE_FIELDS = {
 	"overview": "s_overview",
 	"management": "s_management",
 	"support": "s_support",
+	"equipment": "s_equipment",
 	"people": "s_people",
 	"control": "s_control",
 	"access": "s_access",
@@ -1928,6 +1942,15 @@ def support(process: str | None = None, days: int = 30) -> dict:
 
 	_check("support")
 	return helpdesk.snapshot(process, days)
+
+
+@frappe.whitelist()
+def equipment(days: int = 90) -> dict:
+	"""Equipment for the management (Snipe-IT): fleet, value, age, movements, what needs attention."""
+	from access_registry.it_assets import board
+
+	_check("equipment")
+	return board.snapshot(days)
 
 
 # --------------------------------------------------------------------------- reports

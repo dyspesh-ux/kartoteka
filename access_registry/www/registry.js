@@ -124,6 +124,7 @@
 		menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
 		chevron: '<path d="m9 6 6 6-6 6"/>',
 		check: '<rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/>',
+		box: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/>',
 		support: '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
 		external: '<path d="M14 4h6v6"/><path d="m20 4-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
 	};
@@ -380,6 +381,7 @@
 		["home", "#/", "Обзор"],
 		["chart", "#/management", "Руководству"],
 		["support", "#/support", "Техподдержка"],
+		["box", "#/equipment", "Техника"],
 		["people", "#/people", "Сотрудники"],
 		["shield", "#/control", "Контроль", "control"],
 		["key", "#/access", "Права доступа"],
@@ -390,7 +392,7 @@
 		["db", "#/sources", "Источники"],
 	];
 	// menu item → section of the app (app_access.SECTIONS)
-	const NAV_SECTION = { "#/": "overview", "#/management": "management", "#/support": "support", "#/people": "people", "#/control": "control", "#/access": "access", "#/reports": "reports",
+	const NAV_SECTION = { "#/": "overview", "#/management": "management", "#/support": "support", "#/equipment": "equipment", "#/people": "people", "#/control": "control", "#/access": "access", "#/reports": "reports",
 		"#/roles": "roles", "#/processes": "processes", "#/sources": "sources" };
 	const canSee = (section) => ((state.boot.can.sections || {})[section] || 0) > 0;
 	// systems whose data the user sees (access profiles may be limited to some of them)
@@ -524,6 +526,7 @@
 		[/^\/?$/, viewDashboard],
 		[/^\/management$/, viewManagement],
 		[/^\/support$/, viewSupport],
+		[/^\/equipment$/, viewEquipment],
 		[/^\/people$/, viewPeople],
 		[/^\/person\/(.+)$/, viewPerson],
 		[/^\/control(?:\/([a-z]+))?$/, viewControl],
@@ -546,7 +549,7 @@
 		if (!state.boot.can.read && !path.startsWith("/review")) path = "/reviews";
 		else if (path === "/" && !canSee("overview")) path = firstPage();
 		const view = document.getElementById("view");
-		view.classList.toggle("wide", /^\/(report\/|control|people|access$|support$)/.test(path));
+		view.classList.toggle("wide", /^\/(report\/|control|people|access$|support$|equipment$)/.test(path));
 		$app.querySelector(".shell").classList.remove("nav-open");
 		$app.querySelectorAll("[data-nav]").forEach((a) => {
 			const href = a.dataset.nav.slice(1);
@@ -1012,6 +1015,112 @@
 				{ key: "created_at", label: "Создана", type: "date", width: 110 },
 				{ key: "deadline", label: "Срок", width: 120, render: (r) => (r.deadline ? pill(fmtDate(r.deadline), r.overdue ? "t-red" : "") : `<span class="muted">—</span>`), csv: (r) => fmtDate(r.deadline) },
 				{ key: "age_days", label: "Ждёт, дн.", type: "number", width: 90 },
+			],
+		});
+	}
+
+	// ------------------------------------------------------------------ equipment for the management
+
+	const fmtMoney = (v) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(v || 0);
+	const EQUIPMENT_PERIODS = { 30: "30 дней", 90: "90 дней", 365: "год" };
+
+	async function viewEquipment(view) {
+		const days = +(storage("registry-equipment-days") || 90);
+		const d = await api("equipment", { days });
+		const k = d.kpis;
+		if (!k.total && !k.archived) {
+			view.innerHTML = `<div class="page-head"><div><h1>Техника</h1></div></div>
+				<div class="card empty"><b>Техники в реестре нет</b>Данные приходят из Snipe-IT: администратор подключает сервер в админке («Snipe-IT Server»).</div>`;
+			return;
+		}
+		const period = EQUIPMENT_PERIODS[d.days];
+		const share = (n) => (k.total ? Math.round((100 * n) / k.total) : 0);
+		const red = d.attention.filter((a) => a.tone === "red").length;
+		const trendMetrics = [
+			{ key: "checkout", title: "Выдачи по дням" },
+			{ key: "checkin", title: "Возвраты по дням" },
+		];
+		view.innerHTML = `
+			<div class="page-head"><div><h1>Техника</h1><p>Парк техники из Snipe-IT: сколько её, сколько стоит, у кого и в каком состоянии.
+				Данные на ${d.last_sync ? esc(fmtDateTime(d.last_sync)) : esc(fmtDateTime(d.generated))}.</p></div>
+				<div class="mgmt-tools"><div class="subnav period">${d.periods.map((p) => `<button class="chip ${p === d.days ? "on" : ""}" data-days="${p}">${EQUIPMENT_PERIODS[p]}</button>`).join("")}</div>
+				<button class="btn small refresh">${icon("refresh")} Обновить</button><button class="btn small print">Печать</button></div></div>
+			${red ? `<div class="alert red">Требуют решения: ${[k.at_dismissed && `${fmtNum(k.at_dismissed)} у неработающих сотрудников`, k.other_org && `${fmtNum(k.other_org)} куплено на другую организацию`, k.overdue_return && `${fmtNum(k.overdue_return)} с просроченным возвратом`].filter(Boolean).join(", ")}. Список — в конце страницы.</div>` : ""}
+			${block(1, "Парк", "Вся техника, кроме списанной.", `<div class="grid grid-5">
+				${kpi({ label: "Единиц техники", display: fmtNum(k.total), hint: k.archived ? `ещё списано: ${fmtNum(k.archived)}` : "" })}
+				${kpi({ label: "Стоимость парка", display: fmtMoney(k.cost), hint: "по цене покупки из Snipe-IT" })}
+				${kpi({ label: "Выдано", display: fmtNum(k.issued), hint: `${share(k.issued)}% парка · сотрудников с техникой: ${fmtNum(k.working_people)}` })}
+				${kpi({ label: "На складе", display: fmtNum(k.in_stock), hint: `${share(k.in_stock)}% · можно выдать` })}
+				${kpi({ label: "В ремонте, неисправна", display: fmtNum(k.broken), hint: `${share(k.broken)}% · нельзя выдать` })}</div>`)}
+			${block(2, "Риски и сроки", "Что требует решения или скоро потребует.", `<div class="grid grid-5">
+				${kpi({ label: "У неработающих", value: k.at_dismissed, tone: "tone-red", hint: "уволены, техника не возвращена" })}
+				${kpi({ label: "Чужая организация", value: k.other_org, tone: "tone-red", hint: k.other_org ? `на ${fmtMoney(k.other_org_cost)} · куплена на одну, сотрудник из другой` : "куплена на одну, сотрудник из другой" })}
+				${kpi({ label: "Просрочен возврат", value: k.overdue_return, tone: "tone-red", hint: "дата «вернуть до» прошла" })}
+				${kpi({ label: "Просрочен аудит", value: k.overdue_audit, tone: "tone-amber", hint: "давно не проверяли" })}
+				${kpi({ label: "Срок службы истёк", value: k.eol, tone: "tone-amber", hint: "пора планировать замену" })}
+				${kpi({ label: "Гарантия кончается", value: k.warranty_soon, tone: "tone-amber", hint: "в ближайшие 90 дней" })}</div>`)}
+			${block(3, "Состав", "По категориям и состояниям; под названием — сколько выдано, на складе и стоимость.", `<div class="grid grid-2">
+				<div class="card card-pad"><div class="group-title">По категориям</div>${bars(d.categories.map((c) => ({ label: c.category, value: c.total,
+					sub: [`выдано ${fmtNum(c.issued)}`, c.stock && `на складе ${fmtNum(c.stock)}`, c.broken && `в ремонте ${fmtNum(c.broken)}`, c.cost && fmtMoney(c.cost)].filter(Boolean).join(" · ") })))}</div>
+				<div class="card card-pad"><div class="group-title">По состоянию</div>${bars(d.statuses)}
+					<div class="group-title" style="margin-top:20px">Возраст (от даты покупки)</div>${bars(d.ages)}</div></div>`)}
+			${block(4, `Движение за ${period}`, `Выдано ${fmtNum(d.movements.checkout)}, возвращено ${fmtNum(d.movements.checkin)}. Куплено за последние 12 месяцев: ${fmtNum(k.purchased_year)} на ${fmtMoney(k.purchased_year_cost)}.`,
+				`<div class="grid grid-2">${trendMetrics.map((m, i) => `<div class="card card-pad chart-card"><div class="chart-head"><span>${esc(m.title)}</span><b>${fmtNum(d.movements[m.key])}</b></div>
+					<div class="chart" data-chart="${i}" tabindex="0"></div></div>`).join("")}</div>`)}
+			${block(5, "Чужая организация", "Техника куплена на одну организацию, а выдана сотруднику другой: кто кому должен. Сотрудник с совместительством считается своим во всех своих организациях.",
+				`${d.other_org.length ? `<div class="card eq-other"></div>` : `<div class="card empty"><b>Такой техники нет</b>Вся выданная техника куплена на организацию, где работает сотрудник.</div>`}
+				${d.unmatched_companies.length ? `<div class="alert amber" style="margin-top:12px">Не сопоставлены с организациями ЗУП компании Snipe-IT: ${d.unmatched_companies.map((c) => `«${esc(c.company)}» (${fmtNum(c.count)})`).join(", ")}.
+					Их техника здесь не проверяется — укажите соответствие в карточке сервера Snipe-IT, раздел «Организации».</div>` : ""}`,
+				canSee("reports") ? `<a class="btn small" href="#/report/${enc("IT Assets Other Organization")}">Подробный отчёт</a>` : "")}
+			${block(6, "По подразделениям", "Техника, выданная сотрудникам: по основному месту работы.", `<div class="card eq-deps"></div>`)}
+			${block(7, "Требует внимания", "Сначала то, что нужно решить сейчас.", `<div class="card eq-attention"></div>`)}`;
+		if (d.other_org.length)
+			table(view.querySelector(".eq-other"), {
+				name: "техника-чужая-организация",
+				rows: d.other_org,
+				filter: false,
+				columns: [
+					{ key: "company_org", label: "Куплена на" },
+					{ key: "person_orgs", label: "Сотрудник из" },
+					{ key: "count", label: "Единиц", type: "number" },
+					{ key: "cost", label: "Стоимость", render: (r) => fmtMoney(r.cost), csv: (r) => String(r.cost) },
+				],
+			});
+		view.querySelectorAll("[data-chart]").forEach((el) => lineChart(el, d.trend, trendMetrics[+el.dataset.chart]));
+		view.querySelectorAll("[data-days]").forEach((b) =>
+			b.addEventListener("click", () => {
+				storage("registry-equipment-days", b.dataset.days);
+				viewEquipment(view);
+			})
+		);
+		view.querySelector(".refresh").addEventListener("click", () => viewEquipment(view));
+		view.querySelector(".print").addEventListener("click", () => window.print());
+		table(view.querySelector(".eq-deps"), {
+			name: "техника-подразделения",
+			rows: d.departments,
+			pageSize: 15,
+			filter: d.departments.length > 10,
+			empty: "Техники у сотрудников нет",
+			columns: [
+				{ key: "organization", label: "Организация" },
+				{ key: "department", label: "Подразделение" },
+				{ key: "people", label: "Сотрудников с техникой", type: "number" },
+				{ key: "count", label: "Единиц", type: "number" },
+				{ key: "cost", label: "Стоимость", render: (r) => fmtMoney(r.cost), csv: (r) => String(r.cost) },
+			],
+		});
+		table(view.querySelector(".eq-attention"), {
+			name: "техника-внимание",
+			rows: d.attention,
+			resizable: true,
+			empty: "Замечаний нет",
+			columns: [
+				{ key: "issue", label: "Что", width: 230, render: (r) => `${pill(r.issue, r.tone ? `t-${r.tone}` : "")}${r.note ? `<div class="muted small">${esc(r.note)}</div>` : ""}`, csv: (r) => [r.issue, r.note].filter(Boolean).join(": ") },
+				{ key: "asset_name", label: "Техника", width: 300 },
+				{ key: "asset_tag", label: "Инв. номер", width: 110 },
+				{ key: "category", label: "Категория", width: 150 },
+				{ key: "holder", label: "У кого", width: 200, render: (r) => personLink(r.person, r.holder) },
+				{ key: "date", label: "Дата", type: "date", width: 110 },
 			],
 		});
 	}

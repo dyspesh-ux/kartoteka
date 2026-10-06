@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 0,
  "autoname": "field:profile_name",
- "creation": "2026-10-16 07:00:00.000000",
+ "creation": "2026-10-17 07:00:00.000000",
  "description": "Кто и какие разделы приложения /registry видит",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -14,6 +14,7 @@
   "s_overview",
   "s_management",
   "s_support",
+  "s_equipment",
   "s_people",
   "s_personal",
   "s_access",
@@ -81,6 +82,12 @@
    "fieldname": "s_support",
    "fieldtype": "Check",
    "label": "Техподдержка"
+  },
+  {
+   "description": "Сводка по технике из Snipe-IT: парк, стоимость, возраст, выдачи, что требует внимания",
+   "fieldname": "s_equipment",
+   "fieldtype": "Check",
+   "label": "Техника"
   },
   {
    "description": "Список и карточки сотрудников со всеми их учётками и доступами",
@@ -213,7 +220,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-16 07:00:00.000000",
+ "modified": "2026-10-17 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Registry Access Profile",
