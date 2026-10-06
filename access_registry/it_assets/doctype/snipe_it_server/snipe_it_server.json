@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 0,
  "autoname": "field:server_code",
- "creation": "2026-10-13 07:00:00.000000",
+ "creation": "2026-10-14 07:00:00.000000",
  "description": "Сервер Snipe-IT: учёт техники. Реестр только читает его через REST API",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -62,10 +62,11 @@
    "reqd": 1
   },
   {
-   "description": "Персональный ключ API пользователя Snipe-IT с правами только на просмотр (Account → Manage API Keys). Хранится зашифрованным",
+   "description": "Персональный ключ API пользователя Snipe-IT с правами только на просмотр (Account → Manage API Keys). Ключ длинный (около 1000 символов) — вставьте целиком. Хранится зашифрованным",
    "fieldname": "api_token",
    "fieldtype": "Password",
    "label": "Ключ API",
+   "length": 4000,
    "no_copy": 1
   },
   {
@@ -102,7 +103,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-13 07:00:00.000000",
+ "modified": "2026-10-14 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "IT Assets",
  "name": "Snipe-IT Server",

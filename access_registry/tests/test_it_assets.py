@@ -156,6 +156,24 @@ class TestSnipeITSync(SnipeFixture):
 		self.assertEqual(frappe.db.count("IT Asset", {"missing_in_source": 0}), 8)
 
 
+class TestSnipeITServer(FrappeTestCase):
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def test_long_api_key(self):
+		# Snipe-IT keys are JWT tokens of about a thousand characters
+		token = "eyJ" + "x" * 1200
+		frappe.get_doc(
+			{
+				"doctype": "Snipe-IT Server",
+				"server_code": "LONGKEY",
+				"base_url": "https://snipeit.example.local",
+				"api_token": token,
+			}
+		).insert()
+		self.assertEqual(frappe.get_doc("Snipe-IT Server", "LONGKEY").get_password("api_token"), token)
+
+
 class FakeResponse:
 	def __init__(self, data, status=200):
 		self.data, self.status_code, self.text = data, status, json.dumps(data)
