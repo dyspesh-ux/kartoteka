@@ -84,7 +84,10 @@
 			} catch (e) {
 				/* keep text */
 			}
-			throw new Error(String(text).replace(/<[^>]+>/g, ""));
+			// «frappe.exceptions.PermissionError: …» → «…»: the user needs the message, not the class
+			const err = new Error(String(text).replace(/<[^>]+>/g, "").replace(/^[\w.]*(Error|Exception)\s*:\s*/, "").trim() || `HTTP ${response.status}`);
+			err.status = response.status;
+			throw err;
 		}
 		return data.message;
 	}
@@ -168,9 +171,9 @@
 			case "recon":
 				return pill(v, RECON_TONE[v]);
 			case "entitlement":
-				return row.entitlement ? `<a href="#/entitlement/${enc(row.entitlement)}">${esc(v)}</a>` : esc(v);
+				return row.entitlement && canSee("access") ? `<a href="#/entitlement/${enc(row.entitlement)}">${esc(v)}</a>` : esc(v);
 			case "process":
-				return row.process ? `<a href="#/process/${enc(row.process)}">${esc(v)}</a>` : esc(v);
+				return row.process && canSee("processes") ? `<a href="#/process/${enc(row.process)}">${esc(v)}</a>` : esc(v);
 			case "ref":
 				return row.ref && DESK ? `<a href="${deskUrl(row.ref_doctype, row.ref)}" target="_blank" rel="noopener">${esc(v)}</a>` : esc(v);
 			case "datetime": {
@@ -578,7 +581,9 @@
 				try {
 					await fn(view, ...m.slice(1).map((x) => (x === undefined ? x : decodeURIComponent(x))));
 				} catch (e) {
-					view.innerHTML = `<div class="card error-box">Не удалось загрузить: ${esc(e.message)}</div>`;
+					view.innerHTML = e.status === 403
+						? `<div class="card empty"><b>Нет доступа</b>${esc(e.message)}. Доступ к разделам выдаёт администратор реестра.</div>`
+						: `<div class="card error-box">Не удалось загрузить: ${esc(e.message)}</div>`;
 				}
 				return;
 			}
@@ -1478,7 +1483,7 @@
 	const posLink = (title) => (title ? (canSee("people") ? `<a href="#/position/${enc(title)}">${esc(title)}</a>` : esc(title)) : "");
 	const depLink = (id, title) => (title ? (id && canSee("people") ? `<a href="#/department/${enc(id)}">${esc(title)}</a>` : esc(title)) : "");
 	const orgLink = (id, title) => (title ? (id && canSee("people") ? `<a href="#/organization/${enc(id)}">${esc(title)}</a>` : esc(title)) : "");
-	const roleLink = (r) => `<a href="#/role/${enc(r.name)}">${esc(r.role_name || r.name)}</a>`;
+	const roleLink = (r) => (canSee("roles") ? `<a href="#/role/${enc(r.name)}">${esc(r.role_name || r.name)}</a>` : esc(r.role_name || r.name));
 
 	const HOLDER_COLUMNS = [
 		{ key: "full_name", label: "Сотрудник", render: (r) => personLink(r.person, r.full_name) },
@@ -1522,7 +1527,7 @@
 			filter: d.access.length > 10,
 			empty: "Прав нет или они вам не открыты",
 			columns: [
-				{ key: "title", label: "Право", render: (r) => `<a href="#/entitlement/${enc(r.entitlement)}">${esc(r.title)}</a>${r.privileged ? " " + pill("привилегированное", "t-red") : ""}` },
+				{ key: "title", label: "Право", render: (r) => `${canSee("access") ? `<a href="#/entitlement/${enc(r.entitlement)}">${esc(r.title)}</a>` : esc(r.title)}${r.privileged ? " " + pill("привилегированное", "t-red") : ""}` },
 				{ key: "system", label: "Система", type: "badge" },
 				{ key: "holders", label: "У скольких", render: (r) => `${fmtNum(r.holders)} <span class="muted small">(${r.share}%)</span>`, csv: (r) => String(r.holders) },
 				{ key: "expected", label: "Из них положено по модели", type: "number" },
@@ -1934,10 +1939,10 @@
 
 	function personRoles(d) {
 		const roles = d.roles
-			.map((r) => `<a class="list-item" href="#/role/${enc(r.role)}"><span class="avatar gray">${esc(initials(r.role))}</span><div class="grow"><b>${esc(r.role)}</b><small>${esc(r.reason)}</small></div>→</a>`)
+			.map((r) => `<${canSee("roles") ? `a href="#/role/${enc(r.role)}"` : "div"} class="list-item"><span class="avatar gray">${esc(initials(r.role))}</span><div class="grow"><b>${esc(r.role)}</b><small>${esc(r.reason)}</small></div>${canSee("roles") ? "→</a>" : "</div>"}`)
 			.join("");
 		const procs = d.process_roles
-			.map((r) => `<a class="list-item" href="#/process/${enc(r.process)}"><div class="grow"><b>${esc(r.role)}</b> ${pill(r.raci, "t-blue")}<small>${esc(r.process_title)} · ${esc(r.how)}</small></div>→</a>`)
+			.map((r) => `<${canSee("processes") ? `a href="#/process/${enc(r.process)}"` : "div"} class="list-item"><div class="grow"><b>${esc(r.role)}</b> ${pill(r.raci, "t-blue")}<small>${esc(r.process_title)} · ${esc(r.how)}</small></div>${canSee("processes") ? "→</a>" : "</div>"}`)
 			.join("");
 		return `<section class="section"><div class="grid grid-2">
 			<div class="group"><h3>Роли доступа</h3><div class="card list">${roles || `<div class="empty">Ролей нет</div>`}</div></div>

@@ -207,6 +207,8 @@ def fetch_process(doc, client) -> dict:
 			)
 	else:  # stages are switched off for the process: everything
 		items = client.list_all("crm.item.list", base, key="items")
+	# an item closed between the two requests comes in both: the later answer wins
+	items = list({cint(i.get("id")): i for i in items}.values())
 	return {"type": smart_type, "fields": fields, "funnels": funnels, "codes": codes, "items": items}
 
 
@@ -274,6 +276,8 @@ class ProcessImport:
 		seen = set()
 		for raw in items:
 			row = self._row(raw, codes, options, stages, users)
+			if row["uid"] in seen:  # the same item twice in one answer
+				continue
 			seen.add(row["uid"])
 			row["src_hash"] = src_hash(row)
 			if row["uid"] not in existing:

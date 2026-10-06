@@ -209,6 +209,13 @@ class TestHelpdesk(FrappeTestCase):
 			frappe.db.get_value("B24 Smart Item", f"{self.process.name}:1", "state"), "Завершена"
 		)
 
+	def test_same_item_twice(self):
+		rows = items()
+		closed = dict(rows[1], stageId="DT1300_5:SUCCESS")  # closed while the registry was reading
+		log = self.sync(data(rows + [closed]))
+		self.assertEqual(log.status, "Успех", log.messages)
+		self.assertEqual(frappe.db.count("B24 Smart Item", {"smart_process": self.process.name}), 6)
+
 	def test_guard(self):
 		rows = [item(100 + n, "NEW", 1) for n in range(12)]
 		self.sync(data(rows))
