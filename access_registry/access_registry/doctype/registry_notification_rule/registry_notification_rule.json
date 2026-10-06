@@ -1,0 +1,202 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-10-18 09:00:00.000000",
+ "description": "Кому и что присылать: события реестра, получатели, почта или колокольчик в приложении",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "enabled",
+  "event",
+  "control_lists",
+  "column_break_1",
+  "frequency",
+  "send_hour",
+  "weekdays_only",
+  "channel_email",
+  "channel_app",
+  "section_break_2",
+  "users",
+  "column_break_2",
+  "profiles",
+  "section_break_3",
+  "last_run",
+  "last_status",
+  "column_break_3",
+  "state"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "description": "Например «ИБ: увольнения и доступы», «Главбух: техника чужой организации»",
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Название",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Действует"
+  },
+  {
+   "fieldname": "event",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Что",
+   "options": "Новые замечания в «Контроле»\nЗагрузка источника не удалась\nКадровые события\nПлан изменений AD\nТехподдержка: просроченные заявки",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.event==\"Новые замечания в «Контроле»\"",
+   "description": "Пусто — все списки, которые видит получатель",
+   "fieldname": "control_lists",
+   "fieldtype": "Table",
+   "label": "Только эти списки «Контроля»",
+   "options": "Registry Access Control List"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Сразу",
+   "description": "Сразу — проверка каждые 15 минут. Раз в день — сводкой в выбранный час",
+   "fieldname": "frequency",
+   "fieldtype": "Select",
+   "label": "Когда",
+   "options": "Сразу\nРаз в день"
+  },
+  {
+   "default": "9",
+   "depends_on": "eval:doc.frequency==\"Раз в день\"",
+   "fieldname": "send_hour",
+   "fieldtype": "Int",
+   "label": "Час отправки"
+  },
+  {
+   "default": "0",
+   "fieldname": "weekdays_only",
+   "fieldtype": "Check",
+   "label": "Только по будням"
+  },
+  {
+   "default": "1",
+   "fieldname": "channel_email",
+   "fieldtype": "Check",
+   "label": "Почтой"
+  },
+  {
+   "default": "1",
+   "fieldname": "channel_app",
+   "fieldtype": "Check",
+   "label": "В приложении (колокольчик)"
+  },
+  {
+   "description": "Каждый получает только то, что ему разрешено видеть в реестре",
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Кому"
+  },
+  {
+   "fieldname": "users",
+   "fieldtype": "Table",
+   "label": "Пользователи",
+   "options": "Registry Notification User"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "profiles",
+   "fieldtype": "Table",
+   "label": "Все участники профилей",
+   "options": "Registry Notification Profile"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Работа правила"
+  },
+  {
+   "fieldname": "last_run",
+   "fieldtype": "Datetime",
+   "label": "Последняя проверка",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Результат",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "JSON",
+   "hidden": 1,
+   "label": "Что уже известно",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-18 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Registry Notification Rule",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

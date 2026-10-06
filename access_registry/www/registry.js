@@ -118,6 +118,7 @@
 		report: '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 17v-4M12 17v-6M15 17v-2"/>',
 		db: '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
 		search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+		bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
 		moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
 		download: '<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
 		refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
@@ -411,8 +412,8 @@
 					<div class="brand"><div class="brand-mark">${icon("shield").replace("<svg", '<svg style="width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2"')}</div>
 						<div>Реестр доступа<small>кто есть кто и у кого что</small></div></div>
 					<nav class="nav">
-						${[...NAV, ...(b.can.admin ? [["lock", "#/app-access", "Доступ к приложению"]] : [])].filter(([, href]) =>
-							href === "#/reviews" ? b.can.reviewer || b.pending_reviews || canSee("reviews") || !b.can.read : href === "#/ad-plans" ? b.can.ad_plans : href === "#/app-access" ? b.can.admin : canSee(NAV_SECTION[href])).map(
+						${[...NAV, ...(b.can.admin ? [["lock", "#/app-access", "Доступ к приложению"], ["bell", "#/notifications", "Уведомления"]] : [])].filter(([, href]) =>
+							href === "#/reviews" ? b.can.reviewer || b.pending_reviews || canSee("reviews") || !b.can.read : href === "#/ad-plans" ? b.can.ad_plans : href === "#/app-access" || href === "#/notifications" ? b.can.admin : canSee(NAV_SECTION[href])).map(
 							([ic, href, label, badge]) =>
 								`<a href="${href}" data-nav="${href}">${icon(ic)}<span>${label}</span>${badge ? `<span class="count" data-badge="${badge}" hidden></span>` : ""}</a>`
 						).join("")}
@@ -435,6 +436,8 @@
 						</div>
 						<div class="top-actions">
 							${ADMIN ? `<a class="btn small admin-link" href="/app/access-registry" title="Источники, загрузки, настройки, карточки записей">${icon("external")} Админка</a>` : ""}
+							<div class="bell-wrap"><button class="icon-btn bell" title="Уведомления" aria-label="Уведомления">${icon("bell")}<span class="count" hidden></span></button>
+								<div class="bell-panel" hidden></div></div>
 							<button class="icon-btn theme" title="Тема">${icon("moon")}</button>
 						</div>
 					</header>
@@ -445,6 +448,7 @@
 		setReviewBadge(b.pending_reviews);
 		$app.querySelector(".menu-toggle").addEventListener("click", () => $app.querySelector(".shell").classList.toggle("nav-open"));
 		bindSearch();
+		bindBell();
 	}
 
 	function setReviewBadge(n) {
@@ -542,6 +546,7 @@
 		[/^\/review\/(.+)$/, viewReview],
 		[/^\/app-access$/, viewAppAccess],
 		[/^\/ad-plans$/, viewAdPlans],
+		[/^\/notifications$/, viewNotifications],
 		[/^\/ad-plan\/(.+)$/, viewAdPlan],
 		[/^\/reports$/, viewReports],
 		[/^\/report\/(.+)$/, viewReport],
@@ -1246,6 +1251,219 @@
 				},
 			})
 		);
+	}
+
+	// ------------------------------------------------------------------ notifications: the bell and the rules
+
+	function setBell(n) {
+		const badge = $app.querySelector(".bell .count");
+		if (!badge) return;
+		badge.hidden = !n;
+		badge.textContent = n > 99 ? "99+" : n;
+	}
+
+	/* links of the registry open inside the app; other http(s) links as they are; nothing else */
+	function noticeHref(link) {
+		const inApp = String(link || "").replace(/^https?:\/\/[^/]+\/registry(?=#)/, "");
+		return inApp.startsWith("#/") || /^https?:\/\//.test(inApp) ? inApp : "#/";
+	}
+
+	function bindBell() {
+		const btn = $app.querySelector(".bell");
+		const panel = $app.querySelector(".bell-panel");
+		if (!btn) return;
+		setBell(state.boot.can.unread_notices || 0);
+		const draw = async () => {
+			panel.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+			const d = await api("notices");
+			setBell(d.unread);
+			panel.innerHTML = `<div class="bell-head"><b>Уведомления</b>${d.unread ? `<button class="link-btn mark-all">Прочитать все</button>` : ""}</div>
+				${d.notices.length ? d.notices.map((n) => `<a class="notice ${n.read ? "" : "unread"}" href="${esc(noticeHref(n.link))}" data-notice="${esc(n.name)}">
+					<b>${esc(n.title)}</b>${n.body ? `<span>${esc(n.body.split("\n").slice(0, 3).join(" · "))}</span>` : ""}<small>${esc(fmtDateTime(n.creation))}</small></a>`).join("")
+					: `<div class="empty small">Уведомлений нет. Какие приходят и кому — настраивает администратор.</div>`}`;
+			panel.querySelector(".mark-all")?.addEventListener("click", async (e) => {
+				e.stopPropagation();
+				setBell(0);
+				await api("mark_notices_read", {}, true);
+				draw();
+			});
+			panel.querySelectorAll("[data-notice]").forEach((a) =>
+				a.addEventListener("click", () => {
+					panel.hidden = true;
+					api("mark_notices_read", { names: JSON.stringify([a.dataset.notice]) }, true).then(() =>
+						setBell(Math.max(0, (+$app.querySelector(".bell .count").textContent || 1) - (a.classList.contains("unread") ? 1 : 0)))
+					);
+				})
+			);
+		};
+		btn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			panel.hidden = !panel.hidden;
+			if (!panel.hidden) draw();
+		});
+		panel.addEventListener("click", (e) => e.stopPropagation());
+		document.addEventListener("click", () => (panel.hidden = true));
+	}
+
+	const EVENT_HINT = {
+		"Новые замечания в «Контроле»": "новые строки в выбранных списках «Контроля» (погашенные не считаются)",
+		"Загрузка источника не удалась": "загрузка ЗУП, прав 1С, AD, Битрикс24, папок, Snipe-IT закончилась ошибкой или остановлена предохранителем",
+		"Кадровые события": "приёмы, увольнения, переводы, отпуска по уходу из ЗУП",
+		"План изменений AD": "план ждёт одобрения (только ИБ, не автору) и решение по плану принято",
+		"Техподдержка: просроченные заявки": "заявки, у которых прошёл срок выполнения",
+	};
+
+	async function viewNotifications(view) {
+		const d = await api("notification_rules");
+		view.innerHTML = `
+			<div class="page-head"><div><h1>Уведомления</h1><p>Кому и что присылать: событие, получатели (пользователи или целые профили доступа), почта и/или колокольчик в приложении,
+				сразу или раз в день. Каждый получает только то, что ему разрешено видеть в реестре. Первая проверка правила только запоминает текущее — приходит то, что появилось после.</p></div>
+				<div class="mgmt-tools"><button class="btn small primary new-rule">Новое правило</button></div></div>
+			<div class="rules"></div>`;
+		const box = view.querySelector(".rules");
+		box.innerHTML = d.rules.length
+			? `<div class="grid grid-2">${d.rules
+					.map(
+						(r) => `<div class="card card-pad rule ${r.enabled ? "" : "off"}">
+					<div class="acct-head"><b>${esc(r.title)}</b>${r.enabled ? "" : pill("выключено", "")}<span style="margin-left:auto">${pill(r.frequency === "Раз в день" ? `раз в день, ${r.send_hour}:00` : "сразу", "")}</span></div>
+					<div class="muted small" style="margin:4px 0 10px">${esc(r.event)}${r.control_lists.length ? ": " + esc(r.control_lists.map((k) => d.controls[k]).join(", ")) : ""}</div>
+					<dl class="kv"><dt>Кому</dt><dd>${esc([...r.users.map((u) => u.full_name), ...r.profiles.map((p) => `профиль «${p}»`)].join(", ") || "никому")}</dd>
+						<dt>Как</dt><dd>${[r.channel_email && "почта", r.channel_app && "колокольчик"].filter(Boolean).join(", ")}</dd>
+						<dt>Последняя проверка</dt><dd>${r.last_run ? `${esc(fmtDateTime(r.last_run))} — ${esc(r.last_status || "")}` : "ещё не было"}</dd></dl>
+					<div class="actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+						<button class="btn small" data-edit="${esc(r.name)}">Изменить</button>
+						<button class="btn small" data-preview="${esc(r.name)}">Кто что получит</button>
+						<button class="btn small" data-run="${esc(r.name)}">Проверить сейчас</button>
+						<button class="btn small" data-delete="${esc(r.name)}">Удалить</button></div>
+					<div class="preview" data-preview-box="${esc(r.name)}" hidden></div></div>`
+					)
+					.join("")}</div>`
+			: `<div class="card empty"><b>Правил ещё нет</b>Например: «ИБ — увольнения»: кадровые события, профиль «ИБ», сразу; «ИТ — сбои загрузок»: загрузка не удалась, пользователи ИТ.</div>`;
+		const byName = Object.fromEntries(d.rules.map((r) => [r.name, r]));
+		view.querySelector(".new-rule").addEventListener("click", () => editRule(d, null, () => viewNotifications(view)));
+		box.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => editRule(d, byName[b.dataset.edit], () => viewNotifications(view))));
+		box.querySelectorAll("[data-run]").forEach((b) =>
+			b.addEventListener("click", async () => {
+				b.disabled = true;
+				toast(`Проверено: ${await api("run_notification_rule", { name: b.dataset.run }, true)}`);
+				viewNotifications(view);
+			})
+		);
+		box.querySelectorAll("[data-delete]").forEach((b) =>
+			b.addEventListener("click", async () => {
+				if (!confirm(`Удалить правило «${byName[b.dataset.delete].title}»?`)) return;
+				await api("delete_notification_rule", { name: b.dataset.delete }, true);
+				viewNotifications(view);
+			})
+		);
+		box.querySelectorAll("[data-preview]").forEach((b) =>
+			b.addEventListener("click", async () => {
+				const out = box.querySelector(`[data-preview-box="${CSS.escape(b.dataset.preview)}"]`);
+				out.hidden = !out.hidden;
+				if (out.hidden) return;
+				const rows = await api("notification_preview", { name: b.dataset.preview });
+				out.innerHTML = `<div class="group-title" style="margin-top:14px">Из того, что есть сейчас, увидели бы</div>${
+					rows.length
+						? `<div class="list">${rows.map((r) => `<div class="list-item"><div class="grow"><b>${esc(r.full_name)}</b><small>${esc(r.sample.join(" · ") || "ничего: нет прав или нет событий")}</small></div><b>${fmtNum(r.count)}</b></div>`).join("")}</div>`
+						: `<p class="muted">Получателей нет</p>`
+				}`;
+			})
+		);
+	}
+
+	function editRule(d, rule, done) {
+		const r = rule || { title: "", enabled: 1, event: d.events[0], control_lists: [], frequency: "Сразу", send_hour: 9, weekdays_only: 0, channel_email: 1, channel_app: 1, users: [], profiles: [] };
+		const users = new Map(r.users.map((u) => [u.user, u.full_name]));
+		const back = document.createElement("div");
+		back.className = "modal-back";
+		back.innerHTML = `<form class="modal wide"><h3>${rule ? "Правило уведомлений" : "Новое правило уведомлений"}</h3>
+			<label>Название</label><input name="title" value="${esc(r.title)}" required placeholder="Например: ИБ — увольнения">
+			<label>О чём</label><select class="field" name="event">${d.events.map((e) => `<option ${e === r.event ? "selected" : ""}>${esc(e)}</option>`).join("")}</select>
+			<p class="muted small event-hint" style="margin:6px 0 0"></p>
+			<div class="lists-box"><label>Списки «Контроля» <span class="muted">(ничего не отмечено — все, которые видит получатель)</span></label><div class="sec-grid">${Object.entries(d.controls)
+				.map(([k, t]) => `<label class="check"><input type="checkbox" data-list="${k}" ${r.control_lists.includes(k) ? "checked" : ""}> ${esc(t)}</label>`)
+				.join("")}</div></div>
+			<label>Когда</label><div class="sec-grid">
+				<label class="check"><input type="radio" name="frequency" value="Сразу" ${r.frequency !== "Раз в день" ? "checked" : ""}> Сразу (в течение 15 минут)</label>
+				<label class="check"><input type="radio" name="frequency" value="Раз в день" ${r.frequency === "Раз в день" ? "checked" : ""}> Раз в день в <input name="send_hour" type="number" min="0" max="23" value="${+r.send_hour || 9}" style="width:64px;display:inline-block;margin:0 6px"> ч</label>
+				<label class="check"><input type="checkbox" name="weekdays_only" ${r.weekdays_only ? "checked" : ""}> Только по будням</label></div>
+			<label>Как</label><div class="sec-grid">
+				<label class="check"><input type="checkbox" name="channel_email" ${r.channel_email ? "checked" : ""}> Почтой</label>
+				<label class="check"><input type="checkbox" name="channel_app" ${r.channel_app ? "checked" : ""}> Колокольчик в приложении</label></div>
+			<label>Профили доступа <span class="muted">(все их участники)</span></label><div class="sec-grid">${d.profiles
+				.map((p) => `<label class="check"><input type="checkbox" data-profile="${esc(p)}" ${r.profiles.includes(p) ? "checked" : ""}> ${esc(p)}</label>`)
+				.join("") || `<span class="muted small">профилей нет</span>`}</div>
+			<label>Пользователи</label><div class="tags members"></div>
+			<div style="position:relative"><input class="user-q" placeholder="Найти пользователя по имени или почте" autocomplete="off"><div class="results user-results"></div></div>
+			<label class="check"><input type="checkbox" name="enabled" ${r.enabled ? "checked" : ""}> Правило действует</label>
+			<div class="error-box" style="padding:8px 0 0;display:none"></div>
+			<div class="actions"><button type="button" class="btn cancel">Отмена</button><button class="btn primary">Сохранить</button></div></form>`;
+		document.body.appendChild(back);
+		const form = back.querySelector("form");
+		const sync = () => {
+			form.querySelector(".event-hint").textContent = EVENT_HINT[form.event.value] || "";
+			form.querySelector(".lists-box").hidden = form.event.value !== "Новые замечания в «Контроле»";
+		};
+		sync();
+		form.event.addEventListener("change", sync);
+		const drawUsers = () => {
+			form.querySelector(".members").innerHTML =
+				[...users].map(([u, n]) => `<span class="tag">${esc(n)} <a href="#" data-rm="${esc(u)}" title="Убрать">×</a></span>`).join("") || `<span class="muted small">никого</span>`;
+		};
+		drawUsers();
+		form.querySelector(".members").addEventListener("click", (e) => {
+			const rm = e.target.closest("[data-rm]");
+			if (!rm) return;
+			e.preventDefault();
+			users.delete(rm.dataset.rm);
+			drawUsers();
+		});
+		const q = form.querySelector(".user-q"), results = form.querySelector(".user-results");
+		let timer;
+		q.addEventListener("input", () => {
+			clearTimeout(timer);
+			timer = setTimeout(async () => {
+				if (q.value.trim().length < 2) return results.classList.remove("open");
+				const found = await api("find_users", { query: q.value });
+				results.innerHTML = found.map((u) => `<a class="result" data-u="${esc(u.user)}" data-n="${esc(u.full_name || u.user)}"><div><b>${esc(u.full_name || u.user)}</b><small>${esc(u.user)}</small></div></a>`).join("") || `<div class="empty">Не найдено</div>`;
+				results.classList.add("open");
+			}, 250);
+		});
+		results.addEventListener("click", (e) => {
+			const x = e.target.closest("[data-u]");
+			if (!x) return;
+			users.set(x.dataset.u, x.dataset.n);
+			q.value = "";
+			results.classList.remove("open");
+			drawUsers();
+		});
+		back.querySelector(".cancel").addEventListener("click", () => back.remove());
+		form.addEventListener("submit", async (e) => {
+			e.preventDefault();
+			const data = {
+				name: rule ? rule.name : null,
+				title: form.title.value,
+				event: form.event.value,
+				enabled: form.enabled.checked ? 1 : 0,
+				frequency: form.querySelector('[name="frequency"]:checked').value,
+				send_hour: +form.send_hour.value,
+				weekdays_only: form.weekdays_only.checked ? 1 : 0,
+				channel_email: form.channel_email.checked ? 1 : 0,
+				channel_app: form.channel_app.checked ? 1 : 0,
+				control_lists: [...form.querySelectorAll("[data-list]:checked")].map((x) => x.dataset.list),
+				profiles: [...form.querySelectorAll("[data-profile]:checked")].map((x) => x.dataset.profile),
+				users: [...users.keys()],
+			};
+			try {
+				await api("save_notification_rule", { data: JSON.stringify(data) }, true);
+				back.remove();
+				done();
+			} catch (err) {
+				const box = form.querySelector(".error-box");
+				box.style.display = "block";
+				box.textContent = err.message;
+			}
+		});
 	}
 
 	function personTickets(t) {

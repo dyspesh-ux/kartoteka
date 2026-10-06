@@ -14,7 +14,7 @@ from frappe.utils import add_days, cint, getdate, now_datetime, today
 from access_registry import app_access as aa
 from access_registry.access_catalog.access_report import main_places
 from access_registry.access_roles import engine, suppression
-from access_registry.app_access import CONTROLS, VIEW, WORK
+from access_registry.app_access import CONTROL_BY_TITLE, CONTROLS, VIEW, WORK
 from access_registry.permissions import (
 	ADMINS,
 	AUDITOR,
@@ -79,6 +79,9 @@ def bootstrap() -> dict:
 			"suppress": a["sections"]["control"] >= WORK,
 			"reviewer": bool(a.get("reviewer")),
 			"ad_plans": _ad_plan_rights(a)["see"],
+			"unread_notices": frappe.db.count(
+				"Registry Notice", {"for_user": frappe.session.user, "read": 0}
+			),
 			"search": any(a["sections"][s] for s in ("people", "roles", "processes", "access")),
 		},
 		"layers": {
@@ -2145,6 +2148,175 @@ def download_ad_script(name: str):
 	frappe.response["filename"] = f"{doc.name}.ps1"
 	frappe.response["filecontent"] = "\ufeff" + render(doc, frappe.get_doc("AD Domain", doc.domain))
 	frappe.response["type"] = "download"
+
+
+# --------------------------------------------------------------------------- notifications
+
+
+@frappe.whitelist()
+def notices() -> dict:
+	"""The bell: the latest notices of the current user."""
+	user = frappe.session.user
+	rows = frappe.get_all(
+		"Registry Notice",
+		filters={"for_user": user},
+		fields=["name", "title", "body", "link", "read", "creation"],
+		order_by="creation desc",
+		limit=30,
+	)
+	for r in rows:
+		r.creation = str(r.creation)
+	return {"notices": rows, "unread": frappe.db.count("Registry Notice", {"for_user": user, "read": 0})}
+
+
+@frappe.whitelist(methods=["POST"])
+def mark_notices_read(names=None) -> int:
+	"""Marks the user's own notices read: the given ones or all."""
+	names = frappe.parse_json(names) if isinstance(names, str) else names
+	filters = {"for_user": frappe.session.user, "read": 0}
+	if names:
+		filters["name"] = ["in", list(names)]
+	found = frappe.get_all("Registry Notice", filters=filters, pluck="name")
+	for name in found:
+		frappe.db.set_value("Registry Notice", name, "read", 1, update_modified=False)
+	return len(found)
+
+
+def digest_kinds() -> list:
+	from access_registry.access_roles.digest import KINDS
+
+	return KINDS
+
+
+def _rule_dict(r) -> dict:
+	return {
+		"name": r.name,
+		"title": r.title,
+		"enabled": r.enabled,
+		"event": r.event,
+		"control_lists": [
+			CONTROL_BY_TITLE[x.control_list] for x in r.control_lists if x.control_list in CONTROL_BY_TITLE
+		],
+		"frequency": r.frequency,
+		"send_hour": r.send_hour,
+		"weekdays_only": r.weekdays_only,
+		"channel_email": r.channel_email,
+		"channel_app": r.channel_app,
+		"users": [{"user": x.user, "full_name": x.full_name or x.user} for x in r.users],
+		"profiles": [x.profile for x in r.profiles],
+		"last_run": str(r.last_run) if r.last_run else None,
+		"last_status": r.last_status,
+	}
+
+
+@frappe.whitelist()
+def notification_rules() -> dict:
+	from access_registry import notify
+
+	require(*ADMINS)
+	return {
+		"rules": [
+			_rule_dict(frappe.get_doc("Registry Notification Rule", n))
+			for n in frappe.get_all("Registry Notification Rule", order_by="title", pluck="name")
+		],
+		"events": list(notify.COLLECTORS),
+		"controls": {k: CONTROLS[k] for k in digest_kinds()},
+		"profiles": frappe.get_all(
+			"Registry Access Profile", filters={"enabled": 1}, order_by="profile_name", pluck="name"
+		),
+	}
+
+
+@frappe.whitelist(methods=["POST"])
+def save_notification_rule(data) -> str:
+	from access_registry import notify
+
+	require(*ADMINS)
+	data = frappe.parse_json(data) if isinstance(data, str) else frappe._dict(data)
+	title = (data.get("title") or "").strip()
+	if not title:
+		frappe.throw(_("Назовите правило"))
+	if data.get("event") not in notify.COLLECTORS:
+		frappe.throw(_("Выберите, о чём уведомлять"))
+	doc = (
+		frappe.get_doc("Registry Notification Rule", data["name"])
+		if data.get("name")
+		else frappe.new_doc("Registry Notification Rule")
+	)
+	if doc.event and doc.event != data["event"]:
+		doc.state = None  # another event: start from what is there now
+	doc.update(
+		{
+			"title": title,
+			"enabled": cint(data.get("enabled", 1)),
+			"event": data["event"],
+			"frequency": "Раз в день" if data.get("frequency") == "Раз в день" else "Сразу",
+			"send_hour": min(max(cint(data.get("send_hour")), 0), 23),
+			"weekdays_only": cint(data.get("weekdays_only")),
+			"channel_email": cint(data.get("channel_email")),
+			"channel_app": cint(data.get("channel_app")),
+		}
+	)
+	if not (doc.channel_email or doc.channel_app):
+		frappe.throw(_("Выберите хотя бы один способ: почта или колокольчик"))
+	doc.set(
+		"control_lists",
+		[{"control_list": CONTROLS[k]} for k in data.get("control_lists") or [] if k in CONTROLS],
+	)
+	doc.set(
+		"users",
+		[{"user": u} for u in dict.fromkeys(data.get("users") or []) if frappe.db.exists("User", u)],
+	)
+	doc.set(
+		"profiles",
+		[
+			{"profile": p}
+			for p in dict.fromkeys(data.get("profiles") or [])
+			if frappe.db.exists("Registry Access Profile", p)
+		],
+	)
+	doc.save(ignore_permissions=True)
+	return doc.name
+
+
+@frappe.whitelist(methods=["POST"])
+def delete_notification_rule(name: str):
+	require(*ADMINS)
+	frappe.delete_doc("Registry Notification Rule", name, ignore_permissions=True)
+
+
+@frappe.whitelist()
+def notification_preview(name: str) -> list:
+	"""Who would get what of the current items (not only the new ones): to check the recipients."""
+	from access_registry import notify
+
+	require(*ADMINS)
+	rule = frappe.get_doc("Registry Notification Rule", name)
+	items = notify.COLLECTORS[rule.event](rule)
+	result = []
+	for user in notify.recipients(rule):
+		a = aa.access(user)
+		a["lists"], a["systems"] = aa.control_lists(user), aa.systems_of(a)
+		visible = [i for i in items if i.visible(user, a)]
+		result.append(
+			{
+				"user": user,
+				"full_name": _user_name(user),
+				"count": len(visible),
+				"sample": [i.text for i in visible[:5]],
+			}
+		)
+	return result
+
+
+@frappe.whitelist(methods=["POST"])
+def run_notification_rule(name: str) -> str:
+	from access_registry import notify
+
+	require(*ADMINS)
+	rule = frappe.get_doc("Registry Notification Rule", name)
+	notify.run(rule)
+	return frappe.db.get_value("Registry Notification Rule", name, "last_status")
 
 
 # --------------------------------------------------------------------------- reports
