@@ -29,6 +29,9 @@ app_include_js = "/assets/access_registry/js/registry_desk.js"
 # Scheduled Job Type by method: one method with two cron lines would keep only one of them.
 # Frappe names a Scheduled Job Type by the last two parts of the method («sync.scheduled_ad_sync»):
 # they must differ between jobs, or one job silently replaces another (test_scheduler_names).
+# Names and titles from the sources longer than a Data field (140) are shortened, not an error.
+doc_events = {"*": {"before_validate": "access_registry.fit.fit_lengths"}}
+
 scheduler_events = {
 	"cron": {
 		"*/30 7-20 * * *": ["access_registry.sync.engine.scheduled_sync_day"],
