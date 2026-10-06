@@ -151,6 +151,7 @@ DASHBOARD_LISTS = {
 	"events": "events",
 	"processes": "processes",
 	"suppressed": "journal",
+	"assets": "assets",
 }
 
 
@@ -261,12 +262,34 @@ def _dashboard() -> dict:
 			),
 		},
 		"sources": sources(),
+		"assets": _asset_counts(),
 		"_dismissed_by_system": {k: sorted(v) for k, v in dismissed_by_system.items()},
 		"_recon_by_system": {k: dict(v) for k, v in by_system_recon.items()},
 	}
 
 
-SOURCE_SYSTEM = {"Active Directory": "AD", "Битрикс24": "Битрикс24", "Общие папки Synology": "Общие папки"}
+def _asset_counts() -> dict | None:
+	"""Equipment from Snipe-IT for «Обзор» (open alerts only); None when Snipe-IT is not connected."""
+	if not frappe.db.count("Snipe-IT Server"):
+		return None
+	open_rows = suppression.split("assets", _control_assets()[1])[0]
+	issues = Counter(r["issue"] for r in open_rows)
+	return {
+		"total": frappe.db.count("IT Asset", {"missing_in_source": 0, "status_type": ["!=", "archived"]}),
+		"handed_out": frappe.db.count("IT Asset", {"missing_in_source": 0, "assigned_type": "user"}),
+		"not_working": issues[_("у неработающего")],
+		"unlinked": issues[_("выдана учётке без сотрудника")],
+		"overdue": issues[_("просрочен возврат")] + issues[_("просрочен аудит")],
+		"alerts": len(open_rows),
+	}
+
+
+SOURCE_SYSTEM = {
+	"Active Directory": "AD",
+	"Битрикс24": "Битрикс24",
+	"Общие папки Synology": "Общие папки",
+	"Техника (Snipe-IT)": "Техника",
+}
 
 
 def _source_allowed(kind: str, allowed: list) -> bool:
@@ -314,6 +337,8 @@ def _trim_systems(data: dict) -> dict:
 		if "b24" not in allowed:
 			q["b24_admins"] = 0
 		data["quality"] = q
+	if "assets" not in allowed:
+		data.pop("assets", None)
 	data["sources"] = [s for s in data.get("sources") or [] if _source_allowed(s["kind"], allowed)]
 	return data
 
@@ -393,6 +418,20 @@ def sources() -> list:
 				"last": f.last_upload,
 				"status": f.last_status,
 				"doctype": "File Server",
+			}
+		)
+	for s in frappe.get_all(
+		"Snipe-IT Server", fields=["name", "title", "enabled", "last_sync", "last_status"]
+	):
+		result.append(
+			{
+				"kind": "Техника (Snipe-IT)",
+				"name": s.name,
+				"title": s.title,
+				"enabled": s.enabled,
+				"last": s.last_sync,
+				"status": s.last_status,
+				"doctype": "Snipe-IT Server",
 			}
 		)
 	for row in result:
@@ -585,6 +624,44 @@ def person(name: str) -> dict:
 			}
 		)
 	allowed = aa.systems()
+	assets = (
+		frappe.get_all(
+			"IT Asset",
+			filters={"person": name, "missing_in_source": 0},
+			fields=[
+				"name",
+				"asset_name",
+				"asset_tag",
+				"serial",
+				"category",
+				"model",
+				"status_label",
+				"location",
+				"last_checkout",
+				"expected_checkin",
+				"assigned_name",
+			],
+			order_by="category, asset_name",
+		)
+		if "assets" in allowed
+		else []
+	)
+	for a in assets:
+		a.last_checkout = str(a.last_checkout) if a.last_checkout else None
+		a.expected_checkin = str(a.expected_checkin) if a.expected_checkin else None
+	asset_events = (
+		frappe.get_all(
+			"IT Asset Event",
+			filters={"person": name},
+			fields=["event_date", "action", "item_name", "admin_name", "note"],
+			order_by="event_date desc",
+			limit=20,
+		)
+		if "assets" in allowed
+		else []
+	)
+	for e in asset_events:
+		e.event_date = str(e.event_date) if e.event_date else None
 	ib = _accounts({"person": name, "missing_in_source": 0}) if "1c" in allowed else []
 	ad = _ad_accounts({"person": name}) if "ad" in allowed else []
 	if "b24" not in allowed:
@@ -612,6 +689,8 @@ def person(name: str) -> dict:
 		"b24": b24_users,
 		"b24_access": b24_access,
 		"shares": shares,
+		"assets": assets,
+		"asset_events": asset_events,
 		"roles": roles,
 		"process_roles": process_roles,
 		"reconciliation": aa.filter_rows(engine.reconcile({name}, model)),
@@ -1349,6 +1428,59 @@ def _control_shares():
 	], rows
 
 
+ASSET_FIELDS = """a.name as ref, 'IT Asset' as ref_doctype, a.asset_name, a.asset_tag, a.category, a.assigned_name,
+	a.person, p.full_name, p.status as person_status, a.last_checkout, a.expected_checkin, a.next_audit_date"""
+
+
+def _control_assets():
+	"""Equipment from Snipe-IT that needs attention."""
+	rows = []
+
+	def add(issue, sql, params=None):
+		for r in frappe.db.sql(
+			f"""select {ASSET_FIELDS} from `tabIT Asset` a
+				left join `tabPerson` p on p.name = a.person
+				left join `tabSnipe-IT User` u on u.name = a.assigned_user
+			where a.missing_in_source = 0 and {sql}""",
+			params or {},
+			as_dict=True,
+		):
+			r.issue = issue
+			rows.append(r)
+
+	add(_("у неработающего"), "ifnull(a.person, '') != '' and p.status != 'Работает'")
+	add(
+		_("выдана учётке без сотрудника"),
+		"a.assigned_type = 'user' and ifnull(a.person, '') = ''",
+	)
+	add(_("выдана отключённому пользователю Snipe-IT"), "a.assigned_type = 'user' and u.activated = 0")
+	add(
+		_("просрочен возврат"),
+		"a.expected_checkin < %(today)s and ifnull(a.assigned_type, '') != ''",
+		{"today": today()},
+	)
+	add(
+		_("просрочен аудит"),
+		"a.next_audit_date < %(today)s and ifnull(a.status_type, '') != 'archived'",
+		{"today": today()},
+	)
+	for r in rows:
+		r.system = "Техника"
+		r.full_name = r.full_name or ""
+		for key in ("last_checkout", "expected_checkin", "next_audit_date"):
+			r[key] = str(r[key]) if r[key] else None
+	return [
+		_column("issue", _("Замечание"), "badge"),
+		_column("asset_name", _("Техника"), "ref"),
+		_column("asset_tag", _("Инв. номер")),
+		_column("category", _("Категория")),
+		_column("full_name", _("Сотрудник"), "person"),
+		_column("assigned_name", _("Кому выдано в Snipe-IT")),
+		_column("last_checkout", _("Выдано"), "datetime"),
+		_column("expected_checkin", _("Вернуть до"), "date"),
+	], rows
+
+
 # --------------------------------------------------------------------------- search and actions
 
 
@@ -1399,6 +1531,24 @@ def search(query: str) -> list:
 					"doctype": doctype,
 					"title": a.title,
 					"subtitle": f"{link}: {a.extra or ''}" + ("" if a.person else " · не привязан"),
+				}
+			)
+	if people and aa.system_allowed("Техника"):
+		for a in frappe.db.sql(
+			"""select name, asset_name, asset_tag, serial, person from `tabIT Asset`
+			where missing_in_source = 0 and (asset_tag like %(like)s or serial like %(like)s or asset_name like %(like)s)
+			limit 5""",
+			{"like": like},
+			as_dict=True,
+		):
+			results.append(
+				{
+					"kind": "person" if a.person else "account",
+					"id": a.person or a.name,
+					"doctype": "IT Asset",
+					"title": a.asset_name,
+					"subtitle": f"Техника: {a.asset_tag or a.serial or ''}"
+					+ ("" if a.person else " · не выдана сотруднику"),
 				}
 			)
 	for r in (

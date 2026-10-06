@@ -168,6 +168,23 @@ CATALOG = [
 		],
 	),
 	(
+		"Техника",
+		[
+			(
+				"IT Assets",
+				"Техника: у кого что",
+				"Вся техника из Snipe-IT и сотрудник, которому она выдана",
+				False,
+			),
+			(
+				"IT Asset Movements",
+				"Движение техники",
+				"Выдачи, возвраты и аудиты за период",
+				False,
+			),
+		],
+	),
+	(
 		"Ролевая модель и процессы",
 		[
 			(
@@ -202,7 +219,13 @@ CATALOG = [
 	),
 ]
 # report groups that belong to one system (profiles limited to some systems see only theirs)
-GROUP_SYSTEM = {"Доступы в 1С": "1c", "Active Directory": "ad", "Битрикс24": "b24", "Общие папки": "shares"}
+GROUP_SYSTEM = {
+	"Доступы в 1С": "1c",
+	"Active Directory": "ad",
+	"Битрикс24": "b24",
+	"Общие папки": "shares",
+	"Техника": "assets",
+}
 BY_NAME = {
 	name: (group, title, text, personal) for group, items in CATALOG for name, title, text, personal in items
 }

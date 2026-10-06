@@ -1,0 +1,125 @@
+{
+ "total": 6,
+ "rows": [
+  {
+   "id": 1,
+   "name": "Иван Иванов",
+   "first_name": "Иван",
+   "last_name": "Иванов",
+   "username": "ivanov",
+   "employee_num": "",
+   "email": "ivanov@example.com",
+   "activated": true,
+   "department": {
+    "id": 1,
+    "name": "Бухгалтерия"
+   },
+   "location": null,
+   "assets_count": 1,
+   "ldap_import": true,
+   "created_at": {
+    "datetime": "2024-01-10 09:00:00"
+   }
+  },
+  {
+   "id": 2,
+   "name": "Мария Петрова",
+   "first_name": "Мария",
+   "last_name": "Петрова",
+   "username": "m.petrova",
+   "employee_num": "",
+   "email": "petrova@example.com",
+   "activated": true,
+   "department": {
+    "id": 1,
+    "name": "Бухгалтерия"
+   },
+   "location": null,
+   "assets_count": 1,
+   "ldap_import": true,
+   "created_at": {
+    "datetime": "2024-01-10 09:00:00"
+   }
+  },
+  {
+   "id": 3,
+   "name": "Фёдор Фёдоров",
+   "first_name": "Фёдор",
+   "last_name": "Фёдоров",
+   "username": "",
+   "employee_num": "RSЗП-00004",
+   "email": "",
+   "activated": true,
+   "department": {
+    "id": 1,
+    "name": "Бухгалтерия"
+   },
+   "location": null,
+   "assets_count": 1,
+   "ldap_import": false,
+   "created_at": {
+    "datetime": "2024-01-10 09:00:00"
+   }
+  },
+  {
+   "id": 4,
+   "name": "Сервис Подрядчик",
+   "first_name": "Сервис",
+   "last_name": "Подрядчик",
+   "username": "contractor",
+   "employee_num": "",
+   "email": "service@contractor.example",
+   "activated": true,
+   "department": {
+    "id": 1,
+    "name": "Бухгалтерия"
+   },
+   "location": null,
+   "assets_count": 1,
+   "ldap_import": true,
+   "created_at": {
+    "datetime": "2024-01-10 09:00:00"
+   }
+  },
+  {
+   "id": 5,
+   "name": "Елена Павловна Орлова",
+   "first_name": "Елена Павловна",
+   "last_name": "Орлова",
+   "username": "",
+   "employee_num": "",
+   "email": "",
+   "activated": true,
+   "department": {
+    "id": 1,
+    "name": "Бухгалтерия"
+   },
+   "location": null,
+   "assets_count": 0,
+   "ldap_import": false,
+   "created_at": {
+    "datetime": "2024-01-10 09:00:00"
+   }
+  },
+  {
+   "id": 6,
+   "name": "Дмитрий Новиков",
+   "first_name": "Дмитрий",
+   "last_name": "Новиков",
+   "username": "",
+   "employee_num": "",
+   "email": "",
+   "activated": true,
+   "department": {
+    "id": 1,
+    "name": "Бухгалтерия"
+   },
+   "location": null,
+   "assets_count": 1,
+   "ldap_import": false,
+   "created_at": {
+    "datetime": "2024-01-10 09:00:00"
+   }
+  }
+ ]
+}

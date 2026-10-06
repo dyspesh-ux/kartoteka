@@ -1,0 +1,131 @@
+{
+ "total": 5,
+ "rows": [
+  {
+   "id": 5001,
+   "action_type": "checkout",
+   "item": {
+    "id": 101,
+    "name": "NB-0101",
+    "type": "asset"
+   },
+   "target": {
+    "id": 1,
+    "name": "Иван Иванов",
+    "type": "user"
+   },
+   "created_at": {
+    "datetime": "2026-02-01 10:00:00",
+    "formatted": "2026-02-01 10:00:00"
+   },
+   "action_date": {
+    "datetime": "2026-02-01 10:00:00"
+   },
+   "admin": {
+    "id": 9,
+    "name": "Администратор Snipe-IT"
+   },
+   "note": "Выдан при приёме"
+  },
+  {
+   "id": 5002,
+   "action_type": "checkin from",
+   "item": {
+    "id": 107,
+    "name": "NB-0107",
+    "type": "asset"
+   },
+   "target": {
+    "id": 2,
+    "name": "Мария Петрова",
+    "type": "user"
+   },
+   "created_at": {
+    "datetime": "2026-01-15 12:00:00",
+    "formatted": "2026-01-15 12:00:00"
+   },
+   "action_date": {
+    "datetime": "2026-01-15 12:00:00"
+   },
+   "admin": {
+    "id": 9,
+    "name": "Администратор Snipe-IT"
+   },
+   "note": ""
+  },
+  {
+   "id": 5003,
+   "action_type": "audit",
+   "item": {
+    "id": 105,
+    "name": "NB-0105",
+    "type": "asset"
+   },
+   "target": null,
+   "created_at": {
+    "datetime": "2026-01-10 09:00:00",
+    "formatted": "2026-01-10 09:00:00"
+   },
+   "action_date": {
+    "datetime": "2026-01-10 09:00:00"
+   },
+   "admin": {
+    "id": 9,
+    "name": "Администратор Snipe-IT"
+   },
+   "note": ""
+  },
+  {
+   "id": 5004,
+   "action_type": "checkout",
+   "item": {
+    "id": 102,
+    "name": "NB-0102",
+    "type": "asset"
+   },
+   "target": {
+    "id": 3,
+    "name": "Фёдор Фёдоров",
+    "type": "user"
+   },
+   "created_at": {
+    "datetime": "2025-06-01 10:00:00",
+    "formatted": "2025-06-01 10:00:00"
+   },
+   "action_date": {
+    "datetime": "2025-06-01 10:00:00"
+   },
+   "admin": {
+    "id": 9,
+    "name": "Администратор Snipe-IT"
+   },
+   "note": ""
+  },
+  {
+   "id": 5005,
+   "action_type": "checkout",
+   "item": {
+    "id": 107,
+    "name": "NB-0107",
+    "type": "asset"
+   },
+   "target": {
+    "id": 2,
+    "name": "Мария Петрова",
+    "type": "user"
+   },
+   "created_at": {
+    "datetime": "2000-01-01 10:00:00",
+    "formatted": "2000-01-01 10:00:00"
+   },
+   "action_date": {
+    "datetime": "2000-01-01 10:00:00"
+   },
+   "admin": {
+    "id": 9,
+    "name": "Администратор Snipe-IT"
+   },
+   "note": "слишком давно"
+  }
+ ]
+}

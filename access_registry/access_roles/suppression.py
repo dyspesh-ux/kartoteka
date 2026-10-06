@@ -23,6 +23,17 @@ SUPPRESSIBLE = {
 	"sod": (("rule", "person"), lambda r: f"{r.get('full_name')}: {r.get('title')}"),
 	"processes": (("process_role",), lambda r: f"{r.get('process_title')}: {r.get('role_name')}"),
 	"quality": (("area", "person", "full_name"), lambda r: f"{r.get('full_name')}: {r.get('area')}"),
+	"assets": (
+		("ref", "issue"),
+		lambda r: (
+			f"{r.get('asset_tag') or ''} {r.get('asset_name') or ''}: {r.get('issue')}".strip()
+			+ (
+				f" ({r.get('full_name') or r.get('assigned_name')})"
+				if r.get("full_name") or r.get("assigned_name")
+				else ""
+			)
+		),
+	),
 	"shares": (
 		("folder", "issue", "person"),
 		lambda r: (

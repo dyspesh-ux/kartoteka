@@ -621,6 +621,9 @@
 				${kpi({ href: "#/control/sod", label: "Конфликты полномочий", value: d.sod, tone: "tone-red", hint: "права, которые нельзя совмещать" })}
 				${kpi({ href: "#/control/privileged", label: "Привилегированный доступ", value: r.privileged + d.quality.extra_roles + d.quality.b24_admins, tone: "tone-violet",
 					hint: `администраторы, роли 1С в обход профилей: ${d.quality.extra_roles}` })}
+				${d.assets ? kpi({ href: "#/control/assets", label: "Техника у неработающих", value: d.assets.not_working, tone: "tone-red",
+					hint: `выдано сотрудникам ${fmtNum(d.assets.handed_out)} из ${fmtNum(d.assets.total)}`,
+					extra: d.assets.unlinked || d.assets.overdue ? `<div class="split-line"><span>без сотрудника ${d.assets.unlinked}</span><span>просрочено ${d.assets.overdue}</span></div>` : "" }) : ""}
 			</div>`)}
 			${block(2, "Положено и есть", "Сверка ролевой модели с тем, что реально выдано в системах.", r.enabled ? `<div class="grid grid-4">
 					${kpi({ href: "#/control/excess", label: "Лишние доступы", value: r.excess + r.excess_not_working, tone: "tone-red", hint: `из них у неработающих: ${r.excess_not_working}` })}
@@ -1187,7 +1190,31 @@
 			["shares", "Общие папки", d.shares.length, risky(d.shares, () => true),
 				`<div class="group"><h3>Папки Synology, к которым есть доступ</h3>${d.shares.length ? `<div class="card shares-access"></div>` : `<div class="card empty">Доступа к общим папкам нет</div>`}</div>`],
 		];
-		const SYSTEM_OF_PANEL = { ib: "1c", ad: "ad", b24: "b24", shares: "shares" };
+		const assets = d.assets || [];
+		panels.push([
+			"assets",
+			"Техника",
+			assets.length,
+			risky(assets, () => true),
+			`<div class="group"><h3>Техника из Snipe-IT</h3>${
+				assets.length
+					? `<div class="card list">${assets
+							.map(
+								(a) => `<div class="list-item"><div class="grow"><b>${esc(a.asset_name)}</b> ${pill(a.category, "")}
+									<small>${esc([a.asset_tag && "инв. " + a.asset_tag, a.serial && "s/n " + a.serial, a.model, a.status_label].filter(Boolean).join(" · "))}</small></div>
+									<span class="muted small nowrap">${a.last_checkout ? "с " + esc(fmtDate(a.last_checkout)) : ""}${a.expected_checkin ? ` · вернуть до ${esc(fmtDate(a.expected_checkin))}` : ""}</span>
+									${DESK ? `<a class="small" href="${deskUrl("IT Asset", a.name)}" target="_blank" rel="noopener">карточка</a>` : ""}</div>`
+							)
+							.join("")}</div>`
+					: `<div class="card empty">Техники за сотрудником нет</div>`
+			}</div>` +
+				((d.asset_events || []).length
+					? `<div class="group"><h3>Выдачи и возвраты</h3><div class="card list">${d.asset_events
+							.map((e) => `<div class="list-item"><div class="grow"><b>${esc(e.action)}</b> ${esc(e.item_name || "")}<small>${esc(e.admin_name || "")}${e.note ? " · " + esc(e.note) : ""}</small></div><span class="muted small nowrap">${esc(fmtDateTime(e.event_date))}</span></div>`)
+							.join("")}</div></div>`
+					: ""),
+		]);
+		const SYSTEM_OF_PANEL = { ib: "1c", ad: "ad", b24: "b24", shares: "shares", assets: "assets" };
 		panels.splice(0, panels.length, ...panels.filter(([key]) => seesSystem(SYSTEM_OF_PANEL[key])));
 		if (!panels.length) return `<div class="card empty">Учётки этих систем вам не открыты</div>`;
 		const first = (panels.find((x) => x[3]) || panels.find((x) => x[2]) || panels[0])[0];
@@ -1286,21 +1313,22 @@
 		quality: "Данные в Битрикс24 и AD, которые не совпадают с кадрами ЗУП.",
 		events: "Необработанные кадровые события: кому после приёма или перевода выдать положенное, у кого после увольнения отключить учётки и отозвать права.",
 		shares: "Права на папках Synology: выданные напрямую людям, доступ для всех, запреты, удалённые учётки, локальные учётки NAS, доступ у неработающих.",
+		assets: "Техника из Snipe-IT: у неработающих, выдана учётке без сотрудника или отключённому пользователю, просрочен возврат или аудит.",
 		journal: "Все погашенные замечания: что, кто и когда погасил и почему, до какой даты; кто и почему вернул. Записи не удаляются.",
 	};
-	const CONTROL_ORDER = ["dismissed", "events", "sod", "excess", "privileged", "unlinked", "missing", "exceptions", "stale", "processes", "quality", "shares", "journal"];
+	const CONTROL_ORDER = ["dismissed", "events", "sod", "excess", "privileged", "unlinked", "missing", "exceptions", "stale", "processes", "quality", "shares", "assets", "journal"];
 	// lists grouped by meaning, so twelve lists do not read as one row of buttons
 	const CONTROL_GROUPS = [
 		["Закрыть срочно", ["dismissed", "events", "sod", "privileged"]],
 		["Положено и выдано", ["excess", "missing", "exceptions"]],
-		["Порядок в учётках и данных", ["unlinked", "stale", "quality", "shares", "processes"]],
+		["Порядок в учётках и данных", ["unlinked", "stale", "quality", "shares", "assets", "processes"]],
 		["Разобрано", ["journal"]],
 	];
 	const ALARM_CONTROLS = new Set(["dismissed", "sod", "excess"]);
 	const CONTROL_TITLES = {
 		dismissed: "Доступ у неработающих", unlinked: "Учётки без сотрудника", excess: "Лишние доступы", missing: "Не хватает доступов",
 		sod: "Конфликты полномочий", privileged: "Привилегированный доступ", exceptions: "Исключения и сроки", stale: "Давно не входили",
-		processes: "Риски процессов", quality: "Расхождения с кадрами", events: "Кадровые события", shares: "Общие папки", journal: "Журнал гашений",
+		processes: "Риски процессов", quality: "Расхождения с кадрами", events: "Кадровые события", shares: "Общие папки", assets: "Техника", journal: "Журнал гашений",
 	};
 
 	async function viewControl(view, kind, showSuppressed) {

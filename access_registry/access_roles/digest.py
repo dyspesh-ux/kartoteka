@@ -27,6 +27,7 @@ KINDS = [
 	"unlinked",
 	"missing",
 	"shares",
+	"assets",
 	"processes",
 	"quality",
 ]

@@ -10,6 +10,11 @@ frappe.ui.form.on("B24 Portal", {
 		frm.add_custom_button(__("Загрузить сейчас"), () =>
 			frm.call("sync_now").then((r) => r.message && frappe.show_alert({ message: r.message, indicator: "green" }))
 		);
+		frm.add_custom_button(__("Структура смарт-процессов"), () =>
+			window.open(
+				`/api/method/access_registry.bitrix24.smart_structure.download?portal=${encodeURIComponent(frm.doc.name)}`
+			)
+		);
 		const open = (label, doctype, filters) =>
 			frm.add_custom_button(label, () => frappe.set_route("List", doctype, filters), __("Открыть"));
 		open(__("Пользователи"), "B24 User", { portal: frm.doc.name });

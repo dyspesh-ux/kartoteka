@@ -1,0 +1,547 @@
+{
+ "total": 8,
+ "rows": [
+  {
+   "id": 101,
+   "name": "Ноутбук &quot;Иванов&quot;",
+   "asset_tag": "NB-0101",
+   "serial": "SN00101",
+   "model": {
+    "id": 1,
+    "name": "ThinkPad T14"
+   },
+   "category": {
+    "id": 1,
+    "name": "Ноутбуки"
+   },
+   "manufacturer": {
+    "id": 1,
+    "name": "Lenovo"
+   },
+   "status_label": {
+    "id": 1,
+    "name": "Выдан",
+    "status_type": "deployable",
+    "status_meta": "deployed"
+   },
+   "company": {
+    "id": 1,
+    "name": "ООО &quot;Ромашка&quot;"
+   },
+   "location": {
+    "id": 1,
+    "name": "Офис"
+   },
+   "rtd_location": null,
+   "assigned_to": {
+    "id": 1,
+    "username": "ivanov",
+    "name": "Иван Иванов",
+    "first_name": "Иван",
+    "last_name": "Иванов",
+    "employee_number": "",
+    "type": "user"
+   },
+   "notes": "",
+   "order_number": "",
+   "purchase_date": {
+    "date": "2024-03-01",
+    "formatted": "2024-03-01"
+   },
+   "purchase_cost": "85,000.00",
+   "warranty_expires": {
+    "date": "2027-03-01",
+    "formatted": "2027-03-01"
+   },
+   "last_audit_date": null,
+   "next_audit_date": null,
+   "expected_checkin": null,
+   "last_checkout": {
+    "datetime": "2026-02-01 10:00:00",
+    "formatted": "2026-02-01 10:00:00"
+   },
+   "updated_at": {
+    "datetime": "2026-09-20 10:00:00",
+    "formatted": "2026-09-20 10:00:00"
+   },
+   "custom_fields": {
+    "MAC": {
+     "field": "_snipeit_mac_1",
+     "value": "AA:BB:CC:00:01:01",
+     "field_format": "MAC"
+    }
+   }
+  },
+  {
+   "id": 102,
+   "name": "",
+   "asset_tag": "NB-0102",
+   "serial": "SN00102",
+   "model": {
+    "id": 1,
+    "name": "ThinkPad T14"
+   },
+   "category": {
+    "id": 1,
+    "name": "Ноутбуки"
+   },
+   "manufacturer": {
+    "id": 1,
+    "name": "Lenovo"
+   },
+   "status_label": {
+    "id": 1,
+    "name": "Выдан",
+    "status_type": "deployable",
+    "status_meta": "deployed"
+   },
+   "company": {
+    "id": 1,
+    "name": "ООО &quot;Ромашка&quot;"
+   },
+   "location": {
+    "id": 1,
+    "name": "Офис"
+   },
+   "rtd_location": null,
+   "assigned_to": {
+    "id": 3,
+    "username": "",
+    "name": "Фёдор Фёдоров",
+    "first_name": "Фёдор",
+    "last_name": "Фёдоров",
+    "employee_number": "RSЗП-00004",
+    "type": "user"
+   },
+   "notes": "",
+   "order_number": "",
+   "purchase_date": {
+    "date": "2024-03-01",
+    "formatted": "2024-03-01"
+   },
+   "purchase_cost": "85,000.00",
+   "warranty_expires": {
+    "date": "2027-03-01",
+    "formatted": "2027-03-01"
+   },
+   "last_audit_date": null,
+   "next_audit_date": null,
+   "expected_checkin": null,
+   "last_checkout": {
+    "datetime": "2025-06-01 10:00:00",
+    "formatted": "2025-06-01 10:00:00"
+   },
+   "updated_at": {
+    "datetime": "2026-09-20 10:00:00",
+    "formatted": "2026-09-20 10:00:00"
+   },
+   "custom_fields": {
+    "MAC": {
+     "field": "_snipeit_mac_1",
+     "value": "",
+     "field_format": "MAC"
+    }
+   }
+  },
+  {
+   "id": 103,
+   "name": "Телефон подрядчика",
+   "asset_tag": "PH-0103",
+   "serial": "SN00103",
+   "model": {
+    "id": 1,
+    "name": "iPhone 13"
+   },
+   "category": {
+    "id": 1,
+    "name": "Телефоны"
+   },
+   "manufacturer": {
+    "id": 1,
+    "name": "Lenovo"
+   },
+   "status_label": {
+    "id": 1,
+    "name": "Выдан",
+    "status_type": "deployable",
+    "status_meta": "deployed"
+   },
+   "company": {
+    "id": 1,
+    "name": "ООО &quot;Ромашка&quot;"
+   },
+   "location": {
+    "id": 1,
+    "name": "Офис"
+   },
+   "rtd_location": null,
+   "assigned_to": {
+    "id": 4,
+    "username": "contractor",
+    "name": "Сервис Подрядчик",
+    "first_name": "Сервис",
+    "last_name": "Подрядчик",
+    "employee_number": "",
+    "type": "user"
+   },
+   "notes": "",
+   "order_number": "",
+   "purchase_date": {
+    "date": "2024-03-01",
+    "formatted": "2024-03-01"
+   },
+   "purchase_cost": "85,000.00",
+   "warranty_expires": {
+    "date": "2027-03-01",
+    "formatted": "2027-03-01"
+   },
+   "last_audit_date": null,
+   "next_audit_date": null,
+   "expected_checkin": null,
+   "last_checkout": null,
+   "updated_at": {
+    "datetime": "2026-09-20 10:00:00",
+    "formatted": "2026-09-20 10:00:00"
+   },
+   "custom_fields": {
+    "MAC": {
+     "field": "_snipeit_mac_1",
+     "value": "",
+     "field_format": "MAC"
+    }
+   }
+  },
+  {
+   "id": 104,
+   "name": "Монитор переговорной",
+   "asset_tag": "MN-0104",
+   "serial": "SN00104",
+   "model": {
+    "id": 1,
+    "name": "ThinkPad T14"
+   },
+   "category": {
+    "id": 1,
+    "name": "Мониторы"
+   },
+   "manufacturer": {
+    "id": 1,
+    "name": "Lenovo"
+   },
+   "status_label": {
+    "id": 1,
+    "name": "Выдан",
+    "status_type": "deployable",
+    "status_meta": "deployed"
+   },
+   "company": {
+    "id": 1,
+    "name": "ООО &quot;Ромашка&quot;"
+   },
+   "location": {
+    "id": 1,
+    "name": "Офис"
+   },
+   "rtd_location": null,
+   "assigned_to": {
+    "id": 1,
+    "name": "Переговорная",
+    "type": "location"
+   },
+   "notes": "",
+   "order_number": "",
+   "purchase_date": {
+    "date": "2024-03-01",
+    "formatted": "2024-03-01"
+   },
+   "purchase_cost": "85,000.00",
+   "warranty_expires": {
+    "date": "2027-03-01",
+    "formatted": "2027-03-01"
+   },
+   "last_audit_date": null,
+   "next_audit_date": null,
+   "expected_checkin": null,
+   "last_checkout": null,
+   "updated_at": {
+    "datetime": "2026-09-20 10:00:00",
+    "formatted": "2026-09-20 10:00:00"
+   },
+   "custom_fields": {
+    "MAC": {
+     "field": "_snipeit_mac_1",
+     "value": "",
+     "field_format": "MAC"
+    }
+   }
+  },
+  {
+   "id": 105,
+   "name": "Резервный ноутбук",
+   "asset_tag": "NB-0105",
+   "serial": "SN00105",
+   "model": {
+    "id": 1,
+    "name": "ThinkPad T14"
+   },
+   "category": {
+    "id": 1,
+    "name": "Ноутбуки"
+   },
+   "manufacturer": {
+    "id": 1,
+    "name": "Lenovo"
+   },
+   "status_label": {
+    "id": 1,
+    "name": "Готов к выдаче",
+    "status_type": "deployable",
+    "status_meta": "deployable"
+   },
+   "company": {
+    "id": 1,
+    "name": "ООО &quot;Ромашка&quot;"
+   },
+   "location": {
+    "id": 1,
+    "name": "Офис"
+   },
+   "rtd_location": null,
+   "assigned_to": null,
+   "notes": "",
+   "order_number": "",
+   "purchase_date": {
+    "date": "2024-03-01",
+    "formatted": "2024-03-01"
+   },
+   "purchase_cost": "85,000.00",
+   "warranty_expires": {
+    "date": "2027-03-01",
+    "formatted": "2027-03-01"
+   },
+   "last_audit_date": null,
+   "next_audit_date": {
+    "date": "2025-01-01",
+    "formatted": "2025-01-01"
+   },
+   "expected_checkin": null,
+   "last_checkout": null,
+   "updated_at": {
+    "datetime": "2026-09-20 10:00:00",
+    "formatted": "2026-09-20 10:00:00"
+   },
+   "custom_fields": {
+    "MAC": {
+     "field": "_snipeit_mac_1",
+     "value": "",
+     "field_format": "MAC"
+    }
+   }
+  },
+  {
+   "id": 106,
+   "name": "Ноутбук на подмену",
+   "asset_tag": "NB-0106",
+   "serial": "SN00106",
+   "model": {
+    "id": 1,
+    "name": "ThinkPad T14"
+   },
+   "category": {
+    "id": 1,
+    "name": "Ноутбуки"
+   },
+   "manufacturer": {
+    "id": 1,
+    "name": "Lenovo"
+   },
+   "status_label": {
+    "id": 1,
+    "name": "Выдан",
+    "status_type": "deployable",
+    "status_meta": "deployed"
+   },
+   "company": {
+    "id": 1,
+    "name": "ООО &quot;Ромашка&quot;"
+   },
+   "location": {
+    "id": 1,
+    "name": "Офис"
+   },
+   "rtd_location": null,
+   "assigned_to": {
+    "id": 2,
+    "username": "m.petrova",
+    "name": "Мария Петрова",
+    "first_name": "Мария",
+    "last_name": "Петрова",
+    "employee_number": "",
+    "type": "user"
+   },
+   "notes": "",
+   "order_number": "",
+   "purchase_date": {
+    "date": "2024-03-01",
+    "formatted": "2024-03-01"
+   },
+   "purchase_cost": "85,000.00",
+   "warranty_expires": {
+    "date": "2027-03-01",
+    "formatted": "2027-03-01"
+   },
+   "last_audit_date": null,
+   "next_audit_date": null,
+   "expected_checkin": {
+    "date": "2025-12-01",
+    "formatted": "2025-12-01"
+   },
+   "last_checkout": {
+    "datetime": "2025-11-01 09:00:00",
+    "formatted": "2025-11-01 09:00:00"
+   },
+   "updated_at": {
+    "datetime": "2026-09-20 10:00:00",
+    "formatted": "2026-09-20 10:00:00"
+   },
+   "custom_fields": {
+    "MAC": {
+     "field": "_snipeit_mac_1",
+     "value": "",
+     "field_format": "MAC"
+    }
+   }
+  },
+  {
+   "id": 107,
+   "name": "Старый ноутбук",
+   "asset_tag": "NB-0107",
+   "serial": "SN00107",
+   "model": {
+    "id": 1,
+    "name": "ThinkPad T14"
+   },
+   "category": {
+    "id": 1,
+    "name": "Ноутбуки"
+   },
+   "manufacturer": {
+    "id": 1,
+    "name": "Lenovo"
+   },
+   "status_label": {
+    "id": 1,
+    "name": "Списан",
+    "status_type": "archived",
+    "status_meta": "archived"
+   },
+   "company": {
+    "id": 1,
+    "name": "ООО &quot;Ромашка&quot;"
+   },
+   "location": {
+    "id": 1,
+    "name": "Офис"
+   },
+   "rtd_location": null,
+   "assigned_to": null,
+   "notes": "",
+   "order_number": "",
+   "purchase_date": {
+    "date": "2024-03-01",
+    "formatted": "2024-03-01"
+   },
+   "purchase_cost": "85,000.00",
+   "warranty_expires": {
+    "date": "2027-03-01",
+    "formatted": "2027-03-01"
+   },
+   "last_audit_date": null,
+   "next_audit_date": null,
+   "expected_checkin": null,
+   "last_checkout": null,
+   "updated_at": {
+    "datetime": "2026-09-20 10:00:00",
+    "formatted": "2026-09-20 10:00:00"
+   },
+   "custom_fields": {
+    "MAC": {
+     "field": "_snipeit_mac_1",
+     "value": "",
+     "field_format": "MAC"
+    }
+   }
+  },
+  {
+   "id": 108,
+   "name": "Ноутбук Новикова",
+   "asset_tag": "NB-0108",
+   "serial": "SN00108",
+   "model": {
+    "id": 1,
+    "name": "ThinkPad T14"
+   },
+   "category": {
+    "id": 1,
+    "name": "Ноутбуки"
+   },
+   "manufacturer": {
+    "id": 1,
+    "name": "Lenovo"
+   },
+   "status_label": {
+    "id": 1,
+    "name": "Выдан",
+    "status_type": "deployable",
+    "status_meta": "deployed"
+   },
+   "company": {
+    "id": 1,
+    "name": "ООО &quot;Ромашка&quot;"
+   },
+   "location": {
+    "id": 1,
+    "name": "Офис"
+   },
+   "rtd_location": null,
+   "assigned_to": {
+    "id": 6,
+    "username": "",
+    "name": "Дмитрий Новиков",
+    "first_name": "Дмитрий",
+    "last_name": "Новиков",
+    "employee_number": "",
+    "type": "user"
+   },
+   "notes": "",
+   "order_number": "",
+   "purchase_date": {
+    "date": "2024-03-01",
+    "formatted": "2024-03-01"
+   },
+   "purchase_cost": "85,000.00",
+   "warranty_expires": {
+    "date": "2027-03-01",
+    "formatted": "2027-03-01"
+   },
+   "last_audit_date": null,
+   "next_audit_date": null,
+   "expected_checkin": null,
+   "last_checkout": {
+    "datetime": "2024-05-01 09:00:00",
+    "formatted": "2024-05-01 09:00:00"
+   },
+   "updated_at": {
+    "datetime": "2026-09-20 10:00:00",
+    "formatted": "2026-09-20 10:00:00"
+   },
+   "custom_fields": {
+    "MAC": {
+     "field": "_snipeit_mac_1",
+     "value": "",
+     "field_format": "MAC"
+    }
+   }
+  }
+ ]
+}

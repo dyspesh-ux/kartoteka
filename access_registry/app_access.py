@@ -47,12 +47,19 @@ CONTROLS = {
 	"quality": "Расхождения данных",
 	"events": "Кадровые события: что сделать",
 	"shares": "Общие папки: замечания",
+	"assets": "Техника: замечания",
 	"journal": "Журнал гашений",
 }
 CONTROL_BY_TITLE = {title: code for code, title in CONTROLS.items()}
 
 # systems whose data a profile may be limited to (accounts, rights, alerts, reports); none — all
-SYSTEMS = {"1c": "1С", "ad": "Active Directory", "b24": "Битрикс24", "shares": "Общие папки"}
+SYSTEMS = {
+	"1c": "1С",
+	"ad": "Active Directory",
+	"b24": "Битрикс24",
+	"shares": "Общие папки",
+	"assets": "Техника",
+}
 # how the systems are written in rows of lists and reports
 SYSTEM_OF_LABEL = {
 	"1С": "1c",
@@ -61,9 +68,11 @@ SYSTEM_OF_LABEL = {
 	"Битрикс24": "b24",
 	"Общие папки": "shares",
 	"Общие папки Synology": "shares",
+	"Техника": "assets",
+	"Snipe-IT": "assets",
 }
 # control lists that belong to one system
-CONTROL_SYSTEM = {"shares": "shares"}
+CONTROL_SYSTEM = {"shares": "shares", "assets": "assets"}
 
 ALL_VIEW = {s: VIEW for s in SECTIONS}
 # what the registry roles give (unchanged behaviour of the roles)

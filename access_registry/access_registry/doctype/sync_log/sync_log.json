@@ -37,7 +37,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Вид",
-   "options": "ЗУП\nПрава 1С\nЖурнал 1С\nAD\nБитрикс24\nФайловый сервер",
+   "options": "ЗУП\nПрава 1С\nЖурнал 1С\nAD\nБитрикс24\nФайловый сервер\nSnipe-IT",
    "read_only": 1
   },
   {
@@ -111,7 +111,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-09-24 12:00:00.000000",
+ "modified": "2026-10-13 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Sync Log",

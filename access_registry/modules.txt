@@ -5,3 +5,4 @@ Bitrix24
 Access Roles
 Business Processes
 File Shares
+IT Assets

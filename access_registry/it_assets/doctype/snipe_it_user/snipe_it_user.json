@@ -1,0 +1,258 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:uid",
+ "creation": "2026-10-13 07:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "full_name",
+  "username",
+  "email",
+  "employee_num",
+  "activated",
+  "column_break_1",
+  "department",
+  "location",
+  "assets_count",
+  "ldap_import",
+  "missing_in_source",
+  "section_break_2",
+  "person",
+  "person_link_method",
+  "person_link_note",
+  "manual_person",
+  "column_break_2",
+  "ad_account",
+  "section_break_3",
+  "uid",
+  "server",
+  "snipe_id",
+  "src_hash"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Пользователь",
+   "read_only": 1
+  },
+  {
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Логин",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Почта",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "employee_num",
+   "fieldtype": "Data",
+   "label": "Табельный номер в Snipe-IT",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "activated",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Может входить",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Отдел в Snipe-IT",
+   "read_only": 1
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Место",
+   "read_only": 1
+  },
+  {
+   "fieldname": "assets_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Техники выдано",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ldap_import",
+   "fieldtype": "Check",
+   "label": "Из LDAP/AD",
+   "read_only": 1
+  },
+  {
+   "description": "Запись была в Snipe-IT, но при последней загрузке её не нашли (удалена)",
+   "fieldname": "missing_in_source",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Нет в Snipe-IT",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Сотрудник"
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Сотрудник",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "person_link_method",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Как найден сотрудник",
+   "options": "\nТабельный номер\nУчётка AD\nПочта\nФИО\nВручную",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person_link_note",
+   "fieldtype": "Data",
+   "label": "Почему не найден",
+   "read_only": 1
+  },
+  {
+   "description": "Если сотрудник не найден автоматически или найден неверно. Загрузка это поле не меняет",
+   "fieldname": "manual_person",
+   "fieldtype": "Link",
+   "label": "Сотрудник вручную",
+   "options": "Person"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ad_account",
+   "fieldtype": "Link",
+   "label": "Учётка AD",
+   "options": "AD Account",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Источник"
+  },
+  {
+   "description": "<код сервера>:<ID в Snipe-IT>",
+   "fieldname": "uid",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "server",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Сервер Snipe-IT",
+   "options": "Snipe-IT Server",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "snipe_id",
+   "fieldtype": "Int",
+   "label": "ID в Snipe-IT",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "src_hash",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Хеш исходных данных",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-13 07:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "IT Assets",
+ "name": "Snipe-IT User",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager"
+  }
+ ],
+ "search_fields": "username,email",
+ "show_title_field_in_link": 1,
+ "sort_field": "full_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "full_name",
+ "track_changes": 1
+}
