@@ -27,6 +27,8 @@ app_include_js = "/assets/access_registry/js/registry_desk.js"
 # Day: every 30 minutes from 07:00 to 21:00; night: once an hour.
 # The jobs only enqueue one "long" job per enabled source. Two methods, because Frappe keys
 # Scheduled Job Type by method: one method with two cron lines would keep only one of them.
+# Frappe names a Scheduled Job Type by the last two parts of the method («sync.scheduled_ad_sync»):
+# they must differ between jobs, or one job silently replaces another (test_scheduler_names).
 scheduler_events = {
 	"cron": {
 		"*/30 7-20 * * *": ["access_registry.sync.engine.scheduled_sync_day"],
@@ -35,11 +37,11 @@ scheduler_events = {
 		"0 3 * * *": ["access_registry.access_catalog.pull.scheduled_snapshot"],
 		"*/15 * * * *": ["access_registry.access_catalog.pull.scheduled_log"],
 		# Active Directory: every hour at :20 (away from the HR runs at :00 and :30).
-		"20 * * * *": ["access_registry.active_directory.sync.scheduled_sync"],
+		"20 * * * *": ["access_registry.active_directory.sync.scheduled_ad_sync"],
 		# Bitrix24: every hour at :40, after AD (users are linked to employees through AD accounts).
-		"40 * * * *": ["access_registry.bitrix24.sync.scheduled_sync"],
+		"40 * * * *": ["access_registry.bitrix24.sync.scheduled_b24_sync"],
 		# Snipe-IT (equipment): every hour at :25, after AD (users are linked to employees through AD).
-		"25 * * * *": ["access_registry.it_assets.sync.scheduled_sync"],
+		"25 * * * *": ["access_registry.it_assets.sync.scheduled_snipeit_sync"],
 		# Role model: holders of entitlements and members of roles for list views.
 		"30 4 * * *": ["access_registry.access_roles.api.scheduled_refresh"],
 		# Suppressed alerts whose date has passed show again.

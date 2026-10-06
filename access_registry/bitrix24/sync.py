@@ -94,7 +94,7 @@ class B24GuardTripped(frappe.ValidationError):
 # --------------------------------------------------------------------------- jobs
 
 
-def scheduled_sync():
+def scheduled_b24_sync():
 	for portal in frappe.get_all("B24 Portal", filters={"enabled": 1}, pluck="name"):
 		enqueue(portal)
 

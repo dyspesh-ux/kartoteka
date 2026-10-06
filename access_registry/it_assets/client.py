@@ -13,12 +13,15 @@ PAGE = 500  # Snipe-IT's default max_results
 
 
 class SnipeITError(Exception):
-	pass
+	def __init__(self, message: str, status: int | None = None):
+		super().__init__(message)
+		self.status = status
 
 
 HINTS = {
 	401: "ключ API не принят: проверьте «Ключ API» в карточке сервера (Account → Manage API Keys в Snipe-IT)",
-	403: "у пользователя ключа нет прав на просмотр техники и пользователей",
+	403: "у пользователя ключа нет прав на это (для техники — «Активы: просмотр», для пользователей — "
+	"«Пользователи: просмотр», для журнала выдач — «Отчёты: просмотр»)",
 	404: "по этому адресу нет API Snipe-IT: укажите адрес без /api/v1, например https://snipeit.example.local",
 	429: "Snipe-IT ограничил частоту запросов (API_THROTTLE_PER_MINUTE): повторите позже или поднимите лимит",
 }
@@ -51,7 +54,8 @@ class SnipeITClient:
 		if response.status_code != 200:
 			hint = HINTS.get(response.status_code, "")
 			raise SnipeITError(
-				f"Snipe-IT ответил HTTP {response.status_code} на {path}{': ' + hint if hint else ''}"
+				f"Snipe-IT ответил HTTP {response.status_code} на {path}{': ' + hint if hint else ''}",
+				status=response.status_code,
 			)
 		try:
 			data = response.json()

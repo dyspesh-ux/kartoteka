@@ -18,7 +18,7 @@ from frappe.utils import add_days, cint, flt, now_datetime
 
 from access_registry.access_catalog.importer import save_changed
 from access_registry.access_catalog.linking import NameMatcher
-from access_registry.it_assets.client import SnipeITClient, parse_datetime
+from access_registry.it_assets.client import SnipeITClient, SnipeITError, parse_datetime
 from access_registry.settings import get_settings
 from access_registry.sync.engine import _format_messages, _switch_user
 from access_registry.sync.normalize import normalize_name
@@ -60,7 +60,7 @@ class SnipeITGuardTripped(frappe.ValidationError):
 # --------------------------------------------------------------------------- jobs
 
 
-def scheduled_sync():
+def scheduled_snipeit_sync():
 	for server in frappe.get_all("Snipe-IT Server", filters={"enabled": 1}, pluck="name"):
 		enqueue(server)
 
@@ -104,7 +104,16 @@ def make_client(server) -> SnipeITClient:
 def fetch_server(server, client) -> dict:
 	"""Everything the mirror needs, as plain dicts (the shape of the tests' fixture)."""
 	since = add_days(now_datetime(), -(cint(server.activity_days) or 180))
-	return {"users": client.users(), "hardware": client.hardware(), "activity": client.activity(since)}
+	data = {"users": client.users(), "hardware": client.hardware()}
+	try:
+		data["activity"] = client.activity(since)
+	except SnipeITError as e:
+		if e.status != 403:
+			raise
+		# the activity log is a report in Snipe-IT: without «Reports: view» the rest still loads
+		data["activity"] = None
+		data["activity_error"] = str(e)
+	return data
 
 
 def run_server_sync(server: str, commit: bool = True, fetch=None):
@@ -322,7 +331,15 @@ class ServerImport:
 		self.check_guard(len(hardware))
 		self.import_users(users)
 		self.import_hardware(hardware)
-		self.import_activity(data.get("activity") or [])
+		if data.get("activity") is None and "activity" in data:
+			self.warn(
+				"журнал выдач и возвратов не загружен: "
+				+ (data.get("activity_error") or "нет доступа")
+				+ ". Техника и пользователи загружены. Дайте пользователю ключа право «Отчёты: просмотр» "
+				"(Reports: View) в Snipe-IT"
+			)
+		else:
+			self.import_activity(data.get("activity") or [])
 		self.counters["users"] = len(users)
 		self.counters["hardware"] = len(hardware)
 		return dict(self.counters)

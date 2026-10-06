@@ -38,7 +38,7 @@ class ADGuardTripped(frappe.ValidationError):
 # --------------------------------------------------------------------------- jobs
 
 
-def scheduled_sync():
+def scheduled_ad_sync():
 	for domain in frappe.get_all("AD Domain", filters={"enabled": 1}, pluck="name"):
 		enqueue(domain)
 

@@ -140,6 +140,26 @@ class TestSnipeITSync(SnipeFixture):
 		)
 		self.assertTrue(any("assigned_name" in v for v in versions))
 
+	def test_activity_log_without_rights(self):
+		class NoReports:
+			def users(self):
+				return snipe_data()["users"]
+
+			def hardware(self):
+				return snipe_data()["hardware"]
+
+			def activity(self, since):
+				raise snipe.SnipeITError("Snipe-IT ответил HTTP 403 на reports/activity", status=403)
+
+		server = frappe.get_doc("Snipe-IT Server", SERVER)
+		data = snipe.fetch_server(server, NoReports())
+		self.assertIsNone(data["activity"])
+		log = self.sync(data)
+		self.assertEqual(log.status, "Успех", log.messages)
+		self.assertIn("Отчёты: просмотр", log.messages)
+		self.assertEqual(frappe.db.count("IT Asset", {"server": SERVER}), 8)
+		self.assertEqual(frappe.db.count("IT Asset Event"), 0)
+
 	def test_manual_link_and_guard(self):
 		self.sync()
 		uid = f"{SERVER}:4"
