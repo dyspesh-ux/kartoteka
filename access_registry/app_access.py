@@ -22,6 +22,7 @@ LEVEL_OF = {"": NONE, None: NONE, "Просмотр": VIEW, "Работа": WORK
 SECTIONS = {
 	"overview": "Обзор",
 	"management": "Руководству",
+	"support": "Техподдержка",
 	"people": "Сотрудники",
 	"control": "Контроль",
 	"access": "Права доступа",
@@ -138,6 +139,7 @@ def profile_access(profile) -> tuple[dict, bool, list]:
 	sections = {
 		"overview": VIEW if profile.s_overview else NONE,
 		"management": VIEW if profile.get("s_management") else NONE,
+		"support": VIEW if profile.get("s_support") else NONE,
 		"people": VIEW if profile.s_people else NONE,
 		"control": LEVEL_OF.get(profile.s_control, NONE),
 		"access": VIEW if profile.s_access else NONE,

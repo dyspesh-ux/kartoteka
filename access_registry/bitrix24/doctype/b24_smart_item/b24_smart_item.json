@@ -1,0 +1,287 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:uid",
+ "creation": "2026-10-16 07:00:00.000000",
+ "description": "Заявки смарт-процессов Битрикс24: только состояние — стадия, сроки, кто обратился и кто исполняет",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "state",
+  "stage_name",
+  "category",
+  "source",
+  "url",
+  "column_break_1",
+  "created_at",
+  "deadline",
+  "moved_at",
+  "closed_at",
+  "done_date",
+  "updated_at",
+  "section_break_2",
+  "requester_name",
+  "requester",
+  "requester_b24",
+  "column_break_2",
+  "assigned_name",
+  "assignee",
+  "assigned_b24",
+  "section_break_3",
+  "uid",
+  "smart_process",
+  "item_id",
+  "stage_id",
+  "src_hash"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Заявка",
+   "read_only": 1
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Состояние",
+   "options": "\nОткрыта\nЗавершена\nОтменена",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stage_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Стадия",
+   "read_only": 1
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Категория",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Data",
+   "label": "Источник обращения",
+   "read_only": 1
+  },
+  {
+   "fieldname": "url",
+   "fieldtype": "Data",
+   "label": "Открыть в Битрикс24",
+   "options": "URL",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "created_at",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Создана",
+   "read_only": 1
+  },
+  {
+   "fieldname": "deadline",
+   "fieldtype": "Date",
+   "label": "Срок",
+   "read_only": 1
+  },
+  {
+   "fieldname": "moved_at",
+   "fieldtype": "Datetime",
+   "label": "Стадия изменена",
+   "read_only": 1
+  },
+  {
+   "fieldname": "closed_at",
+   "fieldtype": "Datetime",
+   "label": "Закрыта",
+   "read_only": 1
+  },
+  {
+   "fieldname": "done_date",
+   "fieldtype": "Date",
+   "label": "Дата выполнения",
+   "read_only": 1
+  },
+  {
+   "fieldname": "updated_at",
+   "fieldtype": "Datetime",
+   "label": "Изменена в Битрикс24",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Кто"
+  },
+  {
+   "fieldname": "requester_name",
+   "fieldtype": "Data",
+   "label": "Кто обратился",
+   "read_only": 1
+  },
+  {
+   "fieldname": "requester",
+   "fieldtype": "Link",
+   "label": "Сотрудник (кто обратился)",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "requester_b24",
+   "fieldtype": "Link",
+   "label": "Пользователь Битрикс24 (кто обратился)",
+   "options": "B24 User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "assigned_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Ответственный",
+   "read_only": 1
+  },
+  {
+   "fieldname": "assignee",
+   "fieldtype": "Link",
+   "label": "Сотрудник (ответственный)",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "assigned_b24",
+   "fieldtype": "Link",
+   "label": "Пользователь Битрикс24 (ответственный)",
+   "options": "B24 User",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Источник"
+  },
+  {
+   "description": "<портал>:<ID смарт-процесса>:<ID заявки>",
+   "fieldname": "uid",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "smart_process",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Смарт-процесс",
+   "options": "B24 Smart Process",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "item_id",
+   "fieldtype": "Int",
+   "label": "ID в Битрикс24",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "stage_id",
+   "fieldtype": "Data",
+   "label": "Код стадии",
+   "read_only": 1
+  },
+  {
+   "fieldname": "src_hash",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Хеш исходных данных",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-16 07:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bitrix24",
+ "name": "B24 Smart Item",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager"
+  }
+ ],
+ "search_fields": "item_id,assigned_name,requester_name",
+ "show_title_field_in_link": 1,
+ "sort_field": "created_at",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title"
+}

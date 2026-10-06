@@ -42,6 +42,8 @@ scheduler_events = {
 		"40 * * * *": ["access_registry.bitrix24.sync.scheduled_b24_sync"],
 		# Snipe-IT (equipment): every hour at :25, after AD (users are linked to employees through AD).
 		"25 * * * *": ["access_registry.it_assets.sync.scheduled_snipeit_sync"],
+		# Bitrix24 smart processes (helpdesk requests): every 15 minutes, only the state of items.
+		"7,22,37,52 * * * *": ["access_registry.bitrix24.smart_items.scheduled_smart_sync"],
 		# Role model: holders of entitlements and members of roles for list views.
 		"30 4 * * *": ["access_registry.access_roles.api.scheduled_refresh"],
 		# Suppressed alerts whose date has passed show again.

@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 0,
  "autoname": "field:profile_name",
- "creation": "2026-10-13 07:00:00.000000",
+ "creation": "2026-10-16 07:00:00.000000",
  "description": "Кто и какие разделы приложения /registry видит",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -13,6 +13,7 @@
   "section_break_1",
   "s_overview",
   "s_management",
+  "s_support",
   "s_people",
   "s_personal",
   "s_access",
@@ -74,6 +75,12 @@
    "fieldname": "s_management",
    "fieldtype": "Check",
    "label": "Руководству"
+  },
+  {
+   "description": "Снимок заявок техподдержки из Битрикс24: открытые, просроченные, нагрузка исполнителей",
+   "fieldname": "s_support",
+   "fieldtype": "Check",
+   "label": "Техподдержка"
   },
   {
    "description": "Список и карточки сотрудников со всеми их учётками и доступами",
@@ -206,7 +213,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-13 07:00:00.000000",
+ "modified": "2026-10-16 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Registry Access Profile",

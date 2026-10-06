@@ -296,6 +296,7 @@ p { margin: 0; }
 .grid { display: grid; gap: 16px; }
 .grid-4 { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
 .grid-3 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.grid-5 { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
 .grid-2 { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
 .split { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); gap: 24px; align-items: start; }
 

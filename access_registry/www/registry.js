@@ -124,6 +124,7 @@
 		menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
 		chevron: '<path d="m9 6 6 6-6 6"/>',
 		check: '<rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/>',
+		support: '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
 		external: '<path d="M14 4h6v6"/><path d="m20 4-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
 	};
 	const icon = (name) => `<svg viewBox="0 0 24 24">${ICONS[name] || ""}</svg>`;
@@ -378,6 +379,7 @@
 	const NAV = [
 		["home", "#/", "Обзор"],
 		["chart", "#/management", "Руководству"],
+		["support", "#/support", "Техподдержка"],
 		["people", "#/people", "Сотрудники"],
 		["shield", "#/control", "Контроль", "control"],
 		["key", "#/access", "Права доступа"],
@@ -388,7 +390,7 @@
 		["db", "#/sources", "Источники"],
 	];
 	// menu item → section of the app (app_access.SECTIONS)
-	const NAV_SECTION = { "#/": "overview", "#/management": "management", "#/people": "people", "#/control": "control", "#/access": "access", "#/reports": "reports",
+	const NAV_SECTION = { "#/": "overview", "#/management": "management", "#/support": "support", "#/people": "people", "#/control": "control", "#/access": "access", "#/reports": "reports",
 		"#/roles": "roles", "#/processes": "processes", "#/sources": "sources" };
 	const canSee = (section) => ((state.boot.can.sections || {})[section] || 0) > 0;
 	// systems whose data the user sees (access profiles may be limited to some of them)
@@ -521,6 +523,7 @@
 	const ROUTES = [
 		[/^\/?$/, viewDashboard],
 		[/^\/management$/, viewManagement],
+		[/^\/support$/, viewSupport],
 		[/^\/people$/, viewPeople],
 		[/^\/person\/(.+)$/, viewPerson],
 		[/^\/control(?:\/([a-z]+))?$/, viewControl],
@@ -543,7 +546,7 @@
 		if (!state.boot.can.read && !path.startsWith("/review")) path = "/reviews";
 		else if (path === "/" && !canSee("overview")) path = firstPage();
 		const view = document.getElementById("view");
-		view.classList.toggle("wide", /^\/(report\/|control|people|access$)/.test(path));
+		view.classList.toggle("wide", /^\/(report\/|control|people|access$|support$)/.test(path));
 		$app.querySelector(".shell").classList.remove("nav-open");
 		$app.querySelectorAll("[data-nav]").forEach((a) => {
 			const href = a.dataset.nav.slice(1);
@@ -911,6 +914,120 @@
 		});
 	}
 
+	// ------------------------------------------------------------------ helpdesk
+
+	const fmtHours = (h) => (h === null || h === undefined ? "—" : h < 48 ? `${String(h).replace(".", ",")} ч` : `${String(Math.round(h / 2.4) / 10).replace(".", ",")} дн.`);
+	const personLink = (person, name) =>
+		name ? (person && canSee("people") ? `<a href="#/person/${enc(person)}">${esc(name)}</a>` : esc(name)) : `<span class="muted">—</span>`;
+
+	async function viewSupport(view) {
+		const days = +(storage("registry-support-days") || 30);
+		const process = storage("registry-support-process") || "";
+		const d = await api("support", { days, process });
+		if (!d.processes.length) {
+			view.innerHTML = `<div class="page-head"><div><h1>Техподдержка</h1></div></div>
+				<div class="card empty"><b>Смарт-процесс заявок не настроен</b>Администратор добавляет его в админке: «B24 Smart Process» —
+				портал и ID смарт-процесса из файла «Структура смарт-процессов».</div>`;
+			return;
+		}
+		const k = d.kpis;
+		const period = PERIOD_TITLES[d.days];
+		const trendMetrics = [
+			{ key: "open", title: "Открыто на конец дня" },
+			{ key: "created", title: "Поступило за день" },
+			{ key: "closed", title: "Закрыто за день" },
+		];
+		const stageBars = d.stages.map((s) => ({ label: s.stage, value: s.value }));
+		const categoryBars = d.categories
+			.filter((c) => c.open || c.created)
+			.map((c) => ({ label: c.category, value: c.open, sub: [c.overdue && `просрочено ${fmtNum(c.overdue)}`, `поступило за ${period}: ${fmtNum(c.created)}`].filter(Boolean).join(" · ") }));
+		view.innerHTML = `
+			<div class="page-head"><div><h1>Техподдержка</h1><p>Снимок заявок «${esc(d.process.title)}» из Битрикс24: что открыто, что просрочено, кто чем занят.
+				Данные на ${d.process.last_sync ? esc(fmtDateTime(d.process.last_sync)) : "— (ещё не загружались)"}, обновляются каждые 15 минут.</p></div>
+				<div class="mgmt-tools">
+					${d.processes.length > 1 ? `<div class="subnav">${d.processes.map((p) => `<button class="chip ${p.name === d.process.name ? "on" : ""}" data-process="${esc(p.name)}">${esc(p.title)}</button>`).join("")}</div>` : ""}
+					<div class="subnav period">${d.periods.map((p) => `<button class="chip ${p === d.days ? "on" : ""}" data-days="${p}">${PERIOD_TITLES[p]}</button>`).join("")}</div>
+					<button class="btn small refresh">${icon("refresh")} Обновить</button></div></div>
+			${d.process.last_status && !String(d.process.last_status).startsWith("Успех") ? `<div class="alert amber">Последняя загрузка: ${esc(d.process.last_status)}</div>` : ""}
+			${block(1, "Сейчас", "Открытые заявки: все стадии, кроме «Завершена» и «Отменена».", `<div class="grid grid-5">
+				${kpi({ label: "Открыто", value: k.open, display: fmtNum(k.open), hint: `новых сегодня: ${fmtNum(k.new_today)}` })}
+				${kpi({ label: "Просрочено", value: k.overdue, tone: "tone-red", hint: "срок выполнения прошёл" })}
+				${kpi({ label: "Срок сегодня", value: k.due_today, tone: "tone-amber", hint: "нужно закрыть сегодня" })}
+				${kpi({ label: "Без ответственного", value: k.unassigned, tone: "tone-amber", hint: "некому делать" })}
+				${kpi({ label: "Ждут больше недели", value: d.ages.slice(3).reduce((a, x) => a + x.value, 0), tone: "tone-amber", hint: "с момента создания" })}</div>`)}
+			${block(2, `За ${period}`, "Сколько поступило и закрыто, как быстро и укладываемся ли в срок.", `<div class="grid grid-5">
+				${kpi({ label: "Поступило", display: fmtNum(k.created), hint: `${fmtNum(Math.round((10 * k.created) / d.days) / 10).replace(".", ",")} в день` })}
+				${kpi({ label: "Выполнено", display: fmtNum(k.done), hint: k.cancelled ? `ещё отменено: ${fmtNum(k.cancelled)}` : "стадия «успех»" })}
+				${kpi({ label: "Время решения", display: fmtHours(k.median_hours), hint: "медиана: от создания до завершения" })}
+				${kpi({ label: "Выполнено в срок", display: k.on_time === null ? "—" : `${k.on_time}%`, hint: k.with_deadline ? `из ${fmtNum(k.with_deadline)} заявок со сроком` : "у выполненных заявок не было срока" })}
+				${kpi({ label: "Баланс", display: `${k.created - k.done - k.cancelled > 0 ? "+" : ""}${fmtNum(k.created - k.done - k.cancelled)}`, hint: "поступило минус закрыто: растёт ли очередь" })}</div>`)}
+			${block(3, "Динамика", "По дням за выбранный период. Наведите на график — покажет значение на дату.",
+				`<div class="grid grid-3">${trendMetrics.map((m, i) => `<div class="card card-pad chart-card"><div class="chart-head"><span>${esc(m.title)}</span><b>${fmtNum(d.trend[d.trend.length - 1][m.key])}</b></div>
+					<div class="chart" data-chart="${i}" tabindex="0"></div></div>`).join("")}</div>`)}
+			${block(4, "Где заявки", "Открытые заявки по стадиям и сколько они уже ждут.", `<div class="grid grid-2">
+				<div class="card card-pad"><div class="group-title">По стадиям</div>${stageBars.length ? bars(stageBars) : `<p class="muted">Стадий нет</p>`}</div>
+				<div class="card card-pad"><div class="group-title">Сколько ждут</div>${bars(d.ages)}</div></div>`)}
+			${block(5, "Категории", `Открытые заявки по каталогу услуг; под названием — просроченные и поступившие за ${period}.`,
+				`<div class="card card-pad">${categoryBars.length ? bars(categoryBars) : `<p class="muted">Заявок нет</p>`}</div>`)}
+			${block(6, "Ответственные", `Нагрузка: открытые и просроченные сейчас, выполненные за ${period}.`, `<div class="card support-people"></div>`)}
+			${block(7, "Открытые заявки", "Сначала просроченные, затем самые старые. Номер открывает заявку в Битрикс24.", `<div class="card support-open"></div>`)}`;
+		view.querySelectorAll("[data-chart]").forEach((el) => lineChart(el, d.trend, trendMetrics[+el.dataset.chart]));
+		view.querySelectorAll("[data-days]").forEach((b) =>
+			b.addEventListener("click", () => {
+				storage("registry-support-days", b.dataset.days);
+				viewSupport(view);
+			})
+		);
+		view.querySelectorAll("[data-process]").forEach((b) =>
+			b.addEventListener("click", () => {
+				storage("registry-support-process", b.dataset.process);
+				viewSupport(view);
+			})
+		);
+		view.querySelector(".refresh").addEventListener("click", () => viewSupport(view));
+		table(view.querySelector(".support-people"), {
+			name: "техподдержка-ответственные",
+			rows: d.people,
+			filter: d.people.length > 10,
+			empty: "Заявок нет",
+			columns: [
+				{ key: "name", label: "Ответственный", render: (r) => personLink(r.person, r.name) },
+				{ key: "open", label: "Открыто", type: "number" },
+				{ key: "overdue", label: "Просрочено", render: (r) => (r.overdue ? pill(fmtNum(r.overdue), "t-red") : "") },
+				{ key: "done", label: `Выполнено за ${period}`, type: "number" },
+			],
+		});
+		table(view.querySelector(".support-open"), {
+			name: "техподдержка-открытые",
+			rows: d.open_items,
+			resizable: true,
+			empty: "Открытых заявок нет",
+			columns: [
+				{ key: "item_id", label: "№", width: 80, render: (r) => (r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.item_id)}</a>` : esc(r.item_id)) },
+				{ key: "title", label: "Заявка", width: 300 },
+				{ key: "stage", label: "Стадия", width: 170 },
+				{ key: "category", label: "Категория", width: 170 },
+				{ key: "requester_name", label: "Кто обратился", width: 190, render: (r) => personLink(r.requester, r.requester_name) },
+				{ key: "assigned_name", label: "Ответственный", width: 190, render: (r) => personLink(r.assignee, r.assigned_name) },
+				{ key: "created_at", label: "Создана", type: "date", width: 110 },
+				{ key: "deadline", label: "Срок", width: 120, render: (r) => (r.deadline ? pill(fmtDate(r.deadline), r.overdue ? "t-red" : "") : `<span class="muted">—</span>`), csv: (r) => fmtDate(r.deadline) },
+				{ key: "age_days", label: "Ждёт, дн.", type: "number", width: 90 },
+			],
+		});
+	}
+
+	function personTickets(t) {
+		const STATE_TONE = { Открыта: "t-amber", Завершена: "t-green", Отменена: "" };
+		return `<div class="group"><h3>Заявки в техподдержку</h3><p class="muted small">Сотрудник указан в заявке как обратившийся.
+			Открытых: ${fmtNum(t.open)}, всего в реестре: ${fmtNum(t.total)}${t.total > t.items.length ? `, показаны последние ${t.items.length}` : ""}.</p>
+			${t.items.length ? `<div class="card list">${t.items
+				.map((i) => `<div class="list-item"><div class="grow"><b>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">№${esc(i.item_id)}</a>` : `№${esc(i.item_id)}`} ${esc(i.title)}</b>
+					${pill(i.state, STATE_TONE[i.state])} ${i.state === "Открыта" ? pill(i.stage_name, "") : ""}
+					<small>${esc([i.category, i.assigned_name && "ответственный: " + i.assigned_name].filter(Boolean).join(" · "))}</small></div>
+					<span class="muted small nowrap">${esc(fmtDate(i.created_at))}${i.closed_at ? " → " + esc(fmtDate(i.closed_at)) : ""}</span></div>`)
+				.join("")}</div>` : `<div class="card empty">Заявок нет</div>`}</div>`;
+	}
+
 	// ------------------------------------------------------------------ people
 
 	const FLAGS = {
@@ -1012,6 +1129,7 @@
 				<button data-tab="recon">Положено и есть ${counts["Не хватает"] || counts["Лишнее"] || counts["Лишнее: не работает"] ? `<span class="n" style="background:var(--strong);color:var(--on-strong)">${(counts["Не хватает"] || 0) + (counts["Лишнее"] || 0) + (counts["Лишнее: не работает"] || 0)}</span>` : ""}</button>
 				<button data-tab="roles">Роли и процессы <span class="n">${d.roles.length + d.process_roles.length}</span></button>
 				<button data-tab="hr">Кадры</button>
+				${d.tickets ? `<button data-tab="tickets">Заявки ${d.tickets.open ? `<span class="n">${d.tickets.open}</span>` : ""}</button>` : ""}
 			</div>
 			<div class="tab-body"></div>`;
 
@@ -1020,6 +1138,7 @@
 			recon: () => "",
 			roles: () => personRoles(d),
 			hr: () => personHr(d),
+			tickets: () => personTickets(d.tickets),
 		};
 		const body = view.querySelector(".tab-body");
 		const open = (tab) => {

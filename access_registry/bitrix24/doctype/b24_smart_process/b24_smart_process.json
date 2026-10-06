@@ -1,0 +1,236 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-10-16 07:00:00.000000",
+ "description": "Смарт-процесс Битрикс24, заявки которого реестр загружает: например, заявки техподдержки",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "portal",
+  "entity_type_id",
+  "title",
+  "enabled",
+  "column_break_1",
+  "history_days",
+  "section_break_2",
+  "requester_field",
+  "category_field",
+  "source_field",
+  "column_break_2",
+  "deadline_field",
+  "done_field",
+  "section_break_3",
+  "stages",
+  "section_break_4",
+  "last_sync",
+  "open_count",
+  "column_break_4",
+  "last_status",
+  "items_count"
+ ],
+ "fields": [
+  {
+   "fieldname": "portal",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Портал",
+   "options": "B24 Portal",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "description": "Из файла «Структура смарт-процессов», например 1210",
+   "fieldname": "entity_type_id",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "ID смарт-процесса (entityTypeId)",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "description": "Пусто — возьмётся из Битрикс24",
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Название"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Загружать"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "365",
+   "description": "Открытые загружаются все, завершённые и отменённые — закрытые за это число дней",
+   "fieldname": "history_days",
+   "fieldtype": "Int",
+   "label": "Закрытые заявки — за, дней"
+  },
+  {
+   "description": "Описание проблемы, файлы и комментарии не загружаются — только состояние заявки",
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Поля заявки"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "requester_field",
+   "fieldtype": "Data",
+   "label": "Кто обратился"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "category_field",
+   "fieldtype": "Data",
+   "label": "Категория (каталог услуг)"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "source_field",
+   "fieldtype": "Data",
+   "label": "Источник обращения"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "deadline_field",
+   "fieldtype": "Data",
+   "label": "Срок выполнения"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "done_field",
+   "fieldtype": "Data",
+   "label": "Дата выполнения"
+  },
+  {
+   "collapsible": 1,
+   "description": "Заполняется при загрузке из Битрикс24",
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Стадии"
+  },
+  {
+   "fieldname": "stages",
+   "fieldtype": "Table",
+   "label": "Стадии",
+   "options": "B24 Smart Stage",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break",
+   "label": "Последняя загрузка"
+  },
+  {
+   "fieldname": "last_sync",
+   "fieldtype": "Datetime",
+   "label": "Последняя успешная загрузка",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "open_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Открытых заявок",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_status",
+   "fieldtype": "Data",
+   "label": "Статус последней загрузки",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "items_count",
+   "fieldtype": "Int",
+   "label": "Заявок в реестре",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "group": "Заявки",
+   "link_doctype": "B24 Smart Item",
+   "link_fieldname": "smart_process"
+  }
+ ],
+ "modified": "2026-10-16 07:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bitrix24",
+ "name": "B24 Smart Process",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Access Role Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

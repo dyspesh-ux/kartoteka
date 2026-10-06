@@ -289,6 +289,7 @@ SOURCE_SYSTEM = {
 	"Битрикс24": "Битрикс24",
 	"Общие папки Synology": "Общие папки",
 	"Техника (Snipe-IT)": "Техника",
+	"Техподдержка (Битрикс24)": "Битрикс24",
 }
 
 
@@ -432,6 +433,20 @@ def sources() -> list:
 				"last": s.last_sync,
 				"status": s.last_status,
 				"doctype": "Snipe-IT Server",
+			}
+		)
+	for p in frappe.get_all(
+		"B24 Smart Process", fields=["name", "title", "enabled", "last_sync", "last_status"]
+	):
+		result.append(
+			{
+				"kind": "Техподдержка (Битрикс24)",
+				"name": p.name,
+				"title": p.title or p.name,
+				"enabled": p.enabled,
+				"last": p.last_sync,
+				"status": p.last_status,
+				"doctype": "B24 Smart Process",
 			}
 		)
 	for row in result:
@@ -691,11 +706,21 @@ def person(name: str) -> dict:
 		"shares": shares,
 		"assets": assets,
 		"asset_events": asset_events,
+		"tickets": _person_tickets(name),
 		"roles": roles,
 		"process_roles": process_roles,
 		"reconciliation": aa.filter_rows(engine.reconcile({name}, model)),
 		"sod": engine.sod_conflicts({name}),
 	}
+
+
+def _person_tickets(name: str) -> dict | None:
+	"""Helpdesk requests of the employee — for those who see the helpdesk section."""
+	if not aa.has_section("support") or not frappe.db.exists("B24 Smart Process", {}):
+		return None
+	from access_registry.bitrix24.support import person_items
+
+	return person_items(name)
 
 
 # --------------------------------------------------------------------------- catalog, roles, processes
@@ -1702,6 +1727,7 @@ def mark_event_processed(event: str) -> str:
 PROFILE_FIELDS = {
 	"overview": "s_overview",
 	"management": "s_management",
+	"support": "s_support",
 	"people": "s_people",
 	"control": "s_control",
 	"access": "s_access",
@@ -1890,6 +1916,18 @@ def management(days: int = 30, refresh: int = 0) -> dict:
 
 	_check("management")
 	return metrics.dashboard(days, bool(cint(refresh)))
+
+
+# --------------------------------------------------------------------------- helpdesk
+
+
+@frappe.whitelist()
+def support(process: str | None = None, days: int = 30) -> dict:
+	"""Snapshot of the helpdesk (a Bitrix24 smart process): open, overdue, workload, trend."""
+	from access_registry.bitrix24 import support as helpdesk
+
+	_check("support")
+	return helpdesk.snapshot(process, days)
 
 
 # --------------------------------------------------------------------------- reports
