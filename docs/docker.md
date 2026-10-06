@@ -132,12 +132,28 @@ S=registry.company.local         # то же, что FRAPPE_SITE_NAME_HEADER
 
 ## 5. Обновление
 
+Одной командой из `deploy/docker`:
+
 ```bash
-cd kartoteka && git pull            # свежие deploy/docker и инструкции
-cd deploy/docker && ./build.sh 2026-11-15
-sed -i 's/^CUSTOM_TAG=.*/CUSTOM_TAG=2026-11-15/' registry.env
-./compose.sh own-cert
+./update.sh                  # тег — сегодняшняя дата, режим — COMPOSE_MODE из registry.env (иначе http)
+./update.sh 2026-11-15       # свой тег
+./update.sh 2026-11-15 own-cert
+```
+
+Скрипт по шагам: `git pull` → сборка образа `access-registry:<тег>` → резервная копия сайта на
+работающем образе → новый `CUSTOM_TAG` в `registry.env` → `./compose.sh <режим>` → `./dc.sh up -d` →
+`migrate`. На любой ошибке останавливается; в конце печатает команду отката. Режим удобно записать
+в `registry.env` один раз: `COMPOSE_MODE=http` (или `own-cert`, `letsencrypt`).
+
+То же вручную:
+
+```bash
+TAG=2026-11-15
+cd /opt/registry/src && git pull
+cd deploy/docker && ./build.sh "$TAG"
 ./dc.sh bench --site all backup
+sed -i "s/^CUSTOM_TAG=.*/CUSTOM_TAG=$TAG/" registry.env     # двойные кавычки: иначе $TAG не подставится
+./compose.sh http
 ./dc.sh up -d
 ./dc.sh bench --site all migrate
 ```
@@ -146,8 +162,8 @@ sed -i 's/^CUSTOM_TAG=.*/CUSTOM_TAG=2026-11-15/' registry.env
 `assets/access_registry/js/registry_desk.js` — полноширинный desk). `git pull` внутри контейнера
 не подходит: контейнер пересоздаётся из образа.
 
-Откат — вернуть прежний `CUSTOM_TAG` и `up -d` (если `migrate` уже изменил базу — восстановить
-бэкап, сделанный перед обновлением).
+Откат — вернуть прежний `CUSTOM_TAG`, `./compose.sh <режим>` и `./dc.sh up -d` (если `migrate` уже
+изменил базу — восстановить бэкап, сделанный перед обновлением).
 
 ## 6. Бэкапы
 
