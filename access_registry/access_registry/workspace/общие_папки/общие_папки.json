@@ -1,7 +1,7 @@
 {
  "charts": [],
  "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Общие папки Synology:</b> права шар и папок (только там, где права меняются) и кто реально имеет доступ.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Права и доступ</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кто имеет доступ к папкам\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Замечания по правам папок\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Общие папки\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Папки с особыми правами\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Файловые серверы\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000011\", \"type\": \"card\", \"data\": {\"card_name\": \"Общие папки Synology\", \"col\": 4}}]",
- "creation": "2026-10-13 07:00:00.000000",
+ "creation": "2026-10-18 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -77,7 +77,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-13 07:00:00.000000",
+ "modified": "2026-10-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Общие папки",

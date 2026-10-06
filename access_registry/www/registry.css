@@ -205,10 +205,10 @@ p { margin: 0; }
 .brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 24px; font-weight: 700; font-size: var(--font-size-medium); color: var(--text); }
 .brand-mark { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--on-accent); background: var(--accent); flex: none; }
 .brand small { display: block; color: var(--sidebar-muted); font-weight: 300; font-size: var(--font-size-small-maxi); line-height: 16px; }
-.nav { display: flex; flex-direction: column; gap: 4px; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
 .nav a span:first-of-type { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav a {
-	display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: var(--radius-btn);
+	display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-radius: var(--radius-btn);
 	color: var(--sidebar-text); font-weight: 400; transition: background .15s, color .15s;
 }
 .nav a svg { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -628,3 +628,7 @@ a.hbar:hover .hbar-label { color: var(--accent-text); }
 .notice.unread b { font-weight: 700; }
 .bell-panel .empty { padding: 20px 16px; color: var(--muted); }
 .rule.off { opacity: .6; }
+.nav-group { margin: 12px 16px 2px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+details.more > summary { cursor: pointer; color: var(--accent-text); list-style: none; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more[open] > summary { display: none; }

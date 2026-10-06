@@ -1,7 +1,7 @@
 {
  "charts": [],
  "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Положено и есть:</b> права доступа, роли по должностям, исключения, конфликты полномочий и пересмотр доступа.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Роли и сверка</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сверка доступа\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Конфликты полномочий\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Роли доступа\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Черновики ролей\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Каталог прав доступа\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Подбор ролей\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Доступы вне каталога\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Исключения\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пересмотр доступа\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000014\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000015\", \"type\": \"card\", \"data\": {\"card_name\": \"Ролевая модель\", \"col\": 4}}]",
- "creation": "2026-10-13 07:00:00.000000",
+ "creation": "2026-10-18 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -16,7 +16,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Ролевая модель",
-   "link_count": 12,
+   "link_count": 14,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -90,6 +90,28 @@
   {
    "dependencies": "",
    "hidden": 0,
+   "is_query_report": 0,
+   "label": "Решения пересмотра",
+   "link_count": 0,
+   "link_to": "Access Review Item",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Журнал гашений замечаний",
+   "link_count": 0,
+   "link_to": "Alert Suppression",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
    "is_query_report": 1,
    "label": "Сверка доступа",
    "link_count": 0,
@@ -154,7 +176,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-13 07:00:00.000000",
+ "modified": "2026-10-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Ролевая модель",

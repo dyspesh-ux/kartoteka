@@ -1,7 +1,7 @@
 {
  "charts": [],
- "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Откуда берутся данные:</b> базы 1С, домены, порталы, файловые серверы и журнал загрузок. Подключить: базу 1С — «Базы 1С»; домен — «Домены AD»; портал — «Порталы Битрикс24»; NAS — «Файловые серверы»; учёт техники — «Серверы Snipe-IT».\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Подключения и загрузка</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Базы 1С\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Домены AD\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Порталы Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Серверы Snipe-IT\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал синхронизаций\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Неудачные синхронизации\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Утренняя сводка\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000012\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000013\", \"type\": \"card\", \"data\": {\"card_name\": \"Источники и загрузка\", \"col\": 4}}]",
- "creation": "2026-10-13 07:00:00.000000",
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Откуда берутся данные:</b> базы 1С, домены, порталы, файловые серверы и журнал загрузок. Подключить: базу 1С — «Базы 1С»; домен — «Домены AD»; портал — «Порталы Битрикс24»; NAS — «Файловые серверы»; учёт техники — «Серверы Snipe-IT».\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Подключения и загрузка</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Базы 1С\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Домены AD\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Порталы Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Серверы Snipe-IT\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал синхронизаций\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Неудачные синхронизации\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Смарт-процессы Битрикс24\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Утренняя сводка\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Правила уведомлений\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000014\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000015\", \"type\": \"card\", \"data\": {\"card_name\": \"Источники и загрузка\", \"col\": 4}}]",
+ "creation": "2026-10-18 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -16,7 +16,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Источники и загрузка",
-   "link_count": 10,
+   "link_count": 14,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -130,9 +130,53 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Правила уведомлений",
+   "link_count": 0,
+   "link_to": "Registry Notification Rule",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Уведомления колокольчика",
+   "link_count": 0,
+   "link_to": "Registry Notice",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Смарт-процессы Битрикс24",
+   "link_count": 0,
+   "link_to": "B24 Smart Process",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Показатели для руководства",
+   "link_count": 0,
+   "link_to": "Registry Metric Snapshot",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-10-13 07:00:00.000000",
+ "modified": "2026-10-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Источники данных",
@@ -210,9 +254,22 @@
    "format": "{} запусков"
   },
   {
+   "label": "Смарт-процессы Битрикс24",
+   "link_to": "B24 Smart Process",
+   "type": "DocType"
+  },
+  {
    "label": "Утренняя сводка",
    "link_to": "Registry Digest",
    "type": "DocType"
+  },
+  {
+   "label": "Правила уведомлений",
+   "link_to": "Registry Notification Rule",
+   "type": "DocType",
+   "stats_filter": "[[\"Registry Notification Rule\", \"enabled\", \"=\", 1]]",
+   "color": "Green",
+   "format": "{} действуют"
   }
  ],
  "title": "Источники данных"

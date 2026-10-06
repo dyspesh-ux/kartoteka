@@ -524,7 +524,9 @@ def people(
 				"presence": p.presence,
 				"position": place.get("position_title"),
 				"department": place.get("department_title"),
+				"department_id": place.get("department"),
 				"organization": place.get("organization_title"),
+				"organization_id": place.get("organization"),
 				"ib": active.get("1С", 0),
 				"ad": active.get("AD", 0),
 				"b24": active.get("Битрикс24", 0),
@@ -553,7 +555,8 @@ def person(name: str) -> dict:
 	place = main_places([name]).get(name, {})
 	employments = frappe.db.sql(
 		"""select e.name, e.status, e.employment_kind, e.hire_date, e.termination_date, e.tab_number, e.source,
-			o.title as organization, d.title as department, pos.title as position
+			o.title as organization, d.title as department, pos.title as position,
+			e.organization as organization_id, e.department as department_id
 		from `tabEmployment` e
 			left join `tabHR Organization` o on o.name = e.organization
 			left join `tabHR Department` d on d.name = e.department
@@ -698,7 +701,9 @@ def person(name: str) -> dict:
 			"birth_date": str(doc.birth_date) if personal and doc.birth_date else None,
 			"position": place.get("position_title"),
 			"department": place.get("department_title"),
+			"department_id": place.get("department"),
 			"organization": place.get("organization_title"),
+			"organization_id": place.get("organization"),
 		},
 		"employments": employments,
 		"events": events,
@@ -725,6 +730,194 @@ def _person_tickets(name: str) -> dict | None:
 	from access_registry.bitrix24.support import person_items
 
 	return person_items(name)
+
+
+# --------------------------------------------------------------------------- position, department, organization
+
+WORKING_STATUSES = ("Работает", "Увольняется")
+
+
+def _holders(filters_sql: str, params: dict) -> list:
+	"""Active employments matching a condition, with the person and the place."""
+	return frappe.db.sql(
+		f"""select e.person, p.full_name, p.status as person_status, e.employment_kind, e.hire_date,
+			pos.title as position, d.name as department_id, d.title as department,
+			o.name as organization_id, o.title as organization
+		from `tabEmployment` e
+			join `tabPerson` p on p.name = e.person
+			left join `tabHR Position` pos on pos.name = e.position
+			left join `tabHR Department` d on d.name = e.department
+			left join `tabHR Organization` o on o.name = e.organization
+		where e.status in %(working)s and {filters_sql}
+		order by p.full_name""",
+		{"working": WORKING_STATUSES, **params},
+		as_dict=True,
+	)
+
+
+def _roles_by_rule(condition) -> list:
+	rows = frappe.get_all(
+		"Access Role Rule",
+		filters={"parenttype": "Access Role"},
+		fields=["parent", "position_title", "department", "organization", "include_subdepartments"],
+	)
+	names = sorted({r.parent for r in rows if condition(r)})
+	return frappe.get_all(
+		"Access Role",
+		filters={"name": ["in", names or [""]]},
+		fields=["name", "role_name", "kind", "status", "members"],
+		order_by="role_name",
+	)
+
+
+def _typical_access(persons) -> list:
+	"""What the holders actually have: share of them per entitlement, and whether the model expects it."""
+	if not persons:
+		return []
+	from access_registry.access_roles import engine
+
+	rows = aa.filter_rows(engine.reconcile(set(persons), engine.RoleModel()))
+	total = len(set(persons))
+	by = {}
+	for r in rows:
+		if r["status"] == engine.MISSING:
+			continue
+		x = by.setdefault(
+			r["entitlement"],
+			{
+				"entitlement": r["entitlement"],
+				"title": r["title"],
+				"system": r["system"],
+				"holders": 0,
+				"expected": 0,
+				"privileged": r["privileged"],
+			},
+		)
+		x["holders"] += 1
+		x["expected"] += 1 if r["status"] == engine.OK else 0
+	result = sorted(by.values(), key=lambda x: (-x["holders"], x["system"] or "", x["title"] or ""))
+	for x in result:
+		x["share"] = round(100 * x["holders"] / total)
+	return result
+
+
+@frappe.whitelist()
+def position(title: str) -> dict:
+	"""A position by its title (the same title in several ZUP bases is one position)."""
+	_check("people")
+	title = (title or "").strip()
+	holders = _holders("pos.title = %(title)s", {"title": title})
+	if not holders and not frappe.db.exists("HR Position", {"title": title}):
+		frappe.throw(_("Должность «{0}» не найдена").format(title), frappe.DoesNotExistError)
+	low = title.lower()
+	return {
+		"title": title,
+		"holders": holders,
+		"departments": _count_by(holders, "department_id", "department"),
+		"organizations": _count_by(holders, "organization_id", "organization"),
+		"roles": _roles_by_rule(lambda r: (r.position_title or "").strip().lower() == low),
+		"access": _typical_access({h.person for h in holders}),
+	}
+
+
+def _count_by(rows, key, label) -> list:
+	counts = {}
+	for r in rows:
+		if r.get(key):
+			counts.setdefault(r[key], {"name": r[key], "title": r[label], "count": 0})["count"] += 1
+	return sorted(counts.values(), key=lambda x: (-x["count"], x["title"] or ""))
+
+
+@frappe.whitelist()
+def department(name: str) -> dict:
+	_check("people")
+	d = frappe.get_doc("HR Department", name)
+	tree = frappe.get_all(
+		"HR Department",
+		filters={"lft": [">=", d.lft], "rgt": ["<=", d.rgt]},
+		fields=["name", "title", "lft", "rgt", "parent_hr_department", "missing"],
+	)
+	lft_of = {t.name: t.lft for t in tree}
+	holders = _holders("e.department in %(deps)s", {"deps": tuple(lft_of) or ("",)})
+	direct = [h for h in holders if h.department_id == name]
+	children = sorted(
+		(t for t in tree if t.parent_hr_department == name and not t.missing), key=lambda t: t.title or ""
+	)
+	for c in children:
+		c.count = len({h.person for h in holders if c.lft <= lft_of.get(h.department_id, 0) <= c.rgt})
+	chain, parent = [], d.parent_hr_department
+	while parent and len(chain) < 20:
+		p = frappe.db.get_value(
+			"HR Department", parent, ["name", "title", "parent_hr_department", "node_type"], as_dict=True
+		)
+		if not p or p.node_type in ("Корень", "Организация"):
+			break
+		chain.insert(0, {"name": p.name, "title": p.title})
+		parent = p.parent_hr_department
+	head = frappe.db.get_value("Person", d.head, ["name", "full_name"], as_dict=True) if d.head else None
+	return {
+		"name": d.name,
+		"title": d.title,
+		"node_type": d.node_type,
+		"missing": d.missing,
+		"organization_id": d.organization,
+		"organization": frappe.db.get_value("HR Organization", d.organization, "title")
+		if d.organization
+		else None,
+		"path": chain,
+		"head": head,
+		"children": [{"name": c.name, "title": c.title, "count": c.count} for c in children],
+		"employees": direct,
+		"total": len({h.person for h in holders}),
+		"positions": _count_by(direct, "position", "position"),
+		"roles": _roles_by_rule(
+			lambda r: (
+				r.department == name or (r.include_subdepartments and r.department in set(chain_names(d)))
+			)
+		),
+	}
+
+
+def chain_names(d) -> list:
+	"""The department and its parents (a rule «with subdepartments» on a parent applies here too)."""
+	names, parent = [d.name], d.parent_hr_department
+	while parent and len(names) < 30:
+		names.append(parent)
+		parent = frappe.db.get_value("HR Department", parent, "parent_hr_department")
+	return names
+
+
+@frappe.whitelist()
+def organization(name: str) -> dict:
+	_check("people")
+	o = frappe.get_doc("HR Organization", name)
+	holders = _holders("e.organization = %(org)s", {"org": name})
+	tops = frappe.get_all(
+		"HR Department",
+		filters={"organization": name, "missing": 0},
+		fields=["name", "title", "parent_hr_department", "node_type"],
+	)
+	ids = {t.name for t in tops}
+	top_level = [t for t in tops if t.parent_hr_department not in ids and t.node_type != "Организация"]
+	deps = _count_by(holders, "department_id", "department")
+	return {
+		"name": o.name,
+		"title": o.title,
+		"full_title": o.full_title,
+		"inn": o.inn,
+		"kpp": o.kpp,
+		"legal_entity": frappe.db.get_value("Legal Entity", o.legal_entity, "title")
+		if o.legal_entity
+		else None,
+		"source": o.source,
+		"total": len({h.person for h in holders}),
+		"departments": deps,
+		"top_departments": [
+			{"name": t.name, "title": t.title} for t in sorted(top_level, key=lambda x: x.title or "")
+		],
+		"positions": _count_by(holders, "position", "position")[:30],
+		"roles": _roles_by_rule(lambda r: r.organization == name),
+	}
 
 
 # --------------------------------------------------------------------------- catalog, roles, processes
@@ -888,10 +1081,12 @@ def role(name: str) -> dict:
 					"department": frappe.db.get_value("HR Department", r.department, "title")
 					if r.department
 					else None,
+					"department_id": r.department,
 					"include_subdepartments": r.include_subdepartments,
 					"organization": frappe.db.get_value("HR Organization", r.organization, "title")
 					if r.organization
 					else None,
+					"organization_id": r.organization,
 					"main_only": r.main_only,
 				}
 				for r in doc.rules
@@ -1616,7 +1811,31 @@ def search(query: str) -> list:
 	):
 		if aa.system_allowed(e.system):
 			results.append({"kind": "entitlement", "id": e.name, "title": e.title, "subtitle": e.system})
+	if people:
+		for t in frappe.db.sql(
+			"select distinct title from `tabHR Position` where title like %s order by title limit 5", like
+		):
+			results.append({"kind": "position", "id": t[0], "title": t[0], "subtitle": _("должность")})
+		for d in frappe.get_all(
+			"HR Department",
+			filters={"title": ["like", like], "missing": 0, "node_type": "Подразделение"},
+			fields=["name", "title", "organization"],
+			limit=5,
+		):
+			results.append(
+				{
+					"kind": "department",
+					"id": d.name,
+					"title": d.title,
+					"subtitle": _("подразделение")
+					+ (f" · {_org_title(d.organization)}" if d.organization else ""),
+				}
+			)
 	return results
+
+
+def _org_title(org):
+	return frappe.db.get_value("HR Organization", org, "title") or org
 
 
 @frappe.whitelist(methods=["POST"])

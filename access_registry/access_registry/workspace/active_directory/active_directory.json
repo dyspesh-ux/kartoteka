@@ -1,7 +1,7 @@
 {
  "charts": [],
- "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Учётки и группы домена</b>, привязанные к сотрудникам. Реестр в AD не пишет.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Учётки и группы</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Учётки AD\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Включены у уволенных\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Учётки без сотрудника\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Давно не входили\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Отключены в AD, вход в 1С есть\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Группы AD\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Группы на контроле\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Проставить employeeNumber\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000013\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000014\", \"type\": \"card\", \"data\": {\"card_name\": \"Active Directory\", \"col\": 4}}, {\"id\": \"ar00000015\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по AD\", \"col\": 4}}]",
- "creation": "2026-10-13 07:00:00.000000",
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Учётки и группы домена</b>, привязанные к сотрудникам. Реестр в AD не пишет: изменения идут через план, который одобряет ИБ, а выполняет администратор скриптом.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Учётки и группы</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Учётки AD\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Включены у уволенных\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Учётки без сотрудника\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Давно не входили\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Отключены в AD, вход в 1С есть\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Группы AD\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Группы на контроле\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Проставить employeeNumber\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Планы изменений AD\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"План изменений AD в приложении\", \"col\": 4}}, {\"id\": \"ar00000014\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000015\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000016\", \"type\": \"card\", \"data\": {\"card_name\": \"Active Directory\", \"col\": 4}}, {\"id\": \"ar00000017\", \"type\": \"card\", \"data\": {\"card_name\": \"Отчёты по AD\", \"col\": 4}}]",
+ "creation": "2026-10-18 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -16,7 +16,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Active Directory",
-   "link_count": 3,
+   "link_count": 4,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -50,6 +50,17 @@
    "label": "Домены AD",
    "link_count": 0,
    "link_to": "AD Domain",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Планы изменений AD",
+   "link_count": 0,
+   "link_to": "AD Change Plan",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -141,7 +152,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-13 07:00:00.000000",
+ "modified": "2026-10-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Active Directory",
@@ -228,6 +239,19 @@
    "link_to": "AD employeeNumber",
    "type": "Report",
    "report_ref_doctype": "AD Account"
+  },
+  {
+   "label": "Планы изменений AD",
+   "link_to": "AD Change Plan",
+   "type": "DocType",
+   "stats_filter": "[[\"AD Change Plan\", \"status\", \"=\", \"Черновик\"]]",
+   "color": "Grey",
+   "format": "{} ждут решения ИБ"
+  },
+  {
+   "label": "План изменений AD в приложении",
+   "url": "/registry#/ad-plans",
+   "type": "URL"
   }
  ],
  "title": "Active Directory"

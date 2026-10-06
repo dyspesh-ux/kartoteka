@@ -378,21 +378,16 @@
 
 	// ------------------------------------------------------------------ shell
 
-	const NAV = [
-		["home", "#/", "Обзор"],
-		["chart", "#/management", "Руководству"],
-		["support", "#/support", "Техподдержка"],
-		["box", "#/equipment", "Техника"],
-		["people", "#/people", "Сотрудники"],
-		["shield", "#/control", "Контроль", "control"],
-		["key", "#/access", "Права доступа"],
-		["roles", "#/roles", "Роли доступа"],
-		["flow", "#/processes", "Бизнес-процессы"],
-		["check", "#/reviews", "Пересмотр доступа", "reviews"],
-		["key", "#/ad-plans", "План изменений AD"],
-		["report", "#/reports", "Отчёты"],
-		["db", "#/sources", "Источники"],
+	// menu: groups of items; a group heading shows only when the user sees something in it
+	const NAV_GROUPS = [
+		["", [["home", "#/", "Обзор"], ["chart", "#/management", "Руководству"]]],
+		["Люди и доступы", [["people", "#/people", "Сотрудники"], ["key", "#/access", "Права доступа"], ["roles", "#/roles", "Роли доступа"], ["flow", "#/processes", "Бизнес-процессы"]]],
+		["Контроль", [["shield", "#/control", "Контроль", "control"], ["check", "#/reviews", "Пересмотр доступа", "reviews"], ["lock", "#/ad-plans", "План изменений AD"]]],
+		["Сервисы", [["support", "#/support", "Техподдержка"], ["box", "#/equipment", "Техника"]]],
+		["Данные", [["report", "#/reports", "Отчёты"], ["db", "#/sources", "Источники"]]],
+		["Администрирование", [["lock", "#/app-access", "Доступ к приложению"], ["bell", "#/notifications", "Уведомления"]]],
 	];
+	const NAV = NAV_GROUPS.flatMap(([, items]) => items);
 	// menu item → section of the app (app_access.SECTIONS)
 	const NAV_SECTION = { "#/": "overview", "#/management": "management", "#/support": "support", "#/equipment": "equipment", "#/people": "people", "#/control": "control", "#/access": "access", "#/reports": "reports",
 		"#/roles": "roles", "#/processes": "processes", "#/sources": "sources" };
@@ -404,6 +399,14 @@
 		return href ? href.slice(1) : "/reviews";
 	};
 
+	function navVisible(href) {
+		const b = state.boot;
+		if (href === "#/reviews") return b.can.reviewer || b.pending_reviews || canSee("reviews") || !b.can.read;
+		if (href === "#/ad-plans") return b.can.ad_plans;
+		if (href === "#/app-access" || href === "#/notifications") return b.can.admin;
+		return canSee(NAV_SECTION[href]);
+	}
+
 	function renderShell() {
 		const b = state.boot;
 		$app.innerHTML = `
@@ -412,11 +415,11 @@
 					<div class="brand"><div class="brand-mark">${icon("shield").replace("<svg", '<svg style="width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2"')}</div>
 						<div>Реестр доступа<small>кто есть кто и у кого что</small></div></div>
 					<nav class="nav">
-						${[...NAV, ...(b.can.admin ? [["lock", "#/app-access", "Доступ к приложению"], ["bell", "#/notifications", "Уведомления"]] : [])].filter(([, href]) =>
-							href === "#/reviews" ? b.can.reviewer || b.pending_reviews || canSee("reviews") || !b.can.read : href === "#/ad-plans" ? b.can.ad_plans : href === "#/app-access" || href === "#/notifications" ? b.can.admin : canSee(NAV_SECTION[href])).map(
-							([ic, href, label, badge]) =>
-								`<a href="${href}" data-nav="${href}">${icon(ic)}<span>${label}</span>${badge ? `<span class="count" data-badge="${badge}" hidden></span>` : ""}</a>`
-						).join("")}
+						${NAV_GROUPS.map(([group, items]) => {
+							const shown = items.filter(([, href]) => navVisible(href));
+							return shown.length ? `${group ? `<div class="nav-group">${group}</div>` : ""}${shown.map(([ic, href, label, badge]) =>
+								`<a href="${href}" data-nav="${href}">${icon(ic)}<span>${label}</span>${badge ? `<span class="count" data-badge="${badge}" hidden></span>` : ""}</a>`).join("")}` : "";
+						}).join("")}
 					</nav>
 					<div class="sidebar-foot">
 						<div class="user"><span class="avatar">${esc(initials(b.user.full_name))}</span><div><b>${esc(b.user.full_name)}</b><span class="muted small">${esc(
@@ -474,7 +477,7 @@
 		const kindLabel = { person: "сотрудник", account: "учётка", role: "роль", process: "процесс", entitlement: "право" };
 		const hrefOf = (r) =>
 			r.kind === "person" ? `#/person/${enc(r.id)}` : r.kind === "role" ? `#/role/${enc(r.id)}` : r.kind === "process" ? `#/process/${enc(r.id)}`
-				: r.kind === "entitlement" ? `#/entitlement/${enc(r.id)}` : DESK ? deskUrl(r.doctype, r.id) : null;
+				: r.kind === "entitlement" ? `#/entitlement/${enc(r.id)}` : r.kind === "position" ? `#/position/${enc(r.id)}` : r.kind === "department" ? `#/department/${enc(r.id)}` : DESK ? deskUrl(r.doctype, r.id) : null;
 		const drawResults = () => {
 			box.innerHTML = items.length
 				? items
@@ -546,6 +549,9 @@
 		[/^\/review\/(.+)$/, viewReview],
 		[/^\/app-access$/, viewAppAccess],
 		[/^\/ad-plans$/, viewAdPlans],
+		[/^\/position\/(.+)$/, viewPosition],
+		[/^\/department\/(.+)$/, viewDepartment],
+		[/^\/organization\/(.+)$/, viewOrganization],
 		[/^\/notifications$/, viewNotifications],
 		[/^\/ad-plan\/(.+)$/, viewAdPlan],
 		[/^\/reports$/, viewReports],
@@ -561,7 +567,7 @@
 		$app.querySelector(".shell").classList.remove("nav-open");
 		$app.querySelectorAll("[data-nav]").forEach((a) => {
 			const href = a.dataset.nav.slice(1);
-			a.classList.toggle("active", href === "/" ? path === "/" : path.startsWith(href) || (href === "/people" && path.startsWith("/person")) ||
+			a.classList.toggle("active", href === "/" ? path === "/" : path.startsWith(href) || (href === "/people" && /^\/(person|position|department|organization)\//.test(path)) ||
 				(href === "/access" && path.startsWith("/entitlement")) || (href === "/roles" && path.startsWith("/role/")) || (href === "/processes" && path.startsWith("/process/")) || (href === "/reviews" && path.startsWith("/review/")) || (href === "/reports" && path.startsWith("/report/")) || (href === "/ad-plans" && path.startsWith("/ad-plan/")));
 		});
 		for (const [re, fn] of ROUTES) {
@@ -1466,6 +1472,97 @@
 		});
 	}
 
+	// ------------------------------------------------------------------ position, department, organization
+
+	/* links between neighbouring cards: a person, a position (by its title), a department, an organization */
+	const posLink = (title) => (title ? (canSee("people") ? `<a href="#/position/${enc(title)}">${esc(title)}</a>` : esc(title)) : "");
+	const depLink = (id, title) => (title ? (id && canSee("people") ? `<a href="#/department/${enc(id)}">${esc(title)}</a>` : esc(title)) : "");
+	const orgLink = (id, title) => (title ? (id && canSee("people") ? `<a href="#/organization/${enc(id)}">${esc(title)}</a>` : esc(title)) : "");
+	const roleLink = (r) => `<a href="#/role/${enc(r.name)}">${esc(r.role_name || r.name)}</a>`;
+
+	const HOLDER_COLUMNS = [
+		{ key: "full_name", label: "Сотрудник", render: (r) => personLink(r.person, r.full_name) },
+		{ key: "position", label: "Должность", render: (r) => posLink(r.position), csv: (r) => r.position || "" },
+		{ key: "department", label: "Подразделение", render: (r) => depLink(r.department_id, r.department), csv: (r) => r.department || "" },
+		{ key: "organization", label: "Организация", render: (r) => orgLink(r.organization_id, r.organization), csv: (r) => r.organization || "" },
+		{ key: "employment_kind", label: "Вид занятости" },
+		{ key: "hire_date", label: "Принят", type: "date" },
+	];
+
+	function rolesBlock(num, roles, lead) {
+		return block(num, "Роли доступа", lead, roles.length
+			? `<div class="card list">${roles.map((r) => `<div class="list-item"><div class="grow"><b>${roleLink(r)}</b><small>${esc(r.kind || "")} · участников: ${fmtNum(r.members || 0)}</small></div>${pill(r.status, r.status === "Действует" ? "t-green" : "")}</div>`).join("")}</div>`
+			: `<div class="card empty">Ролей с таким правилом нет</div>`);
+	}
+
+	const countList = (rows, link, limit = 12) => {
+		if (!rows.length) return `<div class="card empty">Нет</div>`;
+		const item = (x) => `<div class="list-item"><div class="grow">${link(x)}</div><b>${fmtNum(x.count)}</b></div>`;
+		const more = rows.slice(limit);
+		return `<div class="card list">${rows.slice(0, limit).map(item).join("")}${more.length ? `<details class="more"><summary class="list-item">ещё ${more.length}</summary>${more.map(item).join("")}</details>` : ""}</div>`;
+	};
+
+	async function viewPosition(view, title) {
+		const d = await api("position", { title });
+		const people = new Set(d.holders.map((h) => h.person)).size;
+		view.innerHTML = `
+			<div class="crumbs"><a href="#/people">Сотрудники</a> / должность</div>
+			<div class="page-head"><div><h1>${esc(d.title)}</h1><p>Должность во всех базах ЗУП: ${fmtNum(people)} ${plural(people, "сотрудник её занимает", "сотрудника её занимают", "сотрудников её занимают")}.</p></div></div>
+			${block(1, "Кто занимает", "Действующие трудоустройства: основное место и совместительства.", `<div class="card pos-holders"></div>`)}
+			<div class="grid grid-2">
+				<div>${block(2, "Где", "Подразделения и организации.", `<div class="group-title">Подразделения</div>${countList(d.departments, (x) => depLink(x.name, x.title))}
+					<div class="group-title" style="margin-top:16px">Организации</div>${countList(d.organizations, (x) => orgLink(x.name, x.title))}`)}</div>
+				<div>${rolesBlock(3, d.roles, "Роли, правило которых называет эту должность: что ей положено.")}</div>
+			</div>
+			${block(4, "Какие права есть у занимающих", "Сколько из них имеют каждое право и положено ли оно по модели. Помогает описать роль для должности.", `<div class="card pos-access"></div>`)}`;
+		table(view.querySelector(".pos-holders"), { name: `должность-${d.title}`, rows: d.holders, columns: HOLDER_COLUMNS, filter: d.holders.length > 10, empty: "Сейчас никто не занимает" });
+		table(view.querySelector(".pos-access"), {
+			name: `должность-права-${d.title}`,
+			rows: d.access,
+			filter: d.access.length > 10,
+			empty: "Прав нет или они вам не открыты",
+			columns: [
+				{ key: "title", label: "Право", render: (r) => `<a href="#/entitlement/${enc(r.entitlement)}">${esc(r.title)}</a>${r.privileged ? " " + pill("привилегированное", "t-red") : ""}` },
+				{ key: "system", label: "Система", type: "badge" },
+				{ key: "holders", label: "У скольких", render: (r) => `${fmtNum(r.holders)} <span class="muted small">(${r.share}%)</span>`, csv: (r) => String(r.holders) },
+				{ key: "expected", label: "Из них положено по модели", type: "number" },
+			],
+		});
+	}
+
+	async function viewDepartment(view, name) {
+		const d = await api("department", { name });
+		view.innerHTML = `
+			<div class="crumbs"><a href="#/people">Сотрудники</a> / ${d.organization ? orgLink(d.organization_id, d.organization) + " / " : ""}${d.path.map((p) => depLink(p.name, p.title) + " / ").join("")}${esc(d.title)}</div>
+			<div class="page-head"><div><h1>${esc(d.title)} ${d.missing ? pill("нет в выгрузке ЗУП", "t-amber") : ""}</h1>
+				<p>${d.head ? `Руководитель: ${personLink(d.head.name, d.head.full_name)} · ` : ""}сотрудников: ${fmtNum(d.employees.length)} в самом подразделении, ${fmtNum(d.total)} вместе с вложенными.</p></div>
+				${DESK ? `<a class="btn small" href="${deskUrl("HR Department", d.name)}" target="_blank" rel="noopener">${icon("external")} Карточка</a>` : ""}</div>
+			${d.children.length ? block(1, "Вложенные подразделения", "", countList(d.children, (x) => depLink(x.name, x.title))) : ""}
+			${block(2, "Сотрудники", "Кто работает в самом подразделении (без вложенных).", `<div class="card dep-people"></div>`)}
+			<div class="grid grid-2">
+				<div>${block(3, "Должности", "", countList(d.positions, (x) => posLink(x.title)))}</div>
+				<div>${rolesBlock(4, d.roles, "Роли, правило которых называет это подразделение.")}</div>
+			</div>`;
+		table(view.querySelector(".dep-people"), { name: `подразделение-${d.title}`, rows: d.employees, columns: HOLDER_COLUMNS.filter((c) => c.key !== "department"), filter: d.employees.length > 10, empty: "Сотрудников нет" });
+	}
+
+	async function viewOrganization(view, name) {
+		const d = await api("organization", { name });
+		view.innerHTML = `
+			<div class="crumbs"><a href="#/people">Сотрудники</a> / организация</div>
+			<div class="page-head"><div><h1>${esc(d.title)}</h1><p>${esc([d.full_title !== d.title && d.full_title, d.inn && "ИНН " + d.inn, d.kpp && "КПП " + d.kpp, d.legal_entity && d.legal_entity !== d.title && "юрлицо: " + d.legal_entity, d.source && "база " + d.source].filter(Boolean).join(" · "))}
+				· работают: ${fmtNum(d.total)}</p></div>
+				<div class="mgmt-tools"><a class="btn small" href="#/people" data-org="${esc(d.name)}">Сотрудники организации</a></div></div>
+			<div class="grid grid-2">
+				<div>${block(1, "Подразделения", "Сколько сотрудников работает.", countList(d.departments, (x) => depLink(x.name, x.title)))}</div>
+				<div>${block(2, "Должности", "Самые частые.", countList(d.positions, (x) => posLink(x.title)))}
+					${rolesBlock(3, d.roles, "Роли, правило которых называет эту организацию.")}</div>
+			</div>`;
+		view.querySelector("[data-org]").addEventListener("click", () => {
+			state.peopleFilters.organization = d.name;
+		});
+	}
+
 	function personTickets(t) {
 		const STATE_TONE = { Открыта: "t-amber", Завершена: "t-green", Отменена: "" };
 		return `<div class="group"><h3>Заявки в техподдержку</h3><p class="muted small">Сотрудник указан в заявке как обратившийся.
@@ -1510,9 +1607,9 @@
 				columns: [
 					{ key: "full_name", label: "Сотрудник", type: "person", render: (r) => cell({ key: "full_name", type: "person" }, { ...r, person: r.name }) },
 					{ key: "status", label: "Статус", type: "status" },
-					{ key: "position", label: "Должность" },
-					{ key: "department", label: "Подразделение" },
-					{ key: "organization", label: "Организация" },
+					{ key: "position", label: "Должность", render: (r) => posLink(r.position), csv: (r) => r.position || "" },
+					{ key: "department", label: "Подразделение", render: (r) => depLink(r.department_id, r.department), csv: (r) => r.department || "" },
+					{ key: "organization", label: "Организация", render: (r) => orgLink(r.organization_id, r.organization), csv: (r) => r.organization || "" },
 					{
 						key: "systems",
 						label: "Учётки",
@@ -1568,7 +1665,7 @@
 				<div style="flex:1;min-width:240px">
 					<h1>${esc(p.full_name)} ${statusPill(p.status)} ${p.presence === "Длительное отсутствие" ? pill("длительное отсутствие", "t-violet") : ""}
 						${p.external_part_time_only ? pill("только совместительство", "t-amber") : ""}</h1>
-					<div class="meta">${[p.position, p.department, p.organization].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")}
+					<div class="meta">${[posLink(p.position), depLink(p.department_id, p.department), orgLink(p.organization_id, p.organization)].filter(Boolean).map((x) => `<span>${x}</span>`).join("")}
 						${p.birth_date ? `<span>дата рождения ${esc(fmtDate(p.birth_date))}</span>` : ""}</div>
 				</div>
 				${DESK ? `<a class="btn" href="${deskUrl("Person", p.name)}" target="_blank" rel="noopener">${icon("external")} Карточка</a>` : ""}
@@ -1850,8 +1947,8 @@
 
 	function personHr(d) {
 		const emps = d.employments
-			.map((e) => `<div class="list-item"><div class="grow"><b>${esc(e.position || "—")}</b> ${statusPill(e.status)}
-				<small>${esc([e.department, e.organization].filter(Boolean).join(" · "))}</small>
+			.map((e) => `<div class="list-item"><div class="grow"><b>${e.position ? posLink(e.position) : "—"}</b> ${statusPill(e.status)}
+				<small>${[depLink(e.department_id, e.department), orgLink(e.organization_id, e.organization)].filter(Boolean).join(" · ")}</small>
 				<small>${esc(e.employment_kind || "")} · ${esc(e.source)} ${esc(e.tab_number || "")} · ${e.hire_date ? "с " + esc(fmtDate(e.hire_date)) : ""}${e.termination_date ? " по " + esc(fmtDate(e.termination_date)) : ""}</small></div></div>`)
 			.join("");
 		const abs = d.absences
@@ -2116,9 +2213,9 @@
 		const rules = r.rules
 			.map(
 				(x) => `<div class="list-item"><div class="grow">${[
-					x.position_title && `должность «${esc(x.position_title)}»`,
-					x.department && `подразделение «${esc(x.department)}»${x.include_subdepartments ? " с подчинёнными" : ""}`,
-					x.organization && `организация «${esc(x.organization)}»`,
+					x.position_title && `должность «${posLink(x.position_title)}»`,
+					x.department && `подразделение «${depLink(x.department_id, x.department)}»${x.include_subdepartments ? " с подчинёнными" : ""}`,
+					x.organization && `организация «${orgLink(x.organization_id, x.organization)}»`,
 					x.main_only && "только основное место работы",
 				].filter(Boolean).join(", ")}</div></div>`
 			)

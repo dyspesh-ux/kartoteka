@@ -1,7 +1,7 @@
 {
  "charts": [],
- "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Техника из Snipe-IT:</b> у кого что, выдачи и возвраты. Реестр только читает Snipe-IT.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Учёт техники</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Техника: у кого что\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Движение техники\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Техника\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пользователи Snipe-IT\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал выдач\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Серверы Snipe-IT\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000011\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000012\", \"type\": \"card\", \"data\": {\"card_name\": \"Техника (Snipe-IT)\", \"col\": 4}}]",
- "creation": "2026-10-13 07:00:00.000000",
+ "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Техника из Snipe-IT:</b> у кого что, выдачи и возвраты. Реестр только читает Snipe-IT.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Учёт техники</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Техника: у кого что\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Движение техники\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Техника\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Пользователи Snipe-IT\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Журнал выдач\", \"col\": 4}}, {\"id\": \"ar00000009\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Техника чужой организации\", \"col\": 4}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Серверы Snipe-IT\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Техника в приложении\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000013\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000014\", \"type\": \"card\", \"data\": {\"card_name\": \"Техника (Snipe-IT)\", \"col\": 4}}]",
+ "creation": "2026-10-18 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -16,7 +16,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Техника (Snipe-IT)",
-   "link_count": 6,
+   "link_count": 7,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -86,9 +86,20 @@
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Техника чужой организации",
+   "link_count": 0,
+   "link_to": "IT Assets Other Organization",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-10-13 07:00:00.000000",
+ "modified": "2026-10-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Техника",
@@ -124,13 +135,13 @@
    "label": "Техника: у кого что",
    "link_to": "IT Assets",
    "type": "Report",
-   "report_ref_doctype": "IB User"
+   "report_ref_doctype": "IT Asset"
   },
   {
    "label": "Движение техники",
    "link_to": "IT Asset Movements",
    "type": "Report",
-   "report_ref_doctype": "IB User"
+   "report_ref_doctype": "IT Asset Event"
   },
   {
    "label": "Техника",
@@ -154,12 +165,23 @@
    "type": "DocType"
   },
   {
+   "label": "Техника чужой организации",
+   "link_to": "IT Assets Other Organization",
+   "type": "Report",
+   "report_ref_doctype": "IT Asset"
+  },
+  {
    "label": "Серверы Snipe-IT",
    "link_to": "Snipe-IT Server",
    "type": "DocType",
    "stats_filter": "[[\"Snipe-IT Server\", \"enabled\", \"=\", 1]]",
    "color": "Green",
    "format": "{} включено"
+  },
+  {
+   "label": "Техника в приложении",
+   "url": "/registry#/equipment",
+   "type": "URL"
   }
  ],
  "title": "Техника"

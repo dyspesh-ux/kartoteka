@@ -1,7 +1,7 @@
 {
  "charts": [],
  "content": "[{\"id\": \"ar00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Кадры из баз ЗУП — источник правды.</b> Сотрудники склеены по всем базам; спорные пары и события разбираются здесь.\", \"col\": 12}}, {\"id\": \"ar00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Сотрудники и структура</b></span>\", \"col\": 12}}, {\"id\": \"ar00000004\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Сотрудники\", \"col\": 4}}, {\"id\": \"ar00000005\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Трудоустройства\", \"col\": 4}}, {\"id\": \"ar00000006\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Дерево подразделений\", \"col\": 4}}, {\"id\": \"ar00000007\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Длительное отсутствие\", \"col\": 4}}, {\"id\": \"ar00000008\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000009\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Разбор кадров</b></span>\", \"col\": 12}}, {\"id\": \"ar00000010\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты на склейку\", \"col\": 4}}, {\"id\": \"ar00000011\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Новые кадровые события\", \"col\": 4}}, {\"id\": \"ar00000012\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Только совместительство\", \"col\": 4}}, {\"id\": \"ar00000013\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Расхождения руководителей\", \"col\": 4}}, {\"id\": \"ar00000014\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Кандидаты в руководители\", \"col\": 4}}, {\"id\": \"ar00000015\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Нет в выгрузке\", \"col\": 4}}, {\"id\": \"ar00000016\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ar00000017\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Справочники и отчёты</b></span>\", \"col\": 12}}, {\"id\": \"ar00000018\", \"type\": \"card\", \"data\": {\"card_name\": \"Кадры (ЗУП)\", \"col\": 4}}, {\"id\": \"ar00000019\", \"type\": \"card\", \"data\": {\"card_name\": \"Разбор кадров\", \"col\": 4}}]",
- "creation": "2026-10-13 07:00:00.000000",
+ "creation": "2026-10-18 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -130,7 +130,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-13 07:00:00.000000",
+ "modified": "2026-10-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Кадры",
