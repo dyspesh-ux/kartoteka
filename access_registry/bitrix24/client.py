@@ -159,11 +159,12 @@ class B24Client:
 
 	# ------------------------------------------------------------------ batch and lists
 
-	def batch(self, commands: dict, halt: bool = False) -> dict:
+	def batch(self, commands: dict, halt: bool = False, totals: dict | None = None) -> dict:
 		"""Runs up to 50 commands per request: {key: (method, params)} → {key: result}.
 
 		Errors of single commands are raised as B24Error for the first failed key when ``halt``,
-		otherwise returned in the result as B24Error instances.
+		otherwise returned in the result as B24Error instances. ``totals`` (a dict) receives the
+		``total`` of list commands.
 		"""
 		results = {}
 		items = list(commands.items())
@@ -175,7 +176,7 @@ class B24Client:
 			answer = self.result("batch", {"halt": 1 if halt else 0, "cmd": cmd}) or {}
 			data = answer.get("result") or {}
 			errors = answer.get("result_error") or {}
-			totals = answer.get("result_total") or {}
+			answer_totals = answer.get("result_total") or {}
 			for key, (method, _params) in chunk:
 				if key in errors and errors[key]:
 					err = errors[key] if isinstance(errors[key], dict) else {"error": str(errors[key])}
@@ -185,9 +186,8 @@ class B24Client:
 					results[key] = failure
 				else:
 					results[key] = data.get(key) if isinstance(data, dict) else None
-				if key in totals:
-					results.setdefault("__total__", {})[key] = totals[key]
-		results.pop("__total__", None)
+				if totals is not None and key in answer_totals:
+					totals[key] = answer_totals[key]
 		return results
 
 	def list_all(self, method: str, params: dict | None = None, key: str | None = None) -> list:

@@ -1,13 +1,14 @@
 """Structure of the smart processes of a Bitrix24 portal, for deciding what the registry should show.
 
 Only the description: types, funnels, stages, fields (code, type, title, list options) and the number
-of items. No items, no values of the records. The result is a JSON file the administrator downloads
-from the portal card and sends to the developers.
+of items. No items, no values of the records. The result is a JSON file the administrator gets
+in the attachments of the portal card and sends to the developers.
 """
 
 import json
 
 import frappe
+from frappe import _
 from frappe.utils import now_datetime
 
 from access_registry.bitrix24.client import B24Error
@@ -70,9 +71,31 @@ def _field(code: str, f: dict) -> dict:
 	return result
 
 
+def _value(answer, key):
+	value = answer.get(key)
+	if isinstance(value, B24Error):
+		raise value
+	return value
+
+
 def describe(client) -> dict:
+	"""Two batches for the whole portal instead of a call per funnel: on a portal with dozens of
+	smart processes the sequential calls took minutes."""
 	types = client.crm_types()
 	result = {"generated": str(now_datetime()), "smart_processes": []}
+	commands = {}
+	for t in types:
+		entity_type_id = t.get("entityTypeId")
+		commands[f"cat{entity_type_id}"] = ("crm.category.list", {"entityTypeId": entity_type_id})
+		commands[f"fld{entity_type_id}"] = ("crm.item.fields", {"entityTypeId": entity_type_id})
+		commands[f"cnt{entity_type_id}"] = (
+			"crm.item.list",
+			{"entityTypeId": entity_type_id, "select": ["id"]},
+		)
+	totals = {}
+	answers = client.batch(commands, totals=totals) if commands else {}
+
+	items, stage_commands = [], {}
 	for t in types:
 		entity_type_id = t.get("entityTypeId")
 		item = {
@@ -90,12 +113,13 @@ def describe(client) -> dict:
 			"fields": [],
 		}
 		try:
-			categories = client.result("crm.category.list", {"entityTypeId": entity_type_id}) or {}
+			categories = _value(answers, f"cat{entity_type_id}") or {}
 			categories = (
 				categories.get("categories", categories) if isinstance(categories, dict) else categories
 			)
 			for c in categories or []:
-				stages = client.result(
+				key = f"st{entity_type_id}_{c.get('id')}"
+				stage_commands[key] = (
 					"crm.status.list",
 					{
 						"filter": {"ENTITY_ID": f"DYNAMIC_{entity_type_id}_STAGE_{c.get('id')}"},
@@ -107,35 +131,77 @@ def describe(client) -> dict:
 						"id": c.get("id"),
 						"name": c.get("name"),
 						"default": c.get("isDefault") in (True, "Y"),
-						"stages": [
-							{
-								"id": s.get("STATUS_ID"),
-								"name": s.get("NAME"),
-								"semantics": s.get("SEMANTICS") or "",
-							}
-							for s in stages or []
-						],
+						"stages": key,  # filled from the second batch
 					}
 				)
-			fields = (client.result("crm.item.fields", {"entityTypeId": entity_type_id}) or {}).get(
-				"fields"
-			) or {}
+			fields = (_value(answers, f"fld{entity_type_id}") or {}).get("fields") or {}
 			item["fields"] = [_field(code, f) for code, f in fields.items()]
-			counted = client.call("crm.item.list", {"entityTypeId": entity_type_id, "select": ["id"]})
-			item["items"] = int(counted.get("total") or 0)
+			_value(answers, f"cnt{entity_type_id}")
+			item["items"] = int(totals.get(f"cnt{entity_type_id}") or 0)
 		except B24Error as e:
 			item["error"] = str(e)
+		items.append(item)
+
+	stages = client.batch(stage_commands) if stage_commands else {}
+	for item in items:
+		for funnel in item["funnels"]:
+			value = stages.get(funnel["stages"])
+			if isinstance(value, B24Error):
+				item["error"] = str(value)
+				value = None
+			funnel["stages"] = [
+				{"id": s.get("STATUS_ID"), "name": s.get("NAME"), "semantics": s.get("SEMANTICS") or ""}
+				for s in value or []
+			]
 		result["smart_processes"].append(item)
 	return result
 
 
 @frappe.whitelist()
-def download(portal: str):
-	"""The structure as a JSON file (portal card → «Структура смарт-процессов»)."""
+def start(portal: str):
+	"""Portal card → «Структура смарт-процессов»: collected in the background (a web request would
+	hit the proxy timeout, HTTP 504), the file is attached to the portal card."""
 	frappe.only_for(("System Manager", "Registry Admin"))
+	frappe.get_doc("B24 Portal", portal).check_permission("read")
+	frappe.enqueue(
+		"access_registry.bitrix24.smart_structure.build",
+		queue="long",
+		timeout=1800,
+		job_id=f"b24_smart_structure::{portal}",
+		deduplicate=True,
+		portal=portal,
+		user=frappe.session.user,
+	)
+	return _("Собираю структуру смарт-процессов. Файл появится во вложениях карточки портала.")
+
+
+def build(portal: str, user: str | None = None):
 	from access_registry.bitrix24.sync import make_client
 
-	data = describe(make_client(frappe.get_doc("B24 Portal", portal)))
-	frappe.response["filename"] = f"smart-processes-{portal}.json"
-	frappe.response["filecontent"] = json.dumps(data, ensure_ascii=False, indent=1)
-	frappe.response["type"] = "download"
+	try:
+		data = describe(make_client(frappe.get_doc("B24 Portal", portal)))
+	except Exception as e:
+		frappe.log_error(title=f"Bitrix24: структура смарт-процессов {portal}")
+		if user:
+			frappe.publish_realtime(
+				"b24_smart_structure", {"portal": portal, "error": str(e)}, user=user, after_commit=True
+			)
+		return None
+	file = frappe.get_doc(
+		{
+			"doctype": "File",
+			"file_name": f"smart-processes-{frappe.scrub(portal)}-{now_datetime():%Y%m%d-%H%M}.json",
+			"attached_to_doctype": "B24 Portal",
+			"attached_to_name": portal,
+			"is_private": 1,
+			"content": json.dumps(data, ensure_ascii=False, indent=1),
+		}
+	).insert(ignore_permissions=True)
+	frappe.db.commit()
+	if user:
+		frappe.publish_realtime(
+			"b24_smart_structure",
+			{"portal": portal, "file_url": file.file_url, "count": len(data["smart_processes"])},
+			user=user,
+		)
+	return file.name
