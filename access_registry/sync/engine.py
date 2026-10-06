@@ -235,10 +235,13 @@ def _status_line(status, log):
 
 
 def _format_messages(messages):
+	"""Text of the Sync Log: at most MAX_MESSAGES lines, without secrets (webhook URLs, tokens)."""
+	from access_registry.redact import redact
+
 	if len(messages) > MAX_MESSAGES:
 		extra = len(messages) - MAX_MESSAGES
 		messages = messages[:MAX_MESSAGES] + [f"… и ещё {extra} сообщений"]
-	return "\n".join(messages)
+	return redact("\n".join(messages))
 
 
 def _switch_user(user, messages):

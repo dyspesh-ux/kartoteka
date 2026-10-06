@@ -14,6 +14,8 @@ import json
 import time
 from urllib.parse import quote, urlsplit
 
+from access_registry.redact import redact
+
 PAGE = 50  # Bitrix24 returns lists by 50 records
 BATCH_LIMIT = 50  # commands in one batch
 LIMIT_ERRORS = {"QUERY_LIMIT_EXCEEDED", "OPERATION_TIME_LIMIT"}
@@ -131,7 +133,9 @@ class B24Client:
 				if attempt < self.retries:
 					self.sleep(min(2**attempt, 30))
 					continue
-				raise B24Error("NETWORK", str(e), method) from e
+				# the exception text quotes the webhook URL with its secret: neither it nor the
+				# chained exception (it would show in a traceback) may reach a log
+				raise B24Error("NETWORK", redact(str(e)), method) from None
 			self.calls += 1
 			status = getattr(response, "status_code", 200)
 			try:

@@ -168,3 +168,39 @@ class TestAdPlan(SnipeFixture):
 		self.assertEqual(ps("O'Brien"), "'O''Brien'")
 		self.assertEqual(ps("$(Remove-Item C:\\)"), "'$(Remove-Item C:\\)'")  # single quotes: nothing expands
 		self.assertEqual(ps("a’b"), "'a’’b'")
+
+	def test_plan_cannot_be_forged_outside_the_app(self):
+		a = self.linked[0]
+		self.dismiss(a.person)
+		name = api.create_ad_plan(DOMAIN)
+		doc = frappe.get_doc("AD Change Plan", name)
+		# approving through the desk / REST API: refused
+		doc.status = "Одобрен"
+		doc.approved_by = "Administrator"
+		self.assertRaises(frappe.ValidationError, doc.save)
+		# rows are the registry's: only «В плане» changes in a draft
+		doc = frappe.get_doc("AD Change Plan", name)
+		doc.items[0].after = "Domain Admins"
+		self.assertRaises(frappe.ValidationError, doc.save)
+		doc = frappe.get_doc("AD Change Plan", name)
+		doc.items[0].include = 0
+		doc.save()
+		# a decided plan is frozen
+		ib = make_user("ad-plan-ib2@registry.test")
+		frappe.db.delete("Registry Access Profile", {"name": "ИБ: AD 2"})
+		api.save_profile(
+			{"profile_name": "ИБ: AD 2", "sections": {"control": 1}, "ad_approve": 1, "members": [ib]}
+		)
+		frappe.set_user(ib)
+		api.decide_ad_plan(name, "Одобрен")
+		frappe.set_user("Administrator")
+		doc = frappe.get_doc("AD Change Plan", name)
+		doc.items[0].include = 1
+		self.assertRaises(frappe.ValidationError, doc.save)
+		# the script refuses attributes the registry never plans
+		doc.items[0].action, doc.items[0].attribute, doc.items[0].include = (
+			"Изменить",
+			"userAccountControl",
+			1,
+		)
+		self.assertRaises(ValueError, render, doc, frappe.get_doc("AD Domain", DOMAIN))

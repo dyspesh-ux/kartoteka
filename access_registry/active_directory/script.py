@@ -21,8 +21,14 @@ def ps(value) -> str:
 	return "'" + str(value or "").replace("'", "''").replace("‘", "‘‘").replace("’", "’’") + "'"
 
 
+ATTRIBUTES = {"title", "department", "company", "employeeNumber"}
+
+
 def render(plan, domain) -> str:
 	items = [i for i in plan.items if i.include]
+	unknown = {i.attribute for i in items if i.action != DISABLE and i.attribute not in ATTRIBUTES}
+	if unknown:  # only attributes the registry plans; anything else means the plan was tampered with
+		raise ValueError(f"unexpected attributes in the plan: {sorted(unknown)}")
 	rows = []
 	for i in items:
 		if i.action == DISABLE:

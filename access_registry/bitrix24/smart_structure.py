@@ -157,7 +157,7 @@ def describe(client) -> dict:
 	return result
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def start(portal: str):
 	"""Portal card → «Структура смарт-процессов»: collected in the background (a web request would
 	hit the proxy timeout, HTTP 504), the file is attached to the portal card."""

@@ -6,3 +6,4 @@ access_registry.patches.v0_3.create_registry_roles
 access_registry.patches.v0_1.remove_cyrillic_workspace
 access_registry.patches.v0_2.remove_zup_catalog
 access_registry.patches.v0_2.fill_info_base_and_person_keys
+access_registry.patches.v0_4.redact_logs

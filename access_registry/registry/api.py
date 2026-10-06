@@ -1284,11 +1284,29 @@ def suppress_alerts(kind: str, keys, reason: str, valid_to: str | None = None) -
 @frappe.whitelist(methods=["POST"])
 def restore_alert(name: str, reason: str) -> str:
 	"""The alert shows in its list again; the journal keeps who returned it and why."""
-	# only alerts of the lists the user works with (the journal alone does not give that)
-	aa.require_control(frappe.db.get_value("Alert Suppression", name, "alert_kind"), WORK)
+	# only alerts of the lists the user works with (the journal alone does not give that) and of the
+	# systems the user sees
+	kind, ref_doctype = frappe.db.get_value("Alert Suppression", name, ["alert_kind", "ref_doctype"]) or (
+		None,
+		None,
+	)
+	aa.require_control(kind, WORK)
+	if not aa.system_allowed(SYSTEM_OF_REF.get(ref_doctype)):
+		raise frappe.PermissionError(_("Это замечание системы, которая вам не открыта"))
 	result = suppression.restore(name, reason)
 	frappe.cache().delete_value(CACHE_KEY)
 	return result
+
+
+# the system of a suppressed alert, by the record it is about
+SYSTEM_OF_REF = {
+	"IB User": "1С",
+	"AD Account": "AD",
+	"B24 User": "Битрикс24",
+	"Folder ACL": "Общие папки",
+	"File Share": "Общие папки",
+	"IT Asset": "Техника",
+}
 
 
 def _control_journal():
@@ -1296,6 +1314,8 @@ def _control_journal():
 	allowed = set(aa.control_lists())
 	if not aa.access()["all_lists"]:
 		rows = [r for r in rows if r["alert_kind"] in allowed]  # only the lists the user works with
+	systems = aa.systems()
+	rows = [r for r in rows if aa.system_allowed(SYSTEM_OF_REF.get(r.get("ref_doctype")), systems)]
 	for r in rows:
 		r["ref"], r["ref_doctype"] = r["name"], "Alert Suppression"
 		r["when"] = r["suppressed_on"]
@@ -2347,6 +2367,7 @@ def decide_ad_plan(name: str, decision: str, comment: str | None = None) -> str:
 	doc.approved_by = frappe.session.user
 	doc.decided_on = now_datetime()
 	doc.decision_comment = (comment or "").strip()
+	doc.flags.deciding = True
 	doc.save(ignore_permissions=True)
 	return doc.status
 

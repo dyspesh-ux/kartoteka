@@ -174,3 +174,18 @@ class TestProcessImport(RoleFixture):
 		download_template()
 		self.assertTrue(frappe.response["filecontent"].startswith(b"PK"))
 		self.assertIn("Процессы", read_workbook(frappe.response["filecontent"]))
+
+	def test_reader_cannot_run_import(self):
+		from access_registry.tests.test_permissions import make_user
+
+		doc = frappe.get_doc({"doctype": "Process Import", "import_file": "/private/files/none.xlsx"})
+		doc.set_new_name()
+		doc.db_insert()  # no file needed: the check must refuse before reading it
+		auditor = make_user("process-import-auditor@registry.test", "Registry Auditor")
+		frappe.set_user(auditor)
+		try:
+			self.assertTrue(doc.has_permission("read"))  # so the method itself must ask for write
+			self.assertRaises(frappe.PermissionError, doc.load)
+			self.assertRaises(frappe.PermissionError, doc.check)
+		finally:
+			frappe.set_user("Administrator")
