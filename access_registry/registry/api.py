@@ -294,6 +294,7 @@ SOURCE_SYSTEM = {
 	"Общие папки Synology": "Общие папки",
 	"Техника (Snipe-IT)": "Техника",
 	"Техподдержка (Битрикс24)": "Битрикс24",
+	"Подбор персонала (Битрикс24)": "Битрикс24",
 }
 
 
@@ -440,11 +441,11 @@ def sources() -> list:
 			}
 		)
 	for p in frappe.get_all(
-		"B24 Smart Process", fields=["name", "title", "enabled", "last_sync", "last_status"]
+		"B24 Smart Process", fields=["name", "title", "enabled", "last_sync", "last_status", "purpose"]
 	):
 		result.append(
 			{
-				"kind": "Техподдержка (Битрикс24)",
+				"kind": f"{p.purpose or 'Техподдержка'} (Битрикс24)",
 				"name": p.name,
 				"title": p.title or p.name,
 				"enabled": p.enabled,
@@ -1985,6 +1986,7 @@ PROFILE_FIELDS = {
 	"management": "s_management",
 	"support": "s_support",
 	"equipment": "s_equipment",
+	"hiring": "s_hiring",
 	"people": "s_people",
 	"control": "s_control",
 	"access": "s_access",
@@ -2187,6 +2189,15 @@ def support(process: str | None = None, days: int = 30) -> dict:
 
 	_check("support")
 	return helpdesk.snapshot(process, days)
+
+
+@frappe.whitelist()
+def hiring(process: str | None = None, days: int = 90) -> dict:
+	"""Recruiting for planning equipment: vacancies, stages, expected starts, what to buy."""
+	from access_registry.bitrix24 import hiring as recruiting
+
+	_check("hiring")
+	return recruiting.snapshot(process, days)
 
 
 @frappe.whitelist()

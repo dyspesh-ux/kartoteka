@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 0,
  "autoname": "field:uid",
- "creation": "2026-10-16 07:00:00.000000",
+ "creation": "2026-10-19 07:00:00.000000",
  "description": "Заявки смарт-процессов Битрикс24: только состояние — стадия, сроки, кто обратился и кто исполняет",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -28,6 +28,18 @@
   "assigned_name",
   "assignee",
   "assigned_b24",
+  "section_break_4",
+  "position",
+  "department",
+  "organization",
+  "office",
+  "level",
+  "column_break_4",
+  "start_date",
+  "equipment_note",
+  "services",
+  "remote",
+  "mobile",
   "section_break_3",
   "uid",
   "smart_process",
@@ -177,6 +189,79 @@
   },
   {
    "collapsible": 1,
+   "description": "Для смарт-процесса подбора персонала",
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break",
+   "label": "Вакансия"
+  },
+  {
+   "fieldname": "position",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Должность",
+   "read_only": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Подразделение",
+   "read_only": 1
+  },
+  {
+   "fieldname": "organization",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Организация",
+   "read_only": 1
+  },
+  {
+   "fieldname": "office",
+   "fieldtype": "Data",
+   "label": "Офис",
+   "read_only": 1
+  },
+  {
+   "fieldname": "level",
+   "fieldtype": "Data",
+   "label": "Уровень",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Дата выхода",
+   "read_only": 1
+  },
+  {
+   "fieldname": "equipment_note",
+   "fieldtype": "Small Text",
+   "label": "Оборудование для рабочего места",
+   "read_only": 1
+  },
+  {
+   "fieldname": "services",
+   "fieldtype": "Data",
+   "label": "Сервисы",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remote",
+   "fieldtype": "Check",
+   "label": "Дистанционно",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mobile",
+   "fieldtype": "Check",
+   "label": "Разъездной характер",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
    "fieldname": "section_break_3",
    "fieldtype": "Section Break",
    "label": "Источник"
@@ -222,7 +307,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-16 07:00:00.000000",
+ "modified": "2026-10-19 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Bitrix24",
  "name": "B24 Smart Item",

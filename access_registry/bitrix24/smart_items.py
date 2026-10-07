@@ -18,6 +18,7 @@ import frappe
 from frappe.utils import cint, now_datetime
 
 from access_registry.bitrix24.client import B24Error
+from access_registry.bitrix24.smart_refs import ref_id
 from access_registry.bitrix24.sync import b24_date, b24_datetime, make_client, src_hash
 from access_registry.settings import get_settings
 from access_registry.sync.engine import _format_messages, _switch_user
@@ -36,14 +37,43 @@ BASE_SELECT = [
 	"movedTime",
 	"assignedById",
 ]
-# item field → (types, title pattern, required title match)
+HELPDESK, HIRING = "Техподдержка", "Подбор персонала"
+# item field → (types, title patterns tried in order, a title must match, system fields allowed)
 ROLES = {
-	"requester_field": (("employee", "user"), r"обрат|заявител|инициатор|автор|кто", False),
-	"source_field": (("enumeration",), r"источник", True),
-	"category_field": (("enumeration",), r"каталог|категор|услуг|тип|раздел", False),
-	"deadline_field": (("date", "datetime"), r"срок|дедлайн|deadline|план", True),
-	"done_field": (("date", "datetime"), r"выполн|заверш|закры|решен", True),
+	"requester_field": (("employee", "user"), (r"обрат|заявител|инициатор|автор|кто",), False, False),
+	"source_field": (("enumeration",), (r"источник",), True, False),
+	"category_field": (("enumeration",), (r"каталог|категор|услуг|тип|раздел",), False, False),
+	"deadline_field": (("date", "datetime"), (r"срок|дедлайн|deadline|план",), True, False),
+	"done_field": (("date", "datetime"), (r"выполн|заверш|закры|решен",), True, False),
 }
+# recruiting: the vacancy, not the candidate (no salaries, contacts or files)
+HIRING_ROLES = {
+	"position_field": (
+		("crm", "string", "enumeration"),
+		(r"наименование должност", r"^должност"),
+		True,
+		False,
+	),
+	"position_alt_field": (("string",), (r"нов\w* должност",), True, False),
+	"department_field": (("crm", "iblock_element", "string", "enumeration"), (r"подразделени",), True, False),
+	"organization_field": (("crm_company",), (r"реквизиты вашей компании", r"организац"), True, True),
+	"level_field": (("enumeration",), (r"статус кандидата", r"уровень|категори"), True, False),
+	"office_field": (
+		("iblock_element", "string", "address", "enumeration"),
+		(r"адрес офиса", r"офис"),
+		True,
+		False,
+	),
+	"equipment_field": (("string", "text"), (r"оборудовани", r"техник"), True, False),
+	"services_field": (("enumeration",), (r"сервис",), True, False),
+	"start_field": (("date", "datetime"), (r"дата выхода", r"выход на работу"), True, False),
+	"remote_field": (("boolean",), (r"дистанц|удал[её]н",), True, False),
+	"mobile_field": (("boolean",), (r"разъезд|подвижн",), True, False),
+}
+
+
+def roles_of(doc) -> dict:
+	return HIRING_ROLES if doc.get("purpose") == HIRING else ROLES
 
 
 class SmartGuardTripped(frappe.ValidationError):
@@ -128,29 +158,40 @@ def run_process_sync(process: str, commit: bool = True, fetch=None, client=None)
 # --------------------------------------------------------------------------- reading
 
 
-def detect_fields(fields: dict, current: dict | None = None) -> dict:
+def detect_fields(fields: dict, current: dict | None = None, roles: dict | None = None) -> dict:
 	"""Guesses the item fields of each role from their type and title; set ones are kept.
 
-	``fields`` — the answer of crm.item.fields: {code: {type, title, isMultiple, ...}}."""
+	``fields`` — the answer of crm.item.fields: {code: {type, title, isMultiple, isRequired, ...}}.
+	Among fields of a matching title a required one wins: an optional field is often left empty."""
+	roles = roles or ROLES
 	chosen = {k: v for k, v in (current or {}).items() if v}
 	used = set(chosen.values())
-	for role, (types, pattern, must_match) in ROLES.items():
+	for role, (types, patterns, must_match, system_ok) in roles.items():
 		if chosen.get(role):
 			continue
 		candidates = [
 			code
 			for code, f in fields.items()
-			if code.lower().startswith("uf") and f.get("type") in types and code not in used
+			if (system_ok or code.lower().startswith("uf")) and f.get("type") in types and code not in used
 		]
 		if role == "requester_field":
 			candidates = [c for c in candidates if not fields[c].get("isMultiple")]
-		titled = [c for c in candidates if re.search(pattern, _title(fields[c]), re.IGNORECASE)]
-		if role == "category_field":
-			titled = [c for c in titled if not re.search(ROLES["source_field"][1], _title(fields[c]), re.I)]
-		pick = (titled or ([] if must_match else candidates))[:1]
-		if pick:
-			chosen[role] = pick[0]
-			used.add(pick[0])
+		titled = []
+		for pattern in patterns:
+			titled = [c for c in candidates if re.search(pattern, _title(fields[c]), re.IGNORECASE)]
+			if role == "category_field":
+				titled = [
+					c for c in titled if not re.search(ROLES["source_field"][1][0], _title(fields[c]), re.I)
+				]
+			if titled:
+				break
+		pool = titled or ([] if must_match else candidates)
+		pool = sorted(
+			pool, key=lambda c: (not fields[c].get("isRequired"), types.index(fields[c].get("type")))
+		)
+		if pool:
+			chosen[role] = pool[0]
+			used.add(pool[0])
 	return chosen
 
 
@@ -185,8 +226,9 @@ def fetch_process(doc, client) -> dict:
 			raise stages
 		funnels.append({"id": c.get("id"), "name": c.get("name"), "stages": list(stages or [])})
 
-	codes = detect_fields(fields, {role: (doc.get(role) or "").strip() for role in ROLES})
-	select = BASE_SELECT + [c for c in codes.values() if c]
+	roles = roles_of(doc)
+	codes = detect_fields(fields, {role: (doc.get(role) or "").strip() for role in roles}, roles)
+	select = list(dict.fromkeys(BASE_SELECT + [c for c in codes.values() if c]))
 	stages = [s for f in funnels for s in f["stages"]]
 	open_ids = [s.get("STATUS_ID") for s in stages if (s.get("SEMANTICS") or "") not in STATE_OF_SEMANTICS]
 	closed_ids = [s.get("STATUS_ID") for s in stages if (s.get("SEMANTICS") or "") in STATE_OF_SEMANTICS]
@@ -209,7 +251,20 @@ def fetch_process(doc, client) -> dict:
 		items = client.list_all("crm.item.list", base, key="items")
 	# an item closed between the two requests comes in both: the later answer wins
 	items = list({cint(i.get("id")): i for i in items}.values())
-	return {"type": smart_type, "fields": fields, "funnels": funnels, "codes": codes, "items": items}
+	warnings, refs = [], {}
+	if doc.get("purpose") == HIRING:
+		from access_registry.bitrix24.smart_refs import resolve
+
+		refs = resolve(client, fields, codes, items, warnings)
+	return {
+		"type": smart_type,
+		"fields": fields,
+		"funnels": funnels,
+		"codes": codes,
+		"items": items,
+		"refs": refs,
+		"warnings": warnings,
+	}
 
 
 # --------------------------------------------------------------------------- mirror
@@ -224,9 +279,13 @@ class ProcessImport:
 	def run(self, data: dict) -> dict:
 		doc = self.doc
 		fields = data.get("fields") or {}
-		codes = detect_fields(fields, {role: (doc.get(role) or "").strip() for role in ROLES})
+		roles = roles_of(doc)
+		codes = detect_fields(fields, {role: (doc.get(role) or "").strip() for role in roles}, roles)
 		codes.update({k: v for k, v in (data.get("codes") or {}).items() if v and not codes.get(k)})
-		for role in ROLES:
+		self.warnings += data.get("warnings") or []
+		self.refs = data.get("refs") or {}
+		self.fields = fields
+		for role in roles:
 			code = codes.get(role)
 			if code and code not in fields and fields:
 				self.warnings.append(f"Поля {code} ({role}) у смарт-процесса нет — проверьте настройку")
@@ -240,7 +299,15 @@ class ProcessImport:
 				for i in (fields.get(code) or {}).get("items") or []
 				if isinstance(i, dict)
 			}
-			for code in (codes.get("category_field"), codes.get("source_field"))
+			for code in (
+				codes.get("category_field"),
+				codes.get("source_field"),
+				codes.get("level_field"),
+				codes.get("services_field"),
+				codes.get("position_field"),
+				codes.get("department_field"),
+				codes.get("office_field"),
+			)
 			if code
 		}
 		stages, stage_rows = {}, []
@@ -293,7 +360,9 @@ class ProcessImport:
 			stats["deleted"] += 1
 
 		doc.reload()
-		for role in ROLES:
+		if doc.get("purpose") == HIRING and not doc.hired_stage:
+			doc.hired_stage = hired_stage(stage_rows)
+		for role in roles:
 			if codes.get(role) and not doc.get(role):
 				doc.set(role, codes[role])
 		if not doc.title:
@@ -365,7 +434,74 @@ class ProcessImport:
 			"assignee": assigned.person if assigned else None,
 			"assigned_name": assigned.full_name if assigned else _unknown(raw.get("assignedById")),
 			"url": f"{portal_url}/crm/type/{doc.entity_type_id}/details/{item_id}/" if portal_url else None,
+			**(self._vacancy(raw, codes, options) if doc.get("purpose") == HIRING else {}),
 		}
+
+	def _vacancy(self, raw, codes, options) -> dict:
+		"""The vacancy of a recruiting item: what, where, when, what the workplace needs."""
+
+		def value(role):
+			code = codes.get(role)
+			return raw.get(code) if code else None
+
+		def label(role):
+			"""A reference, a list option, an address or plain text → text."""
+			code, v = codes.get(role), value(role)
+			if v in (None, "", [], False):
+				return None
+			kind = (self.fields.get(code) or {}).get("type")
+			values = v if isinstance(v, list) else [v]
+			out = []
+			for x in values:
+				if kind in ("crm", "crm_company", "iblock_element"):
+					rid = ref_id(x)
+					out.append((self.refs.get(code) or {}).get(rid) or (f"№{rid}" if rid else None))
+				elif kind == "enumeration":
+					out.append(options.get(code, {}).get(str(x), x))
+				elif kind == "address":
+					out.append(str(x).split("|")[0])
+				else:
+					out.append(str(x).strip())
+			out = [o for o in out if o and o != "-"]
+			return ", ".join(dict.fromkeys(out)) or None
+
+		organization = label("organization_field")
+		if not organization:
+			dept = ref_id(value("department_field"))
+			organization = (self.refs.get("__org__") or {}).get(f"{codes.get('department_field')}:{dept}")
+		return {
+			"position": label("position_field") or label("position_alt_field"),
+			"department": label("department_field"),
+			"organization": organization,
+			"office": label("office_field"),
+			"level": label("level_field"),
+			"start_date": b24_date(value("start_field")),
+			"equipment_note": label("equipment_field"),
+			"services": label("services_field"),
+			"remote": _flag(value("remote_field")),
+			"mobile": _flag(value("mobile_field")),
+		}
+
+
+def _flag(value) -> int:
+	if isinstance(value, str):
+		return int(value.strip().upper() in ("Y", "1", "TRUE", "ДА"))
+	return int(bool(value))
+
+
+HIRED_STAGE = re.compile(r"оформлен|принят|испытат|вышел", re.I)
+
+
+def hired_stage(stage_rows) -> str | None:
+	"""The first open stage that already means «the person is being hired» (by its name)."""
+	return next(
+		(
+			r["stage_id"]
+			for r in stage_rows
+			if r["state"] == OPEN and HIRED_STAGE.search(r["stage_name"] or "")
+		),
+		None,
+	)
 
 
 def _user_id(value) -> str | None:

@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 0,
  "autoname": "field:profile_name",
- "creation": "2026-10-18 07:00:00.000000",
+ "creation": "2026-10-19 07:00:00.000000",
  "description": "Кто и какие разделы приложения /registry видит",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -15,6 +15,7 @@
   "s_management",
   "s_support",
   "s_equipment",
+  "s_hiring",
   "s_people",
   "s_personal",
   "s_ad_approve",
@@ -89,6 +90,12 @@
    "fieldname": "s_equipment",
    "fieldtype": "Check",
    "label": "Техника"
+  },
+  {
+   "description": "Вакансии из подбора персонала (Битрикс24) и потребность в технике под них: что докупить",
+   "fieldname": "s_hiring",
+   "fieldtype": "Check",
+   "label": "Подбор и закупка"
   },
   {
    "description": "Список и карточки сотрудников со всеми их учётками и доступами",
@@ -227,7 +234,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-18 07:00:00.000000",
+ "modified": "2026-10-19 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Registry",
  "name": "Registry Access Profile",

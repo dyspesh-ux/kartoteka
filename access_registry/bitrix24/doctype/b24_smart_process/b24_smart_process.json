@@ -1,13 +1,14 @@
 {
  "actions": [],
  "allow_rename": 0,
- "creation": "2026-10-16 07:00:00.000000",
+ "creation": "2026-10-19 07:00:00.000000",
  "description": "Смарт-процесс Битрикс24, заявки которого реестр загружает: например, заявки техподдержки",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "portal",
   "entity_type_id",
+  "purpose",
   "title",
   "enabled",
   "column_break_1",
@@ -19,6 +20,21 @@
   "column_break_2",
   "deadline_field",
   "done_field",
+  "section_break_5",
+  "position_field",
+  "position_alt_field",
+  "department_field",
+  "organization_field",
+  "level_field",
+  "office_field",
+  "column_break_5",
+  "equipment_field",
+  "services_field",
+  "start_field",
+  "remote_field",
+  "mobile_field",
+  "hired_stage",
+  "equipment_synonyms",
   "section_break_3",
   "stages",
   "section_break_4",
@@ -48,6 +64,16 @@
    "set_only_once": 1
   },
   {
+   "default": "Техподдержка",
+   "description": "Техподдержка — раздел «Техподдержка». Подбор персонала — раздел «Подбор и закупка»: вакансии и потребность в технике",
+   "fieldname": "purpose",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Что это",
+   "options": "Техподдержка\nПодбор персонала",
+   "reqd": 1
+  },
+  {
    "description": "Пусто — возьмётся из Битрикс24",
    "fieldname": "title",
    "fieldtype": "Data",
@@ -73,6 +99,7 @@
    "label": "Закрытые заявки — за, дней"
   },
   {
+   "depends_on": "eval:doc.purpose!=\"Подбор персонала\"",
    "description": "Описание проблемы, файлы и комментарии не загружаются — только состояние заявки",
    "fieldname": "section_break_2",
    "fieldtype": "Section Break",
@@ -111,6 +138,95 @@
    "fieldname": "done_field",
    "fieldtype": "Data",
    "label": "Дата выполнения"
+  },
+  {
+   "depends_on": "eval:doc.purpose==\"Подбор персонала\"",
+   "description": "Зарплаты, данные и файлы кандидата не загружаются — только вакансия: должность, где, этап и что нужно для рабочего места. Поля подбираются при загрузке по типу и названию; проверьте их",
+   "fieldname": "section_break_5",
+   "fieldtype": "Section Break",
+   "label": "Поля заявки на подбор"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "position_field",
+   "fieldtype": "Data",
+   "label": "Должность"
+  },
+  {
+   "description": "Например поле «Новая должность»",
+   "fieldname": "position_alt_field",
+   "fieldtype": "Data",
+   "label": "Должность, если её нет в справочнике"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "department_field",
+   "fieldtype": "Data",
+   "label": "Подразделение"
+  },
+  {
+   "description": "Обычно mycompanyId (реквизиты вашей компании). Пусто — организация подразделения",
+   "fieldname": "organization_field",
+   "fieldtype": "Data",
+   "label": "Организация"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "level_field",
+   "fieldtype": "Data",
+   "label": "Уровень (руководитель / сотрудник)"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "office_field",
+   "fieldtype": "Data",
+   "label": "Офис"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "equipment_field",
+   "fieldtype": "Data",
+   "label": "Оборудование для рабочего места"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "services_field",
+   "fieldtype": "Data",
+   "label": "Сервисы (почта, 1С, телефония…)"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "start_field",
+   "fieldtype": "Data",
+   "label": "Дата выхода на работу"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "remote_field",
+   "fieldtype": "Data",
+   "label": "Дистанционная работа"
+  },
+  {
+   "description": "Код поля из файла структуры, например ufCrm50_1748612217. Пусто — подбирается при загрузке по типу и названию поля",
+   "fieldname": "mobile_field",
+   "fieldtype": "Data",
+   "label": "Разъездной характер работы"
+  },
+  {
+   "description": "Код стадии, с которой вакансия считается закрытой для закупки техники (сотрудник оформляется). Пусто — подбирается по названию стадии",
+   "fieldname": "hired_stage",
+   "fieldtype": "Data",
+   "label": "Стадия «сотрудник оформлен»"
+  },
+  {
+   "description": "По строке на категорию Snipe-IT: «Категория: слово, слово». Категории и так узнаются по началу названия («Ноутбуки» — «ноутбук»); здесь — другие слова, например «ПК: компьютер, системный блок»",
+   "fieldname": "equipment_synonyms",
+   "fieldtype": "Small Text",
+   "label": "Как называют технику в заявках"
   },
   {
    "collapsible": 1,
@@ -173,7 +289,7 @@
    "link_fieldname": "smart_process"
   }
  ],
- "modified": "2026-10-16 07:00:00.000000",
+ "modified": "2026-10-19 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Bitrix24",
  "name": "B24 Smart Process",

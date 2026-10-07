@@ -25,6 +25,7 @@ SOURCES = "Загрузка источника не удалась"
 HR = "Кадровые события"
 AD_PLAN = "План изменений AD"
 HELPDESK = "Техподдержка: просроченные заявки"
+HIRING = "Подбор: новые вакансии"
 DAILY = "Раз в день"
 LIMIT = 30  # items named in one message; the rest are counted
 KEEP_NOTICES_DAYS = 90
@@ -209,12 +210,55 @@ def _helpdesk_items(rule) -> list[Item]:
 	]
 
 
+def _hiring_items(rule) -> list[Item]:
+	"""Open vacancies of the recruiting processes: a new one means equipment to prepare."""
+	processes = frappe.get_all("B24 Smart Process", filters={"purpose": "Подбор персонала"}, pluck="name")
+	rows = frappe.get_all(
+		"B24 Smart Item",
+		filters={"smart_process": ["in", processes or [""]], "state": "Открыта"},
+		fields=[
+			"name",
+			"item_id",
+			"position",
+			"organization",
+			"stage_name",
+			"equipment_note",
+			"start_date",
+			"url",
+		],
+		limit=2000,
+	)
+	return [
+		Item(
+			key=r.name,
+			text=" — ".join(
+				x
+				for x in (
+					r.position or _("должность не указана"),
+					r.organization,
+					r.stage_name,
+					_("выход {0}").format(getdate(r.start_date).strftime("%d.%m.%Y"))
+					if r.start_date
+					else None,
+					_("оборудование: {0}").format(r.equipment_note) if r.equipment_note else None,
+				)
+				if x
+			),
+			group=_("Новые вакансии"),
+			url=r.url or get_url("/registry#/hiring"),
+			visible=lambda user, a: bool(a["sections"].get("hiring") or a["sections"].get("equipment")),
+		)
+		for r in rows
+	]
+
+
 COLLECTORS = {
 	CONTROL: _control_items,
 	SOURCES: _source_items,
 	HR: _hr_items,
 	AD_PLAN: _ad_plan_items,
 	HELPDESK: _helpdesk_items,
+	HIRING: _hiring_items,
 }
 CONTROL_BY_TITLE = aa.CONTROL_BY_TITLE
 
@@ -330,6 +374,7 @@ def _app_link(rule) -> str:
 			HR: "/registry#/control/events",
 			AD_PLAN: "/registry#/ad-plans",
 			HELPDESK: "/registry#/support",
+			HIRING: "/registry#/hiring",
 		}[rule.event]
 	)
 

@@ -128,6 +128,7 @@
 		menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
 		chevron: '<path d="m9 6 6 6-6 6"/>',
 		check: '<rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/>',
+		cart: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l2.4 11h11.2L21 8H6.2"/>',
 		box: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/>',
 		support: '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',
 		external: '<path d="M14 4h6v6"/><path d="m20 4-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
@@ -386,13 +387,13 @@
 		["", [["home", "#/", "Обзор"], ["chart", "#/management", "Руководству"]]],
 		["Люди и доступы", [["people", "#/people", "Сотрудники"], ["key", "#/access", "Права доступа"], ["roles", "#/roles", "Роли доступа"], ["flow", "#/processes", "Бизнес-процессы"]]],
 		["Контроль", [["shield", "#/control", "Контроль", "control"], ["check", "#/reviews", "Пересмотр доступа", "reviews"], ["lock", "#/ad-plans", "План изменений AD"]]],
-		["Сервисы", [["support", "#/support", "Техподдержка"], ["box", "#/equipment", "Техника"]]],
+		["Сервисы", [["support", "#/support", "Техподдержка"], ["box", "#/equipment", "Техника"], ["cart", "#/hiring", "Подбор и закупка"]]],
 		["Данные", [["report", "#/reports", "Отчёты"], ["db", "#/sources", "Источники"]]],
 		["Администрирование", [["lock", "#/app-access", "Доступ к приложению"], ["bell", "#/notifications", "Уведомления"]]],
 	];
 	const NAV = NAV_GROUPS.flatMap(([, items]) => items);
 	// menu item → section of the app (app_access.SECTIONS)
-	const NAV_SECTION = { "#/": "overview", "#/management": "management", "#/support": "support", "#/equipment": "equipment", "#/people": "people", "#/control": "control", "#/access": "access", "#/reports": "reports",
+	const NAV_SECTION = { "#/": "overview", "#/management": "management", "#/support": "support", "#/equipment": "equipment", "#/hiring": "hiring", "#/people": "people", "#/control": "control", "#/access": "access", "#/reports": "reports",
 		"#/roles": "roles", "#/processes": "processes", "#/sources": "sources" };
 	const canSee = (section) => ((state.boot.can.sections || {})[section] || 0) > 0;
 	// systems whose data the user sees (access profiles may be limited to some of them)
@@ -538,6 +539,7 @@
 		[/^\/management$/, viewManagement],
 		[/^\/support$/, viewSupport],
 		[/^\/equipment$/, viewEquipment],
+		[/^\/hiring$/, viewHiring],
 		[/^\/people$/, viewPeople],
 		[/^\/person\/(.+)$/, viewPerson],
 		[/^\/control(?:\/([a-z]+))?$/, viewControl],
@@ -566,7 +568,7 @@
 		if (!state.boot.can.read && !path.startsWith("/review")) path = "/reviews";
 		else if (path === "/" && !canSee("overview")) path = firstPage();
 		const view = document.getElementById("view");
-		view.classList.toggle("wide", /^\/(report\/|control|people|access$|support$|equipment$|ad-plan\/)/.test(path));
+		view.classList.toggle("wide", /^\/(report\/|control|people|access$|support$|equipment$|hiring$|ad-plan\/)/.test(path));
 		$app.querySelector(".shell").classList.remove("nav-open");
 		$app.querySelectorAll("[data-nav]").forEach((a) => {
 			const href = a.dataset.nav.slice(1);
@@ -1322,6 +1324,7 @@
 		"Кадровые события": "приёмы, увольнения, переводы, отпуска по уходу из ЗУП",
 		"План изменений AD": "план ждёт одобрения (только ИБ, не автору) и решение по плану принято",
 		"Техподдержка: просроченные заявки": "заявки, у которых прошёл срок выполнения",
+		"Подбор: новые вакансии": "открылась вакансия в подборе персонала: должность, организация, дата выхода и что нужно для рабочего места",
 	};
 
 	async function viewNotifications(view) {
@@ -1565,6 +1568,106 @@
 			</div>`;
 		view.querySelector("[data-org]").addEventListener("click", () => {
 			state.peopleFilters.organization = d.name;
+		});
+	}
+
+	// ------------------------------------------------------------------ recruiting and equipment purchases
+
+	const HIRING_PERIODS = { 30: "30 дней", 90: "90 дней", 365: "год" };
+
+	async function viewHiring(view) {
+		const days = +(storage("registry-hiring-days") || 90);
+		const process = storage("registry-hiring-process") || "";
+		const d = await api("hiring", { days, process });
+		if (!d.processes.length) {
+			view.innerHTML = `<div class="page-head"><div><h1>Подбор и закупка</h1></div></div>
+				<div class="card empty"><b>Смарт-процесс подбора не подключён</b>Администратор добавляет его в админке: «B24 Smart Process» — портал, ID смарт-процесса
+				и «Что это: Подбор персонала».</div>`;
+			return;
+		}
+		const k = d.kpis;
+		const period = HIRING_PERIODS[d.days];
+		view.innerHTML = `
+			<div class="page-head"><div><h1>Подбор и закупка</h1><p>Вакансии из «${esc(d.process.title)}» и техника, которая понадобится новым сотрудникам.
+				«В наборе» — до стадии «${esc(d.process.hired_stage || "оформления")}»; дальше сотрудник уже оформляется.
+				Данные на ${d.process.last_sync ? esc(fmtDateTime(d.process.last_sync)) : "— (ещё не загружались)"}.</p></div>
+				<div class="mgmt-tools">
+					${d.processes.length > 1 ? `<div class="subnav">${d.processes.map((p) => `<button class="chip ${p.name === d.process.name ? "on" : ""}" data-process="${esc(p.name)}">${esc(p.title)}</button>`).join("")}</div>` : ""}
+					<div class="subnav period">${d.periods.map((p) => `<button class="chip ${p === d.days ? "on" : ""}" data-days="${p}">${HIRING_PERIODS[p]}</button>`).join("")}</div>
+					<button class="btn small print">Печать</button></div></div>
+			${d.process.last_status && !String(d.process.last_status).startsWith("Успех") ? `<div class="alert amber">Последняя загрузка: ${esc(d.process.last_status)}</div>` : ""}
+			${block(1, "Сейчас в наборе", "Открытые вакансии до оформления сотрудника.", `<div class="grid grid-5">
+				${kpi({ label: "Вакансий в наборе", display: fmtNum(k.recruiting), hint: `ещё оформляются: ${fmtNum(k.onboarding)}` })}
+				${kpi({ label: "Должностей", display: fmtNum(k.positions), hint: `организаций: ${fmtNum(k.organizations)}` })}
+				${kpi({ label: "Руководителей", display: fmtNum(k.leaders), hint: "по полю «Статус кандидата»" })}
+				${kpi({ label: "Выход в ближайшие 30 дней", display: fmtNum(k.start_soon), hint: "где дата выхода заполнена" })}
+				${kpi({ label: "Подвисли", value: k.stale, tone: "tone-amber", hint: "этап не менялся больше 30 дней" })}</div>`)}
+			${block(2, "Что докупить", `Потребность вакансий в наборе против свободной техники на складе Snipe-IT. ${k.undetermined ? `У ${fmtNum(k.undetermined)} ${plural(k.undetermined, "вакансии", "вакансий", "вакансий")} потребность не определена — см. таблицу ниже.` : ""}`,
+				d.equipment.length
+					? `<div class="grid grid-2"><div class="card card-pad"><div class="group-title">Купить</div>${bars(d.equipment.filter((r) => r.buy).map((r) => ({ label: r.category, value: r.buy, sub: `нужно ${fmtNum(r.need)}, на складе ${fmtNum(r.stock)}` })))
+						|| `<p class="muted">Склада хватает на все вакансии в наборе.</p>`}</div><div class="card hiring-equipment"></div></div>`
+					: `<div class="card empty"><b>Потребность не определена</b>В заявках не названа техника из категорий Snipe-IT, а для их должностей нет типового комплекта. Добавьте синонимы в карточке смарт-процесса.</div>`)}
+			${block(3, "Вакансии", "Должность и организация: сколько и на каких этапах.", `<div class="card hiring-vacancies"></div>`)}
+			<div class="grid grid-2">
+				<div>${block(4, "Этапы", "Все открытые вакансии по стадиям воронки.", `<div class="card card-pad">${bars(d.funnel.map((f) => ({ label: f.stage, value: f.count, sub: f.hired ? "оформление" : "" })))}</div>`)}</div>
+				<div>${block(5, "Организации", "Куда набирают.", `<div class="card card-pad">${bars(d.organizations.map((o) => ({ label: o.organization, value: o.count })))}</div>`)}</div>
+			</div>
+			${block(6, `За ${period}`, "Сколько открыто и закрыто.", `<div class="grid grid-5">
+				${kpi({ label: "Открыто вакансий", display: fmtNum(k.created) })}
+				${kpi({ label: "Принято в штат", display: fmtNum(k.hired) })}
+				${kpi({ label: "Отменено", display: fmtNum(k.cancelled) })}
+				${kpi({ label: "Срок закрытия", display: k.median_days === null ? "—" : `${fmtNum(k.median_days)} дн.`, hint: "медиана за год: от заявки до приёма" })}
+				${kpi({ label: "Дистанционно / в разъездах", display: `${fmtNum(k.remote)} / ${fmtNum(k.mobile)}`, hint: "скорее ноутбук, чем ПК" })}</div>`)}
+			${d.services.length ? block(7, "Сервисы для новых сотрудников", "Лицензии и учётки, которые понадобятся вакансиям в наборе.", `<div class="card card-pad">${bars(d.services.map((s) => ({ label: s.service, value: s.count })))}</div>`) : ""}
+			${block(8, "Техника по вакансиям", "Откуда потребность: из заявки (поле «Оборудование для рабочего места») или типовой комплект должности — что есть у работающих на ней.", `<div class="card hiring-plan"></div>`)}
+			${block(9, "Насколько заполнены заявки", "Доля открытых вакансий, где поле заполнено: чему в отчёте можно верить.", `<div class="card card-pad">${bars(d.fill.map((f) => ({ label: f.field, value: f.share, text: `${f.share}%` })), { percent: true })}</div>`)}`;
+		view.querySelectorAll("[data-days]").forEach((b) => b.addEventListener("click", () => (storage("registry-hiring-days", b.dataset.days), viewHiring(view))));
+		view.querySelectorAll("[data-process]").forEach((b) => b.addEventListener("click", () => (storage("registry-hiring-process", b.dataset.process), viewHiring(view))));
+		view.querySelector(".print").addEventListener("click", () => window.print());
+		const eq = view.querySelector(".hiring-equipment");
+		if (eq)
+			table(eq, {
+				name: "закупка-техники",
+				rows: d.equipment,
+				filter: false,
+				columns: [
+					{ key: "category", label: "Категория" },
+					{ key: "request", label: "По заявкам", type: "number" },
+					{ key: "position", label: "По должностям", type: "number" },
+					{ key: "stock", label: "На складе", type: "number" },
+					{ key: "buy", label: "Купить", render: (r) => (r.buy ? `<b>${fmtNum(r.buy)}</b>` : "—"), csv: (r) => String(r.buy) },
+				],
+			});
+		table(view.querySelector(".hiring-vacancies"), {
+			name: "вакансии",
+			rows: d.vacancies,
+			resizable: true,
+			empty: "Вакансий в наборе нет",
+			columns: [
+				{ key: "position", label: "Должность", width: 240, render: (r) => (r.position ? posLink(r.position) : `<span class="muted">не указана</span>`), csv: (r) => r.position || "" },
+				{ key: "organization", label: "Организация", width: 200, render: (r) => esc(r.organization || "не указана") },
+				{ key: "count", label: "Сколько", type: "number", width: 90 },
+				{ key: "stages", label: "Этапы", width: 340, render: (r) => r.stages.map((s) => `${pill(s.stage, "")}${s.count > 1 ? ` ×${s.count}` : ""}`).join(" "), csv: (r) => r.stages.map((s) => `${s.stage}: ${s.count}`).join("; ") },
+				{ key: "departments", label: "Подразделения", width: 240, render: (r) => esc(r.departments.join(", ")), csv: (r) => r.departments.join(", ") },
+				{ key: "start", label: "Ближайший выход", type: "date", width: 130 },
+			],
+		});
+		table(view.querySelector(".hiring-plan"), {
+			name: "техника-по-вакансиям",
+			rows: d.plan,
+			resizable: true,
+			empty: "Вакансий в наборе нет",
+			columns: [
+				{ key: "item_id", label: "№", width: 70, render: (r) => (r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.item_id)}</a>` : esc(r.item_id)) },
+				{ key: "position", label: "Должность", width: 200, render: (r) => posLink(r.position) || `<span class="muted">—</span>`, csv: (r) => r.position || "" },
+				{ key: "organization", label: "Организация", width: 170 },
+				{ key: "stage", label: "Этап", width: 170 },
+				{ key: "level", label: "Уровень", width: 140 },
+				{ key: "start_date", label: "Выход", type: "date", width: 100 },
+				{ key: "kit", label: "Техника", width: 220, render: (r) => (r.kit ? esc(r.kit) : `<span class="muted">не определено</span>`) },
+				{ key: "source", label: "Откуда", width: 120, render: (r) => pill(r.source, r.source === "по заявке" ? "t-green" : r.source === "по должности" ? "t-blue" : "") },
+				{ key: "equipment_note", label: "В заявке написано", width: 280 },
+			],
 		});
 	}
 

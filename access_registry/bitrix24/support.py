@@ -44,8 +44,10 @@ FIELDS = [
 
 
 def processes() -> list:
+	"""Helpdesk processes only (a recruiting process has its own section)."""
 	return frappe.get_all(
 		"B24 Smart Process",
+		filters={"purpose": ["!=", "Подбор персонала"]},
 		fields=["name", "title", "enabled", "last_sync", "last_status", "open_count"],
 		order_by="title",
 	)
