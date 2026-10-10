@@ -139,12 +139,18 @@ def dashboard(refresh: int = 0) -> dict:
 	"""Counters for «Обзор», and for the list chips of «Контроль» (trimmed to what the user may see)."""
 	if not (aa.has_section("overview") or aa.has_section("control") or aa.has_section("sources")):
 		aa.require_section("overview")
-	data = None if cint(refresh) else frappe.cache().get_value(CACHE_KEY)
+	data = _trim_systems(_trim_dashboard(dashboard_data(cint(refresh))))
+	return {k: v for k, v in data.items() if not k.startswith("_")}
+
+
+def dashboard_data(refresh: bool = False) -> dict:
+	"""The counters of every list for everybody (trimmed per user by the caller), cached for 5 minutes:
+	«Обзор» and «Руководству» share one count of the role model."""
+	data = None if refresh else frappe.cache().get_value(CACHE_KEY)
 	if not data:
 		data = _dashboard()
 		frappe.cache().set_value(CACHE_KEY, data, expires_in_sec=300)
-	data = _trim_systems(_trim_dashboard(data))
-	return {k: v for k, v in data.items() if not k.startswith("_")}
+	return data
 
 
 # which dashboard counters belong to which control list
@@ -177,9 +183,7 @@ def _trim_dashboard(data: dict) -> dict:
 	if "journal" in lists and not aa.access()["all_lists"]:
 		# suppressions of the user's lists only
 		trimmed["suppressed"] = sum(
-			1
-			for s in suppression.active().values()
-			if frappe.db.get_value("Alert Suppression", s.name, "alert_kind") in lists
+			1 for key in suppression.active() if (key or "").split("|", 1)[0] in lists
 		)
 	return trimmed
 
@@ -205,23 +209,25 @@ def _dashboard() -> dict:
 	statuses = Counter()
 	privileged = 0
 	by_system_recon = defaultdict(Counter)
-	if has_model or frappe.db.count("Entitlement"):
-		for row in engine.reconcile(model=model):
+	catalogued = has_model or frappe.db.count("Entitlement")
+	sod_rules = frappe.db.count("SoD Rule", {"active": 1})
+	# what people actually hold: read once for the reconciliation and the SoD conflicts
+	actual = engine.actual_entitlements()[0] if catalogued or sod_rules else {}
+	if catalogued:
+		for row in engine.reconcile(model=model, actual=actual):
 			statuses[row["status"]] += 1
 			by_system_recon[row["system"]][row["status"]] += 1
 			if row["privileged"] and row["status"] != engine.MISSING:
 				privileged += 1
 				by_system_recon[row["system"]]["privileged"] += 1
 	sod = (
-		len(suppression.split("sod", engine.sod_conflicts(), suppressed)[0])
-		if frappe.db.count("SoD Rule", {"active": 1})
-		else 0
+		len(suppression.split("sod", engine.sod_conflicts(actual=actual), suppressed)[0]) if sod_rules else 0
 	)
 
 	from access_registry.business_processes.reports import continuity
 
 	process_risks = (
-		len(suppression.split("processes", continuity({"only_problems": 1})[1], suppressed)[0])
+		len(suppression.split("processes", continuity({"only_problems": 1}, model=model)[1], suppressed)[0])
 		if model.process_roles
 		else 0
 	)
@@ -496,13 +502,13 @@ def people(
 		needle = query.strip().lower()
 		persons = [p for p in persons if needle in (p.full_name or "").lower()]
 	accounts = Accounts()
-	places = main_places([p.name for p in persons])
+	# the main place of work is read for the shown page only, unless the list is filtered by it
+	places = main_places([p.name for p in persons]) if organization else None
 	allowed = aa.systems()
 	labels = {"1С": "1c", "AD": "ad", "Битрикс24": "b24"}
 	rows = []
 	for p in persons:
-		place = places.get(p.name, {})
-		if organization and place.get("organization") != organization:
+		if places is not None and places.get(p.name, {}).get("organization") != organization:
 			continue
 		# only the systems the user sees: counters, «уволен, но доступ есть», «нет учёток»
 		active = {k: v for k, v in accounts.active(p.name).items() if labels[k] in allowed}
@@ -523,19 +529,28 @@ def people(
 				"full_name": p.full_name,
 				"status": p.status,
 				"presence": p.presence,
-				"position": place.get("position_title"),
-				"department": place.get("department_title"),
-				"department_id": place.get("department"),
-				"organization": place.get("organization_title"),
-				"organization_id": place.get("organization"),
 				"ib": active.get("1С", 0),
 				"ad": active.get("AD", 0),
 				"b24": active.get("Битрикс24", 0),
 				"flags": flags,
 			}
 		)
-	start, limit = cint(start), min(cint(limit) or 100, LIST_LIMIT)
-	return {"total": len(rows), "rows": rows[start : start + limit]}
+	start, limit = max(cint(start), 0), min(cint(limit) or 100, LIST_LIMIT)
+	page = rows[start : start + limit]
+	if places is None:
+		places = main_places([r["name"] for r in page])
+	for row in page:
+		place = places.get(row["name"], {})
+		row.update(
+			{
+				"position": place.get("position_title"),
+				"department": place.get("department_title"),
+				"department_id": place.get("department"),
+				"organization": place.get("organization_title"),
+				"organization_id": place.get("organization"),
+			}
+		)
+	return {"total": len(rows), "rows": page}
 
 
 @frappe.whitelist()
@@ -603,7 +618,9 @@ def person(name: str) -> dict:
 		from access_registry.bitrix24.access import effective_grants
 
 		for portal in {u.portal for u in b24_users}:
-			for row in effective_grants(portal):
+			# grants expanded only to this person's users, not to the whole portal
+			users = [u.name for u in b24_users if u.portal == portal]
+			for row in effective_grants(portal, users=users):
 				if row["person"] == name:
 					b24_access.append(
 						{k: row[k] for k in ("resource_type", "resource", "permission", "via", "user_name")}
@@ -630,9 +647,11 @@ def person(name: str) -> dict:
 
 		shares = [
 			{k: row[k] for k in ("share_name", "path", "level", "via", "login", "server")}
-			for row in ShareAccess().rows({"person": name})
+			for row in ShareAccess(persons={name}).rows({"person": name})
 		]
-	model = engine.RoleModel()
+	# the role model and the actual accesses of this person only (read once for both checks)
+	model = engine.RoleModel(persons={name})
+	actual = engine.actual_entitlements({name})[0]
 	roles = [{"role": r, "reason": reason} for r, reason in model.roles_of(name).items()]
 	process_roles = []
 	for pr_name, how in model.process_roles_of(name).items():
@@ -719,8 +738,8 @@ def person(name: str) -> dict:
 		"tickets": _person_tickets(name),
 		"roles": roles,
 		"process_roles": process_roles,
-		"reconciliation": aa.filter_rows(engine.reconcile({name}, model)),
-		"sod": engine.sod_conflicts({name}),
+		"reconciliation": aa.filter_rows(engine.reconcile({name}, model, actual=actual)),
+		"sod": engine.sod_conflicts({name}, actual=actual),
 	}
 
 
@@ -777,7 +796,7 @@ def _typical_access(persons) -> list:
 		return []
 	from access_registry.access_roles import engine
 
-	rows = aa.filter_rows(engine.reconcile(set(persons), engine.RoleModel()))
+	rows = aa.filter_rows(engine.reconcile(set(persons)))
 	total = len(set(persons))
 	by = {}
 	for r in rows:

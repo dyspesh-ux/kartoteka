@@ -41,25 +41,42 @@ def _active(valid_from, valid_to, on) -> bool:
 # --------------------------------------------------------------------------- «положено»
 
 
-class RoleModel:
-	"""Roles and process roles of every working employee, and the entitlements they bring."""
+def _scope(persons) -> list | None:
+	"""Persons as a list for «in» filters; None — every person."""
+	if persons is None:
+		return None
+	return [p for p in set(persons) if p] or [""]
 
-	def __init__(self, on=None):
+
+class RoleModel:
+	"""Roles and process roles of every working employee, and the entitlements they bring.
+
+	persons: only these employees (a card of one person or of a role's members); the roles, process
+	roles and their entitlements are loaded whole anyway."""
+
+	def __init__(self, on=None, persons=None):
 		self.on = getdate(on or today())
+		only = _scope(persons)
 		self.bounds = {
 			d.name: (d.lft, d.rgt)
 			for d in frappe.get_all("HR Department", fields=["name", "lft", "rgt"], limit_page_length=0)
 		}
 		self.persons = {
 			p.name: p
-			for p in frappe.get_all("Person", fields=["name", "full_name", "status"], limit_page_length=0)
+			for p in frappe.get_all(
+				"Person",
+				filters={"name": ["in", only]} if only else None,
+				fields=["name", "full_name", "status"],
+				limit_page_length=0,
+			)
 		}
 		self.employments = defaultdict(list)
 		for e in frappe.db.sql(
-			"""select e.person, e.department, e.organization, e.employment_kind_code, pos.title as position_title
+			f"""select e.person, e.department, e.organization, e.employment_kind_code, pos.title as position_title
 			from `tabEmployment` e left join `tabHR Position` pos on pos.name = e.position
-			where e.status in %(active)s and ifnull(e.person, '') != ''""",
-			{"active": ACTIVE_EMPLOYMENT},
+			where e.status in %(active)s and ifnull(e.person, '') != ''
+				{"and e.person in %(persons)s" if only else ""}""",
+			{"active": ACTIVE_EMPLOYMENT, "persons": only},
 			as_dict=True,
 		):
 			e.position_key = normalize_name(e.position_title)
@@ -87,6 +104,17 @@ class RoleModel:
 		):
 			rule.position_key = normalize_name(rule.position_title)
 			self.roles[rule.parent].rules.append(rule)
+		# job roles a rule of which may match a position (a rule without a position matches any):
+		# the others are not checked rule by rule for every employee
+		self.roles_by_position = defaultdict(set)
+		self.roles_any_position = set()
+		for role in self.roles.values():
+			if role.kind == "Должностная":
+				for rule in role.rules:
+					if rule.position_key:
+						self.roles_by_position[rule.position_key].add(role.name)
+					else:
+						self.roles_any_position.add(role.name)
 		for row in frappe.get_all(
 			"Access Role Entitlement",
 			filters={"parenttype": "Access Role", "parent": ["in", list(self.roles) or [""]]},
@@ -98,6 +126,7 @@ class RoleModel:
 		self.assignments = defaultdict(list)
 		for a in frappe.get_all(
 			"Access Role Assignment",
+			filters={"person": ["in", only]} if only else None,
 			fields=["person", "access_role", "valid_from", "valid_to", "reason"],
 			limit_page_length=0,
 		):
@@ -123,11 +152,14 @@ class RoleModel:
 		self.participants = defaultdict(list)
 		for p in frappe.get_all(
 			"Process Participant",
+			filters={"person": ["in", only]} if only else None,
 			fields=["person", "process_role", "participation", "valid_from", "valid_to"],
 			limit_page_length=0,
 		):
 			if p.process_role in self.process_roles and _active(p.valid_from, p.valid_to, self.on):
 				self.participants[p.person].append(p)
+		# process roles filled by an access role (the others need no roles of the person)
+		self.filled_process_roles = [pr for pr in self.process_roles.values() if pr.filled_by_access_role]
 		self._roles_cache = {}
 
 	# ------------------------------------------------------------ roles
@@ -158,10 +190,13 @@ class RoleModel:
 		result = {}
 		employments = self.employments.get(person, [])
 		if employments:
+			candidates = self.roles_any_position.union(
+				*(self.roles_by_position.get(e.position_key, ()) for e in employments)
+			)
 			for role in self.roles.values():
 				if role.kind == "Базовая":
 					result[role.name] = "всем работающим"
-				elif role.kind == "Должностная":
+				elif role.kind == "Должностная" and role.name in candidates:
 					for rule in role.rules:
 						match = next((e for e in employments if self.rule_matches(rule, e)), None)
 						if match:
@@ -180,9 +215,11 @@ class RoleModel:
 		result = {}
 		for p in self.participants.get(person, []):
 			result[p.process_role] = p.participation or "Основной"
+		if not self.filled_process_roles:
+			return result
 		roles = self.roles_of(person)
-		for pr in self.process_roles.values():
-			if pr.filled_by_access_role and pr.filled_by_access_role in roles and pr.name not in result:
+		for pr in self.filled_process_roles:
+			if pr.filled_by_access_role in roles and pr.name not in result:
 				result[pr.name] = f"по роли доступа «{pr.filled_by_access_role}»"
 		return result
 
@@ -224,24 +261,30 @@ def raw_accesses(persons=None) -> dict:
 	a visa, an executor role or access to a CFO).
 	"""
 	result = defaultdict(dict)
-	only = set(persons) if persons else None
+	# persons given: only their accounts are read (a card of one person must not read the whole
+	# portal and domain); persons empty or None: everybody
+	only = _scope(persons) if persons else None
+	params = {"persons": only}
+	of_persons = "and u.person in %(persons)s" if only else ""
 
 	def add(person, key, evidence):
-		if person and (only is None or person in only):
+		if person:
 			result[person].setdefault(key, evidence)
 
 	for person, profile, base, login in frappe.db.sql(
-		"""select u.person, r.profile, u.base_code, ifnull(u.login, u.user_name)
+		f"""select u.person, r.profile, u.base_code, ifnull(u.login, u.user_name)
 		from `tabIB User Profile` r join `tabIB User` u on u.name = r.parent
 		where u.login_allowed = 1 and u.invalid = 0 and u.missing_in_source = 0
-			and ifnull(u.person, '') != '' and ifnull(r.profile, '') != ''"""
+			and ifnull(u.person, '') != '' and ifnull(r.profile, '') != '' {of_persons}""",
+		params,
 	):
 		add(person, f"1c:{profile}", f"1С {base}: {login}")
 	for person, base, kind, name, login in frappe.db.sql(
-		"""select u.person, u.base_code, b.kind, b.right_name, ifnull(u.login, u.user_name)
+		f"""select u.person, u.base_code, b.kind, b.right_name, ifnull(u.login, u.user_name)
 		from `tabIB User BIT Right` b join `tabIB User` u on u.name = b.parent
 		where b.parenttype = 'IB User' and u.login_allowed = 1 and u.invalid = 0 and u.missing_in_source = 0
-			and ifnull(u.person, '') != '' and ifnull(b.right_name, '') != ''"""
+			and ifnull(u.person, '') != '' and ifnull(b.right_name, '') != '' {of_persons}""",
+		params,
 	):
 		add(person, bit_key(base, kind, name), f"1С {base}: {login} (БИТ.Финанс)")
 	from access_registry.active_directory.groups import effective_account_groups
@@ -251,28 +294,40 @@ def raw_accesses(persons=None) -> dict:
 		a.name: a
 		for a in frappe.get_all(
 			"AD Account",
-			filters={"enabled": 1, "missing_in_source": 0, "person": ["is", "set"]},
+			filters={"enabled": 1, "missing_in_source": 0, "person": ["in", only] if only else ["is", "set"]},
 			fields=["name", "person", "domain", "sam_account_name"],
 			limit_page_length=0,
 		)
 	}
-	for account, groups in effective_account_groups().items():
-		a = accounts.get(account)
-		if not a:
-			continue
-		for group in groups & security:  # nested groups count: access comes through them too
-			add(a.person, f"ad:{group}", f"AD {a.domain}\\{a.sam_account_name}")
+	if accounts:
+		for account, groups in effective_account_groups(accounts=list(accounts) if only else None).items():
+			a = accounts.get(account)
+			if not a:
+				continue
+			for group in groups & security:  # nested groups count: access comes through them too
+				add(a.person, f"ad:{group}", f"AD {a.domain}\\{a.sam_account_name}")
 	for person, group, name in frappe.db.sql(
-		"""select u.person, m.parent, u.full_name
+		f"""select u.person, m.parent, u.full_name
 		from `tabB24 Workgroup Member` m join `tabB24 User` u on u.name = m.user
-		where u.active = 1 and u.missing_in_source = 0 and ifnull(u.person, '') != ''"""
+		where u.active = 1 and u.missing_in_source = 0 and ifnull(u.person, '') != '' {of_persons}""",
+		params,
 	):
 		add(person, f"b24wg:{group}", f"Битрикс24: {name}")
 	if frappe.db.count("B24 Access Grant"):
 		from access_registry.bitrix24.access import effective_grants
 
 		for portal in frappe.get_all("B24 Portal", pluck="name"):
-			for row in effective_grants(portal):
+			users = None
+			if only:
+				# grants of the portal expanded only to the users of these persons
+				users = frappe.get_all(
+					"B24 User",
+					filters={"portal": portal, "person": ["in", only], "active": 1, "missing_in_source": 0},
+					pluck="name",
+				)
+				if not users:
+					continue
+			for row in effective_grants(portal, users=users):
 				if row["person"] and row["active"] and not row["negative"]:
 					add(
 						row["person"],
@@ -367,10 +422,13 @@ def active_exceptions(on=None) -> dict:
 	return result
 
 
-def reconcile(persons=None, model=None) -> list[dict]:
-	"""One row per (person, entitlement) that is expected or actually held."""
-	model = model or RoleModel()
-	actual, _other = actual_entitlements(persons)
+def reconcile(persons=None, model=None, actual=None) -> list[dict]:
+	"""One row per (person, entitlement) that is expected or actually held.
+
+	actual: actual_entitlements() already read for the same persons (the dashboard needs it twice)."""
+	model = model or RoleModel(persons=persons or None)
+	if actual is None:
+		actual, _other = actual_entitlements(persons)
 	exceptions = active_exceptions(model.on)
 	entitlements = {
 		e.name: e
@@ -426,16 +484,26 @@ def reconcile(persons=None, model=None) -> list[dict]:
 	return rows
 
 
-def sod_conflicts(persons=None) -> list[dict]:
-	actual, _other = actual_entitlements(persons)
-	titles = dict(frappe.get_all("Entitlement", fields=["name", "title"], as_list=True, limit_page_length=0))
-	names = {
-		p.name: p
-		for p in frappe.get_all("Person", fields=["name", "full_name", "status"], limit_page_length=0)
-	}
+def sod_conflicts(persons=None, actual=None) -> list[dict]:
 	rules = frappe.get_all(
 		"SoD Rule", filters={"active": 1}, fields=["name", "title", "severity", "description"]
 	)
+	if not rules:
+		return []
+	if actual is None:
+		actual, _other = actual_entitlements(persons)
+	elif persons:
+		actual = {p: held for p, held in actual.items() if p in persons}
+	titles = dict(frappe.get_all("Entitlement", fields=["name", "title"], as_list=True, limit_page_length=0))
+	names = {
+		p.name: p
+		for p in frappe.get_all(
+			"Person",
+			filters={"name": ["in", list(actual) or [""]]} if persons else None,
+			fields=["name", "full_name", "status"],
+			limit_page_length=0,
+		)
+	}
 	sides = defaultdict(lambda: defaultdict(set))
 	for row in frappe.get_all(
 		"SoD Rule Entitlement",

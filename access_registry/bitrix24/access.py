@@ -15,13 +15,22 @@ ROLE_RANK = {"Владелец": "A", "Модератор": "E", "Участни
 
 
 class AccessExpander:
-	def __init__(self, portal: str):
+	"""users: names of B24 Users to expand the codes to (a card of one person); None — every user.
+	Codes are expanded the same way, only the users outside the list never come out."""
+
+	def __init__(self, portal: str, users=None):
 		self.portal = portal
+		only = tuple(users) if users is not None else None
+		user_filters = {"portal": portal, "missing_in_source": 0}
+		if only is not None:
+			user_filters["name"] = ["in", list(only) or [""]]
+		of_users = "and u.name in %(users)s" if only is not None else ""
+		params = {"portal": portal, "users": only or ("",)}
 		self.users = {
 			u.b24_id: u
 			for u in frappe.get_all(
 				"B24 User",
-				filters={"portal": portal, "missing_in_source": 0},
+				filters=user_filters,
 				fields=["name", "b24_id", "full_name", "person", "active", "user_type", "is_admin"],
 				limit_page_length=0,
 			)
@@ -37,18 +46,18 @@ class AccessExpander:
 			if d.parent_department:
 				self.children[d.parent_department.split(":", 1)[1]].append(d.b24_id)
 		for row in frappe.db.sql(
-			"""select u.b24_id, d.department from `tabB24 User Department` d
-			join `tabB24 User` u on u.name = d.parent where u.portal = %s""",
-			portal,
+			f"""select u.b24_id, d.department from `tabB24 User Department` d
+			join `tabB24 User` u on u.name = d.parent where u.portal = %(portal)s {of_users}""",
+			params,
 		):
 			self.dept_members[row[1].split(":", 1)[1]].add(row[0])
 		self.group_members = defaultdict(list)
 		for row in frappe.db.sql(
-			"""select g.b24_id, u.b24_id, m.role from `tabB24 Workgroup Member` m
+			f"""select g.b24_id, u.b24_id, m.role from `tabB24 Workgroup Member` m
 			join `tabB24 Workgroup` g on g.name = m.parent
 			join `tabB24 User` u on u.name = m.user
-			where g.portal = %s and g.missing_in_source = 0""",
-			portal,
+			where g.portal = %(portal)s and g.missing_in_source = 0 {of_users}""",
+			params,
 		):
 			self.group_members[row[0]].append((row[1], ROLE_RANK.get(row[2], "K")))
 		self.user_groups = defaultdict(set)
@@ -97,14 +106,18 @@ class AccessExpander:
 		return sorted((u for u in result if u in self.users), key=lambda x: int(x) if x.isdigit() else 0)
 
 
-def effective_grants(portal: str, filters: dict | None = None) -> list[dict]:
-	"""Grants of the portal expanded to users: one row per (grant, user)."""
+def effective_grants(portal: str, filters: dict | None = None, users=None) -> list[dict]:
+	"""Grants of the portal expanded to users: one row per (grant, user).
+
+	users: names of B24 Users to expand to (None — every user of the portal)."""
 	filters = dict(filters or {})
 	grant_filters = {"portal": portal, "missing_in_source": 0}
 	for key in ("resource_type", "resource"):
 		if filters.get(key):
 			grant_filters[key] = ["like", f"%{filters[key]}%"] if key == "resource" else filters[key]
-	expander = AccessExpander(portal)
+	expander = AccessExpander(portal, users=users)
+	if not expander.users:
+		return []
 	rows = []
 	for grant in frappe.get_all(
 		"B24 Access Grant",

@@ -19,6 +19,8 @@ def col(fieldname, label, fieldtype="Data", width=160, options=None):
 def _participants(model):
 	"""{process role: {person: participation}} — manual and through access roles."""
 	result = defaultdict(dict)
+	if not model.process_roles:
+		return result
 	for person in model.persons:
 		for role, how in model.process_roles_of(person).items():
 			result[role][person] = how
@@ -74,10 +76,12 @@ def participants(filters=None):
 	return columns, data
 
 
-def continuity(filters=None):
-	"""Риски процессов: роли без участников, без заместителя, с неработающими участниками."""
+def continuity(filters=None, model=None):
+	"""Риски процессов: роли без участников, без заместителя, с неработающими участниками.
+
+	model: RoleModel already built by the caller (the dashboard)."""
 	filters = frappe._dict(filters or {})
-	model = engine.RoleModel()
+	model = model or engine.RoleModel()
 	members = _participants(model)
 	presence = dict(frappe.get_all("Person", fields=["name", "presence"], as_list=True, limit_page_length=0))
 	settings = {

@@ -92,7 +92,12 @@ def share_issues(filters=None):
 					"folder": f.name,
 				}
 			)
-	rows = ShareAccess().rows({"server": filters.get("server")})
+	# effective access needs every AD account and its groups: not read when no folder is recorded
+	rows = (
+		ShareAccess().rows({"server": filters.get("server")})
+		if frappe.db.exists("Folder ACL", {"missing_in_source": 0})
+		else []
+	)
 	statuses = _statuses(rows)
 	names = dict(
 		frappe.get_all(

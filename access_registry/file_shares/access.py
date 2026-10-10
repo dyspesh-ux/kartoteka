@@ -18,12 +18,17 @@ ALL = "Все"
 
 
 class ShareAccess:
-	def __init__(self):
+	"""persons: only the accounts of these employees (a card of one person); None — every account."""
+
+	def __init__(self, persons=None):
+		filters = {"enabled": 1, "missing_in_source": 0}
+		if persons is not None:
+			filters["person"] = ["in", [p for p in persons if p] or [""]]
 		self.accounts = {
 			a.name: a
 			for a in frappe.get_all(
 				"AD Account",
-				filters={"enabled": 1, "missing_in_source": 0},
+				filters=filters,
 				fields=["name", "display_name", "sam_account_name", "domain", "person"],
 				limit_page_length=0,
 			)
@@ -32,7 +37,8 @@ class ShareAccess:
 			d.name: d.netbios_name or d.name
 			for d in frappe.get_all("AD Domain", fields=["name", "netbios_name"])
 		}
-		self.groups_of = {a: g for a, g in effective_account_groups().items() if a in self.accounts}
+		groups = effective_account_groups(accounts=list(self.accounts) if persons is not None else None)
+		self.groups_of = {a: g for a, g in groups.items() if a in self.accounts}
 		self.members = defaultdict(set)
 		for account, groups in self.groups_of.items():
 			for group in groups:

@@ -13,11 +13,12 @@ SYSTEMS = {"1С": "1c", "AD": "ad", "Битрикс24": "b24"}
 PERIODS = (7, 30, 90, 365)
 
 
-def collect() -> dict:
-	"""The figures right now (a few seconds: the role model is reconciled)."""
-	from access_registry.registry.api import _dashboard
+def collect(refresh: bool = True) -> dict:
+	"""The figures right now (a few seconds: the role model is reconciled). Without refresh the
+	counters of «Обзор» counted in the last 5 minutes are taken."""
+	from access_registry.registry.api import dashboard_data
 
-	d = _dashboard()
+	d = dashboard_data(refresh)
 	r = d["reconciliation"]
 	m = {
 		"people_working": d["people"]["working"],
@@ -75,7 +76,7 @@ def _coverage() -> dict:
 def current(refresh: bool = False) -> dict:
 	data = None if refresh else frappe.cache().get_value(CACHE_KEY)
 	if not data:
-		data = {"taken_on": str(now_datetime()), "metrics": collect()}
+		data = {"taken_on": str(now_datetime()), "metrics": collect(refresh)}
 		frappe.cache().set_value(CACHE_KEY, data, expires_in_sec=300)
 	return data
 

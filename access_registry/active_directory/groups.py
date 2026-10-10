@@ -31,15 +31,22 @@ def closure(groups, parents=None) -> set:
 	return result
 
 
-def effective_account_groups(only_enabled: bool = True) -> dict:
-	"""{AD Account: {effective groups}} for accounts present in AD (enabled only by default)."""
+def effective_account_groups(only_enabled: bool = True, accounts=None) -> dict:
+	"""{AD Account: {effective groups}} for accounts present in AD (enabled only by default).
+
+	accounts: only these accounts (a card of one person); None — every account."""
+	if accounts is not None and not accounts:
+		return {}
 	parents = parent_map()
 	conditions = "a.missing_in_source = 0" + (" and a.enabled = 1" if only_enabled else "")
+	if accounts is not None:
+		conditions += " and a.name in %(accounts)s"
 	direct = defaultdict(set)
 	for account, group in frappe.db.sql(
 		f"""select g.parent, g.`group` from `tabAD Account Group` g
 		join `tabAD Account` a on a.name = g.parent
-		where g.parenttype = 'AD Account' and {conditions}"""
+		where g.parenttype = 'AD Account' and {conditions}""",
+		{"accounts": tuple(accounts or ())},
 	):
 		direct[account].add(group)
 	return {account: closure(groups, parents) for account, groups in direct.items()}
