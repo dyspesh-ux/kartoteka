@@ -31,14 +31,14 @@ class RegistryDigest(Document):
 				indicator="gray",
 			)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def preview(self):
 		require(*ADMINS)
 		from access_registry.access_roles.digest import run
 
 		return run(preview=True).name
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def send_now(self):
 		require(*ADMINS)
 		from access_registry.access_roles.digest import run

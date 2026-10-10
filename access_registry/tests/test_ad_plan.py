@@ -168,6 +168,9 @@ class TestAdPlan(SnipeFixture):
 		self.assertEqual(ps("O'Brien"), "'O''Brien'")
 		self.assertEqual(ps("$(Remove-Item C:\\)"), "'$(Remove-Item C:\\)'")  # single quotes: nothing expands
 		self.assertEqual(ps("a’b"), "'a’’b'")
+		# PowerShell also takes ‚ (U+201A) and ‛ (U+201B) for single quotes: a position from ZUP must
+		# not close the literal and run the rest
+		self.assertEqual(ps("a\u201ab\u201bc\u2018d"), "'a\u201a\u201ab\u201b\u201bc\u2018\u2018d'")
 
 	def test_plan_cannot_be_forged_outside_the_app(self):
 		a = self.linked[0]

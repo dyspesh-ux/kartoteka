@@ -24,7 +24,7 @@ class AccessReview(Document):
 	def on_trash(self):
 		frappe.db.delete("Access Review Item", {"access_review": self.name})
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def start(self):
 		require(ROLE_MANAGER)
 		from access_registry.access_roles.review import start_review
@@ -34,7 +34,7 @@ class AccessReview(Document):
 			counts["items_total"], counts["items_unassigned"]
 		)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def finish(self):
 		require(ROLE_MANAGER)
 		from access_registry.access_roles.review import finish_review

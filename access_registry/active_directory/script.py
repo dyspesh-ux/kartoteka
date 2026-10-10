@@ -15,10 +15,18 @@ from frappe.utils import format_datetime
 
 from access_registry.active_directory.plan import DISABLE
 
+# PowerShell takes all of these for a single quote: an unescaped one would close the literal, and the
+# rest of a value from ZUP or AD (a position, a description) would run as code with the rights of
+# the administrator who runs the script
+SINGLE_QUOTES = ("'", "\u2018", "\u2019", "\u201a", "\u201b")
+
 
 def ps(value) -> str:
-	"""A PowerShell single-quoted literal: nothing inside is expanded."""
-	return "'" + str(value or "").replace("'", "''").replace("‘", "‘‘").replace("’", "’’") + "'"
+	"""A PowerShell single-quoted literal: nothing inside is expanded; every quote is doubled."""
+	text = str(value or "")
+	for quote in SINGLE_QUOTES:
+		text = text.replace(quote, quote * 2)
+	return "'" + text + "'"
 
 
 ATTRIBUTES = {"title", "department", "company", "employeeNumber"}
@@ -83,9 +91,11 @@ $rollback = "$base-rollback.ps1"
 $srv = @{}
 if ($Server) { $srv = @{ Server = $Server } }
 $on = ''
-if ($Server) { $on = " -Server '" + ($Server -replace "['‘’]", '$0$0') + "'" }
+# every character PowerShell takes for a single quote is doubled (the same as ps() in script.py)
+$quotes = "['\u2018\u2019\u201a\u201b]"
+if ($Server) { $on = " -Server '" + ($Server -replace $quotes, '$0$0') + "'" }
 
-function Lit([string]$s) { "'" + ($s -replace "['‘’]", '$0$0') + "'" }
+function Lit([string]$s) { "'" + ($s -replace $quotes, '$0$0') + "'" }
 function Undo([string]$line) { if ($Apply) { Add-Content -Path $rollback -Value $line -Encoding UTF8 } }
 
 if ($Apply) {

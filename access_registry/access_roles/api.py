@@ -8,7 +8,7 @@ from access_registry.access_roles import engine
 from access_registry.permissions import ROLE_MANAGER, require
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def create_draft_roles(min_people=3, threshold=80, positions=None):
 	"""Draft job roles from the current accesses (initial reconciliation)."""
 	require(ROLE_MANAGER)
@@ -25,14 +25,14 @@ def create_draft_roles(min_people=3, threshold=80, positions=None):
 	}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def refresh_counters():
 	require(ROLE_MANAGER)
 	engine.refresh_counters()
 	return _("Счётчики пересчитаны.")
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def add_to_catalog(keys):
 	"""Creates entitlements for raw access keys (from «Доступы вне каталога»)."""
 	require(ROLE_MANAGER)

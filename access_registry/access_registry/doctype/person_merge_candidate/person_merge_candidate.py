@@ -13,7 +13,7 @@ class PersonMergeCandidate(Document):
 		if self.is_new():
 			self.pair_key = pair_key(self.person_a, self.person_b)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def merge(self):
 		frappe.only_for(("System Manager", "Registry Admin"))
 		if self.status != "Открыт":
@@ -23,7 +23,7 @@ class PersonMergeCandidate(Document):
 		merge_persons(self.person_a, self.person_b, candidate=self.name)
 		return _("Человек {0} влит в {1}").format(self.person_b, self.person_a)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def mark_different(self):
 		frappe.only_for(("System Manager", "Registry Admin"))
 		if self.status != "Открыт":

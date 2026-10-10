@@ -20,7 +20,7 @@ class FileServer(Document):
 				)
 			)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def load_file(self):
 		"""Loads the collector output attached to «Файл выгрузки» (for the first run or without network access)."""
 		require(*ADMINS)

@@ -134,3 +134,52 @@ class TestAdPlanScript(FrappeTestCase):
 				if isinstance(value, list):
 					value, got = sorted(value), sorted(got or [])
 				self.assertEqual(value or None, got or None, f"{guid}.{key}")
+
+	def test_values_never_run_as_code(self):
+		"""Values from ZUP and AD stay text even with any of the quotes PowerShell knows (' ‘ ’ ‚ ‛):
+		neither the plan nor its rollback script runs a part of them."""
+		marker = os.path.join(self.dir, "pwned")
+		quotes = ("'", "\u2018", "\u2019", "\u201a", "\u201b")
+		title = "".join(
+			f'x{q}; P = $(Set-Content -Path "{marker}-{i}" -Value 1); Z = {q}' for i, q in enumerate(quotes)
+		)
+		description = "".join(
+			f'd{q}; Set-Content -Path "{marker}-r{i}" -Value 1; #' for i, q in enumerate(quotes)
+		)
+		with open(self.state, encoding="utf-8") as fh:
+			state = json.load(fh)
+		state["users"]["g-1"]["Description"] = description
+		with open(self.state, "w", encoding="utf-8") as fh:
+			json.dump(state, fh, ensure_ascii=False)
+		plan = SimpleNamespace(
+			name="ADP-Q",
+			items=[
+				item(
+					action="Изменить",
+					object_guid="g-2",
+					sam_account_name="petrova",
+					attribute="title",
+					before="Бухгалтер",
+					after=title,
+				),
+				item(action="Отключить", object_guid="g-1", sam_account_name="ivanov", reason=title),
+			],
+			creation=now_datetime(),
+			owner="it@x",
+			data_as_of=None,
+			approved_by="ib@x",
+			decided_on=now_datetime(),
+		)
+		domain = frappe._dict(name="SK", dns_name="dc1", plan_disabled_ou="", plan_remove_groups=0)
+		script = os.path.join(self.dir, "ADP-Q.ps1")
+		with open(script, "w", encoding="utf-8-sig") as fh:
+			fh.write(render(plan, domain))
+
+		self.pwsh(script)
+		self.pwsh(script, "-Apply")
+		self.assertIn(f"Replace g-2 title = {title}", self.calls())
+		self.assertEqual(self.users()["g-2"]["title"], title)
+		rollback = glob.glob(os.path.join(self.dir, "ad-plan-ADP-Q-*-rollback.ps1"))
+		self.pwsh(rollback[0])
+		self.assertEqual(self.users()["g-1"]["Description"], description)  # restored as it was
+		self.assertEqual(glob.glob(marker + "*"), [])  # nothing ran

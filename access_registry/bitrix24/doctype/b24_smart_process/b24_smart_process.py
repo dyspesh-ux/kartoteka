@@ -28,7 +28,7 @@ class B24SmartProcess(Document):
 		if self.history_days is not None and self.history_days < 1:
 			self.history_days = 365
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def sync_now(self):
 		frappe.only_for(("System Manager", "Registry Admin"))
 		from frappe.utils.background_jobs import is_job_enqueued

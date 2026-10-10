@@ -39,13 +39,13 @@ class ProcessImport(Document):
 		self.save()
 		return result
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def check(self):
 		# a whitelisted method of a document is callable with read access only: ask for write
 		self.check_permission("write")
 		return self.execute(apply=False)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def load(self):
 		self.check_permission("write")
 		return self.execute(apply=True)

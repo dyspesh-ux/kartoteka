@@ -63,6 +63,10 @@ class TestRegistryRoles(FrappeTestCase):
 		self.assertTrue(self.can(self.viewer, "Person"))
 		self.assertTrue(self.can(self.viewer, "Access Role"))
 		self.assertFalse(self.can(self.viewer, "HR Absence"))
+		# absences from Bitrix24 are the same personal data as the HR ones
+		for user in (self.viewer, self.role_manager):
+			self.assertFalse(self.can(user, "B24 Absence"), user)
+		self.assertTrue(self.can(self.auditor, "B24 Absence"))
 		self.assertFalse(self.can(self.viewer, "B24 Write Log"))
 		self.assertFalse(self.can(self.viewer, "Sync Log"))
 

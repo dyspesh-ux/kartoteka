@@ -20,7 +20,7 @@ class ADDomain(Document):
 			if not re.match(r"^ldaps?://", url, re.I):
 				frappe.throw(_("Сервер LDAP должен начинаться с ldap:// или ldaps://"))
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def sync_now(self):
 		frappe.only_for(("System Manager", "Registry Admin"))
 		from frappe.utils.background_jobs import is_job_enqueued
@@ -34,7 +34,7 @@ class ADDomain(Document):
 			self.name
 		)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def test_connection(self):
 		frappe.only_for(("System Manager", "Registry Admin"))
 		from access_registry.active_directory.ldap_client import test_connection

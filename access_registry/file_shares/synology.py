@@ -10,8 +10,8 @@ where it is tested. Lines:
 """
 
 import base64
-import gzip
 import re
+import zlib
 
 ACL_LINE = re.compile(r"^\s*\[(\d+)\]\s*(.*?)\s*(?:\(level:(\d+)\))?\s*$")
 PRIVILEGE_LINE = re.compile(r"^\s*(RW|RO|NA|Deny)\s+list\s*\.*\s*\[(.*)\]\s*$", re.I)
@@ -30,9 +30,33 @@ def _b64(value: str) -> str:
 		raise ParseError(f"не base64: {value[:40]}") from e
 
 
+# the unpacked collector output: far more than a NAS with a million folders gives, far less than a
+# «gzip bomb» (a few megabytes that unpack to gigabytes) would take from the memory of the worker
+MAX_UNPACKED = 512 * 1024 * 1024
+
+
+def gunzip(data: bytes, limit: int = MAX_UNPACKED) -> bytes:
+	"""gzip (one member or several) unpacked to at most `limit` bytes."""
+	parts, size, rest = [], 0, data
+	while rest:
+		unpacker = zlib.decompressobj(16 + zlib.MAX_WBITS)
+		try:
+			chunk = unpacker.decompress(rest, limit - size + 1)
+		except zlib.error as e:
+			raise ParseError(f"повреждённый gzip: {e}") from e
+		size += len(chunk)
+		if size > limit or unpacker.unconsumed_tail:
+			raise ParseError(f"распакованная выгрузка больше {limit // (1024 * 1024)} МБ")
+		if not unpacker.eof:
+			raise ParseError("gzip обрезан: выгрузка пришла не целиком")
+		parts.append(chunk)
+		rest = unpacker.unused_data
+	return b"".join(parts)
+
+
 def decode_upload(data: bytes) -> str:
 	if data[:2] == b"\x1f\x8b":
-		data = gzip.decompress(data)
+		data = gunzip(data)
 	return data.decode("utf-8", "replace")
 
 

@@ -31,7 +31,7 @@ class B24Portal(Document):
 		if self.max_writes is not None and self.max_writes < 0:
 			self.max_writes = 0
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def sync_now(self):
 		frappe.only_for(("System Manager", "Registry Admin"))
 		from frappe.utils.background_jobs import is_job_enqueued
@@ -45,7 +45,7 @@ class B24Portal(Document):
 			self.name
 		)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def test_connection(self):
 		frappe.only_for(("System Manager", "Registry Admin"))
 		from access_registry.bitrix24.sync import fetch_export, make_client

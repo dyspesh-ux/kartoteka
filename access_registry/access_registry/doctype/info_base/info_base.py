@@ -38,7 +38,7 @@ class InfoBase(Document):
 					)
 				)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def sync_now(self):
 		frappe.only_for(("System Manager", "Registry Admin"))
 		from frappe.utils.background_jobs import is_job_enqueued
@@ -54,11 +54,11 @@ class InfoBase(Document):
 			"Синхронизация кадров {0} поставлена в очередь. Результат — в журнале синхронизаций."
 		).format(self.name)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def load_rights_now(self):
 		return self._enqueue_catalog("snapshot", _("Загрузка пользователей и прав"))
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def load_log_now(self):
 		return self._enqueue_catalog("log", _("Загрузка журнала изменений прав"))
 

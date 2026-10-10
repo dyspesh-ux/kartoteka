@@ -16,7 +16,7 @@ from access_registry.file_shares import api
 from access_registry.file_shares import reports as share_reports
 from access_registry.file_shares.access import ShareAccess
 from access_registry.file_shares.sync import run_upload
-from access_registry.file_shares.synology import ParseError, access_level, parse
+from access_registry.file_shares.synology import ParseError, access_level, decode_upload, gunzip, parse
 from access_registry.sync.departments import ensure_root
 from access_registry.sync.engine import run_source_sync
 from access_registry.tests.test_ad import ACC, AD_DOCTYPES, GRP, directory
@@ -153,6 +153,17 @@ class TestFileShares(FrappeTestCase):
 		self.assertEqual(log.status, "Ошибка")
 		self.assertIn("END", log.messages)
 		self.assertEqual(frappe.db.count("Folder ACL"), 0)
+
+	def test_gzip_is_unpacked_within_a_limit(self):
+		text = collector_output()
+		self.assertEqual(decode_upload(gzip.compress(text.encode())), text)
+		# several gzip members, as «cat a.gz b.gz» gives
+		self.assertEqual(gunzip(gzip.compress(b"ab") + gzip.compress(b"cd")), b"abcd")
+		# a «gzip bomb»: a small upload that unpacks to more than the limit is refused, not unpacked
+		with self.assertRaises(ParseError):
+			gunzip(gzip.compress(b"0" * 5000), limit=4096)
+		with self.assertRaises(ParseError):
+			gunzip(gzip.compress(text.encode())[:-20])
 
 	def test_access_levels(self):
 		self.assertEqual(access_level("rwxpdDaARWcCo"), "Полный доступ")
