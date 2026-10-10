@@ -86,6 +86,15 @@ class TestAccessReview(RoleFixture):
 		review.system = "1С"
 		self.assertRaises(frappe.ValidationError, review.save)
 
+	def test_nobody_decides_on_own_access(self):
+		review = self.create()
+		review.start()
+		own = self.items(review.name, person=self.person(1))[0]  # Иванов's own access
+		self.assertEqual(own.reviewer_user, self.fallback)
+		frappe.db.set_value("Access Review Item", own.name, "reviewer_user", self.ivanov)
+		frappe.set_user(self.ivanov)
+		self.assertRaises(frappe.PermissionError, api.decide, own.name, "Оставить")
+
 	def test_scope_and_owner_mode(self):
 		ad_only = self.create(system="Active Directory")
 		ad_only.start()
@@ -97,7 +106,10 @@ class TestAccessReview(RoleFixture):
 		owners.start()
 		items = self.items(owners.name)
 		self.assertEqual({i.access_title for i in items}, {"1С: Кадровик"})
-		self.assertEqual({i.reviewer_user for i in items}, {self.petrova})
+		# the owner reviews the holders, but not herself: her own access goes to the campaign reviewer
+		reviewers = {i.person: i.reviewer_user for i in items}
+		self.assertEqual(reviewers.pop(self.person(2)), self.fallback)
+		self.assertEqual(set(reviewers.values()) - {self.petrova}, set())
 
 		frappe.delete_doc("Entitlement", self.empty, force=True)
 		raw = self.create(include_uncatalogued=1, system="1С")

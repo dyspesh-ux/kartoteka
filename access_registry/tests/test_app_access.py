@@ -196,6 +196,25 @@ class TestAppAccess(RegistryFixture):
 		self.assertFalse([k for k in d if k.startswith("_")])
 		self.assertTrue(all(not s["kind"].startswith(("Права 1С", "Битрикс24")) for s in d["sources"]))
 
+	def test_exception_by_a_profile_of_one_system(self):
+		# «Роли доступа» at the working level from a profile, without desk roles: the exception is
+		# agreed, but only for the rights of the systems the profile opens
+		frappe.set_user("Administrator")
+		ad = self.entitlement("AD: VPN", "Active Directory")
+		api.save_profile(
+			{
+				"profile_name": "Владелец модели 1С",
+				"sections": {"people": 1, "roles": 2},
+				"systems": ["1c"],
+				"members": [self.user],
+			}
+		)
+		self.as_user()
+		self.assertTrue(api.bootstrap()["can"]["exceptions"])
+		name = api.create_exception(self.person(1), self.kadr, "Замещение")
+		self.assertEqual(frappe.db.get_value("Access Exception", name, "approved_by"), self.user)
+		self.assertRaises(frappe.PermissionError, api.create_exception, self.person(1), ad, "Замещение")
+
 	def test_no_system_chosen_means_all(self):
 		self.profile(people=1, control=1)
 		self.as_user()

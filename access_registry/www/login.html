@@ -4,23 +4,23 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="robots" content="noindex">
-	<title>Вход — {{ app_name }}</title>
-	<link rel="icon" href="{{ logo }}" type="image/svg+xml">
+	<title>Вход — {{ app_name | e }}</title>
+	<link rel="icon" href="{{ logo | e }}" type="image/svg+xml">
 	<style>{{ colocated_css | safe }}</style>
 </head>
 <body>
 	<main class="login">
 		<div class="login-card">
-			<img class="login-logo" src="{{ logo }}" alt="">
-			<h1>{{ app_name }}</h1>
+			<img class="login-logo" src="{{ logo | e }}" alt="">
+			<h1>{{ app_name | e }}</h1>
 			<p class="login-lead">кто есть кто и у кого какой доступ</p>
 
 			{% if providers %}
 			<div class="sso">
 				{% for p in providers %}
-				<a class="btn primary" href="{{ p.auth_url }}">
+				<a class="btn primary" href="{{ p.auth_url | e }}">
 					{% if p.icon %}<span class="sso-icon">{{ p.icon }}</span>{% endif %}
-					Войти через {{ p.provider_name }}
+					Войти через {{ p.provider_name | e }}
 				</a>
 				{% endfor %}
 				<p class="hint">Вход по корпоративной учётной записи. Пароль от реестра не нужен.</p>
@@ -34,7 +34,7 @@
 			{% endif %}
 
 			{% if show_password %}
-			<form class="local" autocomplete="on" data-redirect="{{ redirect_to }}">
+			<form class="local" autocomplete="on" data-redirect="{{ redirect_to | e }}">
 				{% if providers %}<div class="divider"><span>аварийный вход администратора</span></div>{% endif %}
 				<label for="usr">Логин или почта</label>
 				<input id="usr" name="usr" autocomplete="username" required>

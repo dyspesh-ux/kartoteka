@@ -21,10 +21,11 @@ STOP_ON_SAME=1
 MAX_DEPTH=12
 SHARES=""                                       # shares to read, space separated; empty — all
 SKIP_SHARES="homes home photo web_packages"      # never read these
-OUT="/tmp/registry-acl.txt"
+OUT=""                                          # file of the output; empty — a private temporary folder
 CURL_OPTS=""                                    # e.g. "--cacert /volume1/scripts/ca.pem"; -k only for tests
 
 set -u
+umask 077                                       # the output and the key are for root only
 PATH="/usr/syno/sbin:/usr/syno/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 DRY_RUN=0
 [ "${1:-}" = "--dry-run" ] && DRY_RUN=1
@@ -35,6 +36,16 @@ if [ "$(id -u)" != "0" ]; then
 fi
 command -v synoacltool >/dev/null || { echo "synoacltool not found: this is not DSM?" >&2; exit 1; }
 
+# root writes the output: never to a fixed name in the shared /tmp, where another user could have
+# put a symbolic link to a system file; a new private folder is made for every run instead
+WORK=""
+if [ -z "$OUT" ]; then
+	WORK="$(mktemp -d /tmp/registry-collect.XXXXXX)" || { echo "cannot create a temporary folder" >&2; exit 1; }
+	OUT="$WORK/registry-acl.txt"
+elif [ -L "$OUT" ] || [ -L "$OUT.gz" ]; then
+	echo "$OUT is a symbolic link: refusing to write there" >&2
+	exit 1
+fi
 : > "$OUT"
 emit() { printf '%s\n' "$*" >> "$OUT"; }
 b64() { printf '%s' "$1" | base64 | tr -d '\n'; }
@@ -98,10 +109,13 @@ if [ "$DRY_RUN" = "1" ]; then
 	exit 0
 fi
 gzip -c "$OUT" > "$OUT.gz"
+# the key goes to curl through its standard input, not the command line that every user of the NAS
+# sees in the list of processes
 # shellcheck disable=SC2086
-curl -sS $CURL_OPTS -w '\nHTTP %{http_code}\n' -X POST \
-	-H "Authorization: token $API_KEY:$API_SECRET" \
-	-H "Content-Type: application/octet-stream" \
-	--data-binary @"$OUT.gz" \
-	"$REGISTRY_URL/api/method/access_registry.file_shares.api.upload?server=$SERVER_CODE"
+printf 'header = "Authorization: token %s:%s"\n' "$API_KEY" "$API_SECRET" |
+	curl -sS $CURL_OPTS --config - -w '\nHTTP %{http_code}\n' -X POST \
+		-H "Content-Type: application/octet-stream" \
+		--data-binary @"$OUT.gz" \
+		"$REGISTRY_URL/api/method/access_registry.file_shares.api.upload?server=$SERVER_CODE"
 echo
+[ -n "$WORK" ] && rm -rf "$WORK"

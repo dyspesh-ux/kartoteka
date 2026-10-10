@@ -54,9 +54,9 @@ class TestSsoLogin(FrappeTestCase):
 		frappe.local.request = None
 		frappe.db.rollback()
 
-	def context(self, local=False):
+	def context(self, local=False, redirect="/registry"):
 		builder = EnvironBuilder(
-			path="/login", query_string="redirect-to=/registry", base_url="http://test.local"
+			path="/login", query_string={"redirect-to": redirect}, base_url="http://test.local"
 		)
 		frappe.local.request = Request(builder.get_environ())
 		if local:
@@ -102,3 +102,10 @@ class TestSsoLogin(FrappeTestCase):
 		self.provider()
 		frappe.db.set_single_value("System Settings", "disable_user_pass_login", 1)
 		self.assertFalse(self.context(local=True).show_password)
+
+	def test_redirect_is_escaped_in_the_page(self):
+		# the address of the page goes into an attribute: a quote must not open the page to a script
+		c = self.context(redirect='/x"><img src=x onerror=alert(1)>')
+		html = frappe.render_template("access_registry/www/login.html", c)
+		self.assertNotIn("<img src=x", html)
+		self.assertIn('data-redirect="http://test.local/x&#34;&gt;&lt;img', html)

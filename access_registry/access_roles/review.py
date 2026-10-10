@@ -42,6 +42,21 @@ def person_users() -> dict:
 	return result
 
 
+def persons_of_user(user: str | None = None) -> set:
+	"""Employees the user is: matched by e-mail the same way as person_users()."""
+	user = user or frappe.session.user
+	email = (frappe.db.get_value("User", user, "email") or user or "").strip().lower()
+	if not email or user in ("Administrator", "Guest"):
+		return set()
+	rows = frappe.db.sql(
+		"""select person from `tabAD Account` where ifnull(person, '') != ''
+			and (lower(mail) = %(email)s or lower(user_principal_name) = %(email)s)
+		union select person from `tabB24 User` where ifnull(person, '') != '' and lower(email) = %(email)s""",
+		{"email": email},
+	)
+	return {row[0] for row in rows}
+
+
 def managers(persons) -> dict:
 	"""Employee → head of the department of the main place of work (the parent's head for heads)."""
 	places = main_places(list(persons))
@@ -158,12 +173,18 @@ def start_review(name: str) -> dict:
 			reviewer = users.get(item["owner"])
 		else:
 			reviewer = None
+		# nobody confirms their own access (an owner of a right holds it too, the one reviewer has
+		# accesses too): such an item goes to the reviewer of the campaign or stays without one
+		own = users.get(item["person"])
+		if reviewer and reviewer == own:
+			reviewer = None
+		fallback = review.reviewer if review.reviewer and review.reviewer != own else None
 		frappe.get_doc(
 			{
 				"doctype": "Access Review Item",
 				"access_review": review.name,
 				**{k: v for k, v in item.items() if k != "owner"},
-				"reviewer_user": reviewer or review.reviewer,
+				"reviewer_user": reviewer or fallback,
 			}
 		).insert(ignore_permissions=True)
 	review.status = "Идёт"
@@ -201,6 +222,8 @@ def decide(item_name: str, decision: str, comment: str | None = None) -> dict:
 	item = frappe.get_doc("Access Review Item", item_name)
 	if not can_decide(item):
 		raise frappe.PermissionError(_("Это не ваше задание"))
+	if item.person and item.person in persons_of_user():
+		raise frappe.PermissionError(_("Свой доступ подтверждать нельзя: нужен другой проверяющий"))
 	if frappe.db.get_value("Access Review", item.access_review, "status") != "Идёт":
 		frappe.throw(_("Пересмотр не идёт: решения не принимаются"))
 	item.decision = decision

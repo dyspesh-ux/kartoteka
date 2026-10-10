@@ -1895,6 +1895,12 @@ def create_exception(person: str, entitlement: str, reason: str, valid_to: str |
 	_check("roles", WORK)
 	if not (reason or "").strip():
 		frappe.throw(_("Укажите, почему доступ согласован"))
+	system = frappe.db.get_value("Entitlement", entitlement, "system")
+	if not system or not frappe.db.exists("Person", person):
+		frappe.throw(_("Нет такого сотрудника или права доступа"), frappe.DoesNotExistError)
+	if not aa.system_allowed(system):
+		raise frappe.PermissionError(_("Нет доступа к правам системы «{0}»").format(system))
+	# the right is the working level of «Роли доступа» checked above: a profile needs no desk role
 	doc = frappe.get_doc(
 		{
 			"doctype": "Access Exception",
@@ -1903,7 +1909,7 @@ def create_exception(person: str, entitlement: str, reason: str, valid_to: str |
 			"reason": reason.strip(),
 			"valid_to": getdate(valid_to) if valid_to else None,
 		}
-	).insert()
+	).insert(ignore_permissions=True)
 	frappe.cache().delete_value(CACHE_KEY)
 	return doc.name
 
