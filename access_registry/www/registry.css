@@ -270,7 +270,7 @@ p { margin: 0; }
    A page is a sequence of logical sections: number, title, one line of explanation, content. */
 .section { padding: 40px 0; }
 .section + .section { border-top: 1px solid var(--border); }
-.view > .section:first-child, .page-head + .section, .hero + .section, .tabs + .section, .subnav + .section { padding-top: 8px; }
+.view > .route > .section:first-child, .page-head + .section, .hero + .section, .tabs + .section, .subnav + .section { padding-top: 8px; }
 .section:last-child { padding-bottom: 0; }
 .section-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
 .section-head .num {
@@ -588,6 +588,12 @@ a.hbar:hover .hbar-label { color: var(--accent-text); }
 	.topbar { padding: 10px var(--html-mobile-edge-offset); }
 	.view { padding: 20px var(--html-mobile-edge-offset) 48px; }
 	.search kbd { display: none; }
+	/* a phone: the search gets the room of the topbar, its results the width of the screen;
+	   «Админка» stays in the menu */
+	.search { min-width: 0; }
+	.search .results { position: fixed; left: var(--html-mobile-edge-offset); right: var(--html-mobile-edge-offset); top: 64px; max-height: 70vh; }
+	.top-actions { gap: 4px; flex-shrink: 0; }
+	.top-actions .admin-link { display: none; }
 	dl.kv { grid-template-columns: 1fr; }
 	.kpi .value { font-size: var(--font-size-big); line-height: 40px; }
 	.hero { padding: 24px 20px; }

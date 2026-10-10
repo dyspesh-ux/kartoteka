@@ -16,7 +16,21 @@
 			? ""
 			: String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 	const enc = encodeURIComponent;
-	const fmtNum = (n) => new Intl.NumberFormat("ru-RU").format(n || 0);
+	// formatters and the collator are created once: tables call them for every cell and every comparison
+	const NUM = new Intl.NumberFormat("ru-RU");
+	const MONEY = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
+	const COLLATOR = new Intl.Collator("ru", { numeric: true });
+	const fmtNum = (n) => NUM.format(n || 0);
+	/* links from the sources (Bitrix24, a process card) open only over http(s) or inside the site:
+	   «javascript:» and other schemes are not made into links */
+	const safeUrl = (url) => {
+		const value = String(url || "").trim();
+		return /^(https?:\/\/|\/(?![\/\\]))/i.test(value) ? value : "";
+	};
+	const extLink = (url, text) => {
+		const href = safeUrl(url);
+		return href ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(text)}</a>` : esc(text);
+	};
 	const pad = (n) => String(n).padStart(2, "0");
 	function parseDate(v) {
 		if (!v) return null;
@@ -66,7 +80,12 @@
 				.join("&");
 			if (qs) url += "?" + qs;
 		}
-		const response = await fetch(url, options);
+		let response;
+		try {
+			response = await fetch(url, options);
+		} catch (e) {
+			throw new Error("Нет связи с сервером. Проверьте сеть и повторите.");
+		}
 		let data = {};
 		try {
 			data = await response.json();
@@ -249,21 +268,28 @@
 		const savePrefs = () => storage(prefsKey, JSON.stringify(prefs));
 		const widthOf = (c) => prefs.widths[c.key] || Math.min(Math.max(c.width || 140, 70), 420);
 		const visible = () => (resizable ? columns.filter((c) => !prefs.hidden.includes(c.key)) : columns);
+		// text of every row for the filter: built once, on the first search
+		let texts = null;
+		const textOf = (i) => {
+			if (!texts) texts = rows.map((r) => columns.map((c) => plainValue(c, r)).join("\u0001").toLowerCase());
+			return texts[i];
+		};
 		const draw = () => {
 			const cols = visible();
 			let list = rows;
 			if (st.query) {
 				const q = st.query.toLowerCase();
-				list = list.filter((r) => columns.some((c) => plainValue(c, r).toLowerCase().includes(q)));
+				list = rows.filter((r, i) => textOf(i).includes(q));
 			}
 			if (st.sort) {
 				const col = columns.find((c) => c.key === st.sort);
-				list = [...list].sort((a, b) => {
-					const x = plainValue(col, a), y = plainValue(col, b);
-					const nx = parseFloat(x), ny = parseFloat(y);
-					const cmp = !isNaN(nx) && !isNaN(ny) && col.type === "number" ? nx - ny : x.localeCompare(y, "ru");
-					return cmp * st.dir;
+				// the value of every row is computed once, not in every comparison
+				const keyed = list.map((r) => {
+					const x = plainValue(col, r);
+					return [col.type === "number" ? parseFloat(x) : NaN, x, r];
 				});
+				keyed.sort((a, b) => (!isNaN(a[0]) && !isNaN(b[0]) ? a[0] - b[0] : COLLATOR.compare(a[1], b[1])) * st.dir);
+				list = keyed.map((k) => k[2]);
 			}
 			const head = cols
 				.map((c) => `<th data-key="${esc(c.key)}" ${resizable ? `style="width:${widthOf(c)}px" title="${esc(c.label)}"` : ""}>${esc(c.label)}${
@@ -375,10 +401,18 @@
 				drawList();
 				draw();
 			});
-			document.addEventListener("click", () => (listBox.hidden = true));
 		}
 		draw();
 	}
+
+	document.addEventListener("click", () => document.querySelectorAll(".col-list").forEach((box) => (box.hidden = true)));
+	// Escape closes the dialog on top (forms, history) and the open menus
+	document.addEventListener("keydown", (e) => {
+		if (e.key !== "Escape") return;
+		const dialogs = document.querySelectorAll(".modal-back");
+		if (dialogs.length) return dialogs[dialogs.length - 1].remove();
+		document.querySelectorAll(".col-list, .bell-panel").forEach((box) => (box.hidden = true));
+	});
 
 	// ------------------------------------------------------------------ shell
 
@@ -477,7 +511,7 @@
 	function bindSearch() {
 		const input = $app.querySelector(".search input");
 		const box = $app.querySelector(".results");
-		let items = [], sel = 0, timer;
+		let items = [], sel = 0, timer, asked = 0;
 		const kindLabel = { person: "сотрудник", account: "учётка", role: "роль", process: "процесс", entitlement: "право" };
 		const hrefOf = (r) =>
 			r.kind === "person" ? `#/person/${enc(r.id)}` : r.kind === "role" ? `#/role/${enc(r.id)}` : r.kind === "process" ? `#/process/${enc(r.id)}`
@@ -500,7 +534,10 @@
 			const q = input.value.trim();
 			if (q.length < 2) return box.classList.remove("open");
 			timer = setTimeout(async () => {
-				items = await api("search", { query: q }).catch(() => []);
+				const n = ++asked;
+				const found = await api("search", { query: q }).catch(() => []);
+				if (n !== asked) return; // a newer query is on its way
+				items = found;
 				sel = 0;
 				drawResults();
 			}, 220);
@@ -567,8 +604,13 @@
 		let path = decodeURIComponent((location.hash || "#/").slice(1)) || "/";
 		if (!state.boot.can.read && !path.startsWith("/review")) path = "/reviews";
 		else if (path === "/" && !canSee("overview")) path = firstPage();
-		const view = document.getElementById("view");
-		view.classList.toggle("wide", /^\/(report\/|control|people|access$|support$|equipment$|hiring$|ad-plan\/)/.test(path));
+		const host = document.getElementById("view");
+		host.classList.toggle("wide", /^\/(report\/|control|people|access$|support$|equipment$|hiring$|ad-plan\/)/.test(path));
+		// every page is drawn into its own element: a slow answer of a page the user has already left
+		// lands in a detached element instead of over the current page
+		const view = document.createElement("div");
+		view.className = "route";
+		host.replaceChildren(view);
 		$app.querySelector(".shell").classList.remove("nav-open");
 		$app.querySelectorAll("[data-nav]").forEach((a) => {
 			const href = a.dataset.nav.slice(1);
@@ -585,7 +627,16 @@
 				} catch (e) {
 					view.innerHTML = e.status === 403
 						? `<div class="card empty"><b>Нет доступа</b>${esc(e.message)}. Доступ к разделам выдаёт администратор реестра.</div>`
-						: `<div class="card error-box">Не удалось загрузить: ${esc(e.message)}</div>`;
+						: `<div class="card error-box">Не удалось загрузить: ${esc(e.message)} <button class="btn small retry">Повторить</button></div>`;
+					view.querySelector(".retry")?.addEventListener("click", route);
+				}
+				// the tab and the browser history show the page, not only the app
+				if (view.isConnected) {
+					const h1 = view.querySelector("h1");
+					// the heading without its badges («Работает», «Черновик»…); the greeting of «Обзор» is not a title
+					const text = h1 ? [...h1.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE).map((n) => n.textContent).join(" ") : "";
+					const title = path === "/" ? "Обзор" : text.replace(/\s+/g, " ").trim();
+					document.title = title ? `${title} · Реестр доступа` : "Реестр доступа";
 				}
 				return;
 			}
@@ -1027,7 +1078,7 @@
 			resizable: true,
 			empty: "Открытых заявок нет",
 			columns: [
-				{ key: "item_id", label: "№", width: 80, render: (r) => (r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.item_id)}</a>` : esc(r.item_id)) },
+				{ key: "item_id", label: "№", width: 80, render: (r) => extLink(r.url, r.item_id) },
 				{ key: "title", label: "Заявка", width: 300 },
 				{ key: "stage", label: "Стадия", width: 170 },
 				{ key: "category", label: "Категория", width: 170 },
@@ -1042,7 +1093,7 @@
 
 	// ------------------------------------------------------------------ equipment for the management
 
-	const fmtMoney = (v) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(v || 0);
+	const fmtMoney = (v) => MONEY.format(v || 0);
 	const EQUIPMENT_PERIODS = { 30: "30 дней", 90: "90 дней", 365: "год" };
 
 	async function viewEquipment(view) {
@@ -1237,9 +1288,15 @@
 		const reload = () => viewAdPlan(view, name);
 		const excluded = () => [...view.querySelectorAll("[data-item]")].filter((x) => !x.checked).map((x) => x.dataset.item);
 		const saveItems = () => api("set_ad_plan_items", { name, excluded: JSON.stringify(excluded()) }, true);
-		view.querySelector(".save-items")?.addEventListener("click", async () => {
-			toast(`Состав сохранён: изменений ${await saveItems()}`);
-			reload();
+		view.querySelector(".save-items")?.addEventListener("click", async (e) => {
+			e.target.disabled = true;
+			try {
+				toast(`Состав сохранён: изменений ${await saveItems()}`);
+				reload();
+			} catch (err) {
+				e.target.disabled = false;
+				toast(err.message);
+			}
 		});
 		view.querySelector(".approve")?.addEventListener("click", () =>
 			modal({
@@ -1288,7 +1345,13 @@
 		setBell(state.boot.can.unread_notices || 0);
 		const draw = async () => {
 			panel.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
-			const d = await api("notices");
+			let d;
+			try {
+				d = await api("notices");
+			} catch (e) {
+				panel.innerHTML = `<div class="error-box">${esc(e.message)}</div>`;
+				return;
+			}
 			setBell(d.unread);
 			panel.innerHTML = `<div class="bell-head"><b>Уведомления</b>${d.unread ? `<button class="link-btn mark-all">Прочитать все</button>` : ""}</div>
 				${d.notices.length ? d.notices.map((n) => `<a class="notice ${n.read ? "" : "unread"}" href="${esc(noticeHref(n.link))}" data-notice="${esc(n.name)}">
@@ -1297,15 +1360,15 @@
 			panel.querySelector(".mark-all")?.addEventListener("click", async (e) => {
 				e.stopPropagation();
 				setBell(0);
-				await api("mark_notices_read", {}, true);
+				await api("mark_notices_read", {}, true).catch((err) => toast(err.message));
 				draw();
 			});
 			panel.querySelectorAll("[data-notice]").forEach((a) =>
 				a.addEventListener("click", () => {
 					panel.hidden = true;
-					api("mark_notices_read", { names: JSON.stringify([a.dataset.notice]) }, true).then(() =>
-						setBell(Math.max(0, (+$app.querySelector(".bell .count").textContent || 1) - (a.classList.contains("unread") ? 1 : 0)))
-					);
+					api("mark_notices_read", { names: JSON.stringify([a.dataset.notice]) }, true)
+						.then(() => setBell(Math.max(0, (+$app.querySelector(".bell .count").textContent || 1) - (a.classList.contains("unread") ? 1 : 0))))
+						.catch(() => null);
 				})
 			);
 		};
@@ -1359,14 +1422,22 @@
 		box.querySelectorAll("[data-run]").forEach((b) =>
 			b.addEventListener("click", async () => {
 				b.disabled = true;
-				toast(`Проверено: ${await api("run_notification_rule", { name: b.dataset.run }, true)}`);
+				try {
+					toast(`Проверено: ${await api("run_notification_rule", { name: b.dataset.run }, true)}`);
+				} catch (err) {
+					toast(err.message);
+				}
 				viewNotifications(view);
 			})
 		);
 		box.querySelectorAll("[data-delete]").forEach((b) =>
 			b.addEventListener("click", async () => {
 				if (!confirm(`Удалить правило «${byName[b.dataset.delete].title}»?`)) return;
-				await api("delete_notification_rule", { name: b.dataset.delete }, true);
+				try {
+					await api("delete_notification_rule", { name: b.dataset.delete }, true);
+				} catch (err) {
+					return toast(err.message);
+				}
 				viewNotifications(view);
 			})
 		);
@@ -1375,7 +1446,14 @@
 				const out = box.querySelector(`[data-preview-box="${CSS.escape(b.dataset.preview)}"]`);
 				out.hidden = !out.hidden;
 				if (out.hidden) return;
-				const rows = await api("notification_preview", { name: b.dataset.preview });
+				out.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+				let rows;
+				try {
+					rows = await api("notification_preview", { name: b.dataset.preview });
+				} catch (err) {
+					out.innerHTML = `<div class="error-box">${esc(err.message)}</div>`;
+					return;
+				}
 				out.innerHTML = `<div class="group-title" style="margin-top:14px">Из того, что есть сейчас, увидели бы</div>${
 					rows.length
 						? `<div class="list">${rows.map((r) => `<div class="list-item"><div class="grow"><b>${esc(r.full_name)}</b><small>${esc(r.sample.join(" · ") || "ничего: нет прав или нет событий")}</small></div><b>${fmtNum(r.count)}</b></div>`).join("")}</div>`
@@ -1658,7 +1736,7 @@
 			resizable: true,
 			empty: "Вакансий в наборе нет",
 			columns: [
-				{ key: "item_id", label: "№", width: 70, render: (r) => (r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.item_id)}</a>` : esc(r.item_id)) },
+				{ key: "item_id", label: "№", width: 70, render: (r) => extLink(r.url, r.item_id) },
 				{ key: "position", label: "Должность", width: 200, render: (r) => posLink(r.position) || `<span class="muted">—</span>`, csv: (r) => r.position || "" },
 				{ key: "organization", label: "Организация", width: 170 },
 				{ key: "stage", label: "Этап", width: 170 },
@@ -1676,7 +1754,7 @@
 		return `<div class="group"><h3>Заявки в техподдержку</h3><p class="muted small">Сотрудник указан в заявке как обратившийся.
 			Открытых: ${fmtNum(t.open)}, всего в реестре: ${fmtNum(t.total)}${t.total > t.items.length ? `, показаны последние ${t.items.length}` : ""}.</p>
 			${t.items.length ? `<div class="card list">${t.items
-				.map((i) => `<div class="list-item"><div class="grow"><b>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">№${esc(i.item_id)}</a>` : `№${esc(i.item_id)}`} ${esc(i.title)}</b>
+				.map((i) => `<div class="list-item"><div class="grow"><b>${extLink(i.url, `№${i.item_id}`)} ${esc(i.title)}</b>
 					${pill(i.state, STATE_TONE[i.state])} ${i.state === "Открыта" ? pill(i.stage_name, "") : ""}
 					<small>${esc([i.category, i.assigned_name && "ответственный: " + i.assigned_name].filter(Boolean).join(" · "))}</small></div>
 					<span class="muted small nowrap">${esc(fmtDate(i.created_at))}${i.closed_at ? " → " + esc(fmtDate(i.closed_at)) : ""}</span></div>`)
@@ -1694,6 +1772,9 @@
 
 	async function viewPeople(view) {
 		const f = state.peopleFilters;
+		// the list is asked for together with the organizations, not after them
+		const first = api("people", { ...f, limit: 500 });
+		first.catch(() => null);
 		const orgs = await api("organizations");
 		view.innerHTML = `
 			<div class="page-head"><div><h1>Сотрудники</h1><p>Люди из кадров ЗУП и их учётные записи в 1С, Active Directory и Битрикс24.</p></div></div>
@@ -1704,10 +1785,19 @@
 				<div class="chips">${Object.entries(FLAGS).map(([k, [label]]) => `<button class="chip ${f.flag === k ? "on" : ""}" data-flag="${k}">${label}</button>`).join("")}</div>
 			</div>
 			<div class="card people-table"></div>`;
+		let asked = 0;
 		const load = async () => {
 			const box = view.querySelector(".people-table");
 			box.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
-			const data = await api("people", { ...f, limit: 500 });
+			const n = ++asked;
+			let data;
+			try {
+				data = await (n === 1 && first ? first : api("people", { ...f, limit: 500 }));
+			} catch (e) {
+				if (n === asked) box.innerHTML = `<div class="error-box">Не удалось загрузить: ${esc(e.message)}</div>`;
+				return;
+			}
+			if (n !== asked) return; // the filters changed while this answer was on its way
 			table(box, {
 				name: "сотрудники",
 				rows: data.rows,
@@ -2109,6 +2199,9 @@
 		const can = state.boot.can;
 		const allowed = can.control_lists || [];
 		kind = kind && allowed.includes(kind) ? kind : CONTROL_ORDER.find((k) => allowed.includes(k)) || kind || "dismissed";
+		// the list and the counters of the chips are asked for at once, not one after the other
+		const listing = api("control", { kind, show_suppressed: showSuppressed ? 1 : 0 });
+		listing.catch(() => null);
 		const d = state.dashboard || (await loadDashboard());
 		const r = d.reconciliation;
 		const counts = {
@@ -2135,7 +2228,7 @@
 					.join("")}</div></div>`
 			).join("")}</div>
 			${block(null, CONTROL_TITLES[kind], CONTROL_HELP[kind], `<div class="suppress-bar"></div><div class="card ctl"><div class="loading"><div class="spinner"></div></div></div>`)}`;
-		const data = await api("control", { kind, show_suppressed: showSuppressed ? 1 : 0 });
+		const data = await listing;
 		const box = view.querySelector(".ctl");
 		const bar = view.querySelector(".suppress-bar");
 		const reload = () => loadDashboard(true).then(() => viewControl(view, kind, showSuppressed));
@@ -2192,6 +2285,8 @@
 			empty: showSuppressed ? "Погашенных замечаний нет" : kind === "journal" ? "Журнал пуст" : "Замечаний нет",
 			actions,
 		});
+		if (data.total > data.rows.length)
+			box.insertAdjacentHTML("beforeend", `<div class="table-foot">Показаны первые ${fmtNum(data.rows.length)} из ${fmtNum(data.total)} — фильтр и CSV работают по ним</div>`);
 		drawBar();
 		box.addEventListener("change", (e) => {
 			const c = e.target.closest("input[data-key]");
@@ -2203,7 +2298,12 @@
 			const mark = e.target.closest(".mark");
 			if (mark) {
 				mark.disabled = true;
-				await api("mark_event_processed", { event: mark.dataset.event }, true);
+				try {
+					await api("mark_event_processed", { event: mark.dataset.event }, true);
+				} catch (err) {
+					mark.disabled = false;
+					return toast(err.message);
+				}
 				mark.closest("tr").style.opacity = ".4";
 				mark.textContent = "✓";
 				return;
@@ -2427,8 +2527,8 @@
 			<div class="page-head"><div><h1>${esc(p.title)} ${p.process_code ? `<span class="muted" style="font-weight:500">${esc(p.process_code)}</span>` : ""}</h1>
 				<p>${pill(p.status, p.status === "Действует" ? "t-green" : "")} ${pill(p.level, "")} ${d.owner ? `· владелец: ${esc(d.owner)}` : ""} ${p.version ? `· версия ${esc(p.version)}` : ""}
 				${p.effective_from ? `· действует с ${esc(fmtDate(p.effective_from))}` : ""}</p></div>
-				<div style="display:flex;gap:8px">${p.regulation_url ? `<a class="btn" href="${esc(p.regulation_url)}" target="_blank" rel="noopener">Регламент</a>` : ""}
-				${p.diagram ? `<a class="btn" href="${esc(p.diagram)}" target="_blank" rel="noopener">Схема</a>` : ""}
+				<div style="display:flex;gap:8px">${safeUrl(p.regulation_url) ? `<a class="btn" href="${esc(safeUrl(p.regulation_url))}" target="_blank" rel="noopener noreferrer">Регламент</a>` : ""}
+				${safeUrl(p.diagram) ? `<a class="btn" href="${esc(safeUrl(p.diagram))}" target="_blank" rel="noopener noreferrer">Схема</a>` : ""}
 				${state.boot.can.processes ? `<a class="btn" href="${deskUrl("Business Process", p.name)}" target="_blank" rel="noopener">${icon("external")} Изменить</a>` : ""}</div></div>
 			<div class="split">
 				<div class="group"><h3>Роли в процессе</h3>${roles ? `<div class="grid grid-2">${roles}</div>` : `<div class="card empty">Роли не описаны</div>`}</div>
@@ -2716,13 +2816,15 @@
 			const wrap = input.closest(".person-filter");
 			const hidden = wrap.querySelector("[data-f]");
 			const results = wrap.querySelector(".results");
-			let timer;
+			let timer, asked = 0;
 			input.addEventListener("input", () => {
 				hidden.value = "";
 				clearTimeout(timer);
 				timer = setTimeout(async () => {
 					if (input.value.trim().length < 2) return results.classList.remove("open");
-					const found = (await api("search", { query: input.value })).filter((r) => r.kind === "person");
+					const n = ++asked;
+					const found = (await api("search", { query: input.value }).catch(() => [])).filter((r) => r.kind === "person");
+					if (n !== asked) return;
 					results.innerHTML = found.map((r) => `<a class="result" data-id="${esc(r.id)}" data-t="${esc(r.title)}"><div><b>${esc(r.title)}</b><small>${esc(r.subtitle || "")}</small></div></a>`).join("") || `<div class="empty">Не найдено</div>`;
 					results.classList.add("open");
 				}, 250);
@@ -2800,7 +2902,12 @@
 		view.querySelectorAll(".edit").forEach((b) => b.addEventListener("click", () => editProfile(d, d.profiles[+b.dataset.i], () => viewAppAccess(view))));
 		view.querySelectorAll(".hist").forEach((b) =>
 			b.addEventListener("click", async () => {
-				const rows = await api("profile_history", { name: b.dataset.name });
+				let rows;
+				try {
+					rows = await api("profile_history", { name: b.dataset.name });
+				} catch (err) {
+					return toast(err.message);
+				}
 				const back = document.createElement("div");
 				back.className = "modal-back";
 				back.innerHTML = `<div class="modal wide"><h3>История: ${esc(b.dataset.name)}</h3>

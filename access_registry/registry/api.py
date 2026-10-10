@@ -1772,7 +1772,7 @@ def search(query: str) -> list:
 		return []
 	like = f"%{query}%"
 	results = []
-	for p in (
+	found = (
 		frappe.db.sql(
 			"select name, full_name, status from `tabPerson` where full_name like %s order by status = 'Работает' desc, full_name limit 8",
 			like,
@@ -1780,8 +1780,20 @@ def search(query: str) -> list:
 		)
 		if people
 		else []
-	):
-		results.append({"kind": "person", "id": p.name, "title": p.full_name, "subtitle": p.status})
+	)
+	# namesakes are told apart by the position and the organization
+	places = main_places([p.name for p in found])
+	for p in found:
+		place = places.get(p.name, {})
+		where = ", ".join(x for x in (place.get("position_title"), place.get("organization_title")) if x)
+		results.append(
+			{
+				"kind": "person",
+				"id": p.name,
+				"title": p.full_name,
+				"subtitle": f"{p.status} · {where}" if where else p.status,
+			}
+		)
 	for doctype, title_field, extra, link in (
 		[
 			a
