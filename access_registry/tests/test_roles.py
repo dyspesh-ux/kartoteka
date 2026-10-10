@@ -288,6 +288,17 @@ class TestRoleModel(RoleFixture):
 
 
 class TestProcesses(RoleFixture):
+	def test_regulation_link_is_a_web_address(self):
+		process = frappe.get_doc(
+			{"doctype": "Business Process", "title": "Регламент", "regulation_url": " https://wiki/x "}
+		).insert()
+		self.assertEqual(process.regulation_url, "https://wiki/x")
+		process.regulation_url = "/files/regulation.pdf"
+		process.save()
+		for bad in ("javascript:alert(1)", "javascript://wiki/%0Aalert(1)", "data:text/html,x", "//evil/x"):
+			process.regulation_url = bad
+			self.assertRaises(frappe.ValidationError, process.save)
+
 	def process_model(self):
 		self.base_model()
 		process = frappe.get_doc(
