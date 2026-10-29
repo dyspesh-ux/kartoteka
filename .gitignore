@@ -7,3 +7,4 @@ dist/
 # Real exports from 1C contain personal data (152-FZ) — never commit them
 exports/
 *.export.json
+dump.rdb

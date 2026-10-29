@@ -223,8 +223,8 @@ def assigned_user_id(asset: dict):
 
 
 class PersonResolver:
-	"""Snipe-IT user → employee. Order: manual (controller), employee number, AD login, e-mail,
-	full name (or surname and first name when unique)."""
+	"""Snipe-IT user → employee. Order: manual (controller), employee UUID, AD login, employee number,
+	e-mail, full name (or surname and first name when unique)."""
 
 	def __init__(self):
 		self.persons = {
@@ -284,10 +284,12 @@ class PersonResolver:
 		ad_account = ad[1] if ad else None
 		if number and number in self.persons:
 			return number, BY_NUMBER, "", ad_account  # the registry's own employee id
-		if number and number in self.by_number:
-			return self.by_number[number], BY_NUMBER, "", ad_account
+		# the AD login before the employee number: numbers are kept per organization in ZUP, the same
+		# number in another organization belongs to someone else
 		if ad and ad[0]:
 			return ad[0], BY_AD, "", ad_account
+		if number and number in self.by_number:
+			return self.by_number[number], BY_NUMBER, "", ad_account
 		if email and self.by_mail.get(email, (None,))[0]:
 			person, account = self.by_mail[email]
 			return person, BY_MAIL, "", ad_account or account

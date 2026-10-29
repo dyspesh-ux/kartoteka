@@ -28,6 +28,7 @@
   "plan_disabled_ou",
   "plan_grace_days",
   "plan_remove_groups",
+  "plan_allow_name_links",
   "plan_max_items",
   "plan_max_disable_share",
   "column_break_5",
@@ -183,6 +184,13 @@
    "label": "Снимать группы при отключении"
   },
   {
+   "default": "0",
+   "description": "По умолчанию отключаются только учётки, привязанные к сотруднику по employeeNumber или вручную: совпадение ФИО бывает у тёзок. Привязку можно усилить отчётом «Проставить employeeNumber»",
+   "fieldname": "plan_allow_name_links",
+   "fieldtype": "Check",
+   "label": "Отключать и учётки, привязанные только по ФИО"
+  },
+  {
    "default": "100",
    "fieldname": "plan_max_items",
    "fieldtype": "Int",
@@ -219,9 +227,10 @@
   },
   {
    "default": "0",
+   "description": "Самая надёжная привязка учётки к сотруднику (её же ставит отчёт «Проставить employeeNumber»)",
    "fieldname": "plan_attr_employee_number",
    "fieldtype": "Check",
-   "label": "Обновлять табельный номер (employeeNumber)"
+   "label": "Проставлять employeeNumber = UUID сотрудника"
   },
   {
    "description": "Логины (sAMAccountName) или OU (DN), по одному на строку: эти учётки в план не попадают",
@@ -263,7 +272,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-18 07:00:00.000000",
+ "modified": "2026-10-29 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Active Directory",
  "name": "AD Domain",

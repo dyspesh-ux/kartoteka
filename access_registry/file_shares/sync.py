@@ -64,7 +64,9 @@ def run_upload(server: str, data: bytes, commit: bool = True):
 	log.reload()
 	log.status = status
 	log.finished = now_datetime()
-	log.stats = json.dumps({"server": server, **stats}, ensure_ascii=False, indent=1, sort_keys=True)
+	log.stats = json.dumps(
+		{"server": server, "sender": previous_user, **stats}, ensure_ascii=False, indent=1, sort_keys=True
+	)
 	log.messages = _format_messages(messages)
 	log.save(ignore_permissions=True)
 	values = {"last_status": f"{status} ({log.name}, {log.finished.strftime('%Y-%m-%d %H:%M')})"}
@@ -155,6 +157,13 @@ class Principals:
 		return result
 
 
+def _parent(path) -> str | None:
+	path = (path or "/").rstrip("/")
+	if not path:
+		return None  # the root of the share
+	return path.rsplit("/", 1)[0] or "/"
+
+
 class ShareImport:
 	def __init__(self, server):
 		self.server = server
@@ -177,11 +186,12 @@ class ShareImport:
 			self.warn(f"в выгрузке SERVER_CODE={meta['server']}, а загружается в сервер {self.code}")
 		for error in parsed["errors"]:
 			self.warn(f"сборщик: {error}")
-		self.check_guard(len(parsed["folders"]))
 		seen_shares = {self.import_share(share) for share in parsed["shares"].values()}
 		seen_folders = {self.import_folder(folder) for folder in parsed["folders"]}
+		gone = self.gone_folders(parsed, seen_folders)
+		self.check_guard(len(gone))
 		self.mark_missing("File Share", seen_shares)
-		self.mark_missing("Folder ACL", seen_folders)
+		self.mark_missing("Folder ACL", seen_folders, only=gone)
 		self.counters["shares"] = len(parsed["shares"])
 		self.counters["folders"] = len(parsed["folders"])
 		self.counters["collector_settings"] = (
@@ -194,16 +204,46 @@ class ShareImport:
 			)
 		return dict(self.counters)
 
-	def check_guard(self, received):
+	def gone_folders(self, parsed, seen) -> set:
+		"""Folders of the registry this walk proves gone. A quick walk (STOP_ON_SAME=1, a smaller MAX_DEPTH)
+		does not look inside some folders: what lies there is kept until a walk that looks."""
+		meta = parsed["meta"]
+		partial = meta.get("stop_on_same") == "1"
+		max_depth = cint(meta.get("max_depth"))
+		walked = {(f["share"], f["path"]) for f in parsed["folders"]}
+		opened = {(f["share"], _parent(f["path"])) for f in parsed["folders"]} | {
+			(name, "/") for name in parsed["shares"]
+		}
+		prefix = f"{self.code}:"
+		gone = set()
+		for row in frappe.get_all(
+			"Folder ACL",
+			filters={"server": self.code, "missing_in_source": 0},
+			fields=["name", "share", "path", "depth"],
+			limit_page_length=0,
+		):
+			if row.name in seen:
+				continue
+			share = (row.share or "")[len(prefix) :] if (row.share or "").startswith(prefix) else row.share
+			if max_depth and cint(row.depth) > max_depth:
+				self.counters["Folder ACL: глубже MAX_DEPTH, не проверено"] += 1
+				continue
+			if partial and (share, _parent(row.path)) not in opened and (share, row.path) not in walked:
+				self.counters["Folder ACL: быстрый обход не заходил, оставлено"] += 1
+				continue
+			gone.add(row.name)
+		return gone
+
+	def check_guard(self, gone):
 		threshold = cint(self.settings.shrink_threshold_pct)
 		actual = frappe.db.count("Folder ACL", {"server": self.code, "missing_in_source": 0})
 		if actual < cint(self.settings.guard_min_records):
 			return
-		if received < actual * (1 - threshold / 100):
-			shrink = round(100 * (actual - received) / actual, 1)
+		if gone > actual * threshold / 100:
+			shrink = round(100 * gone / actual, 1)
 			raise ShareGuardTripped(
-				f"Загрузка сервера {self.code} остановлена предохранителем: папок в выгрузке {received}, "
-				f"в реестре {actual} — сокращение на {shrink}%, допустимо не более {threshold}%. Проверьте SHARES, "
+				f"Загрузка сервера {self.code} остановлена предохранителем: пропало бы {gone} папок из {actual} "
+				f"в реестре — сокращение на {shrink}%, допустимо не более {threshold}%. Проверьте SHARES, "
 				f"SKIP_SHARES и MAX_DEPTH в сборщике. Если сокращение ожидаемое, временно поднимите «Допустимое "
 				f"сокращение выгрузки, %» до {int(shrink) + 1} или выше."
 			)
@@ -317,11 +357,11 @@ class ShareImport:
 		self.save(doc)
 		return uid
 
-	def mark_missing(self, doctype, seen):
+	def mark_missing(self, doctype, seen, only=None):
 		for name in frappe.get_all(
 			doctype, filters={"server": self.code, "missing_in_source": 0}, pluck="name"
 		):
-			if name not in seen:
+			if name not in seen and (only is None or name in only):
 				doc = frappe.get_doc(doctype, name)
 				doc.missing_in_source = 1
 				doc.save(ignore_permissions=True, ignore_version=False)

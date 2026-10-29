@@ -3,18 +3,27 @@
 Effective access of an AD account to a folder is the smaller of two levels:
 - the privilege on the shared folder in DSM (read/write, from the account or any of its groups);
 - the Windows ACL of the folder (allow entries of the account, its groups — nested too — or «Все»).
-A deny entry for the account or any of its groups closes access. Folders that are not recorded
+Deny and allow entries are weighed right by right in the Windows order (explicit deny, explicit allow,
+inherited deny, inherited allow): a deny of writing leaves reading. Folders that are not recorded
 have the rights of the nearest recorded folder above them (the collector records only changes).
 """
 
 from collections import defaultdict
 
 import frappe
+from frappe.utils import cint
 
 from access_registry.active_directory.groups import effective_account_groups
-from access_registry.file_shares.synology import LEVEL_RANK
+from access_registry.file_shares.synology import LEVEL_RANK, access_level
 
 ALL = "Все"
+# rights behind a level, for entries without the rights string
+LEVEL_RIGHTS = {
+	"Полный доступ": "rwxpdDaARWcCo",
+	"Изменение": "rwxpdDaARWc",
+	"Чтение": "rxaRc",
+	"Запрет": "rwxpdDaARWcCo",
+}
 
 
 class ShareAccess:
@@ -72,21 +81,30 @@ class ShareAccess:
 		return levels
 
 	def folder_access(self, folder, entries, share_levels) -> dict:
-		"""{account: (level, via)} for one folder."""
-		granted, denied = {}, set()
-		for e in entries:
-			accounts = self.accounts_of(e)
-			if e.allow == "Запретить":
-				denied |= accounts
-				continue
-			for account in accounts:
-				current = granted.get(account)
-				if not current or LEVEL_RANK[e.level] > LEVEL_RANK[current[0]]:
-					granted[account] = (e.level, e.principal)
+		"""{account: (level, via)} for one folder.
+
+		Windows order for every right separately: explicit deny, explicit allow, inherited deny, inherited
+		allow — the first entry that mentions the right decides. So a deny of writing leaves reading, and an
+		explicit allow beats an inherited deny."""
+		decided = defaultdict(dict)  # account → {right: (allow, principal)}
+		for e in sorted(entries, key=lambda e: (cint(e.inherited), e.allow != "Запретить")):
+			allow = e.allow != "Запретить"
+			rights = [ch for ch in (e.rights or "") if ch != "-"]
+			if not rights:  # an entry loaded before the rights were kept: its level alone
+				rights = list(LEVEL_RIGHTS.get(e.level, ""))
+			for account in self.accounts_of(e):
+				for ch in rights:
+					decided[account].setdefault(ch, (allow, e.principal))
 		result = {}
-		for account, (level, via) in granted.items():
-			if account in denied:
+		for account, by_right in decided.items():
+			granted = "".join(ch for ch, (allow, _p) in by_right.items() if allow)
+			if not granted:
 				continue
+			level = access_level(granted)
+			via = (by_right.get("r") if "r" in granted else None) or next(
+				v for v in by_right.values() if v[0]
+			)
+			via = via[1]
 			if share_levels is not None:
 				share_level = share_levels.get(account)
 				if not share_level:
@@ -115,7 +133,17 @@ class ShareAccess:
 		for row in frappe.get_all(
 			"Folder ACL Entry",
 			filters={"parenttype": "Folder ACL", "parent": ["in", [f.name for f in folders] or [""]]},
-			fields=["parent", "principal", "principal_type", "ad_account", "ad_group", "allow", "level"],
+			fields=[
+				"parent",
+				"principal",
+				"principal_type",
+				"ad_account",
+				"ad_group",
+				"allow",
+				"level",
+				"rights",
+				"inherited",
+			],
 			limit_page_length=0,
 		):
 			entries[row.parent].append(row)

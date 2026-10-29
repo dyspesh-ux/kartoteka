@@ -3,6 +3,7 @@
 import copy
 
 import frappe
+from frappe.utils import add_days, today
 
 from access_registry.bitrix24.sync import run_portal_sync
 from access_registry.registry import api
@@ -124,9 +125,14 @@ class TestRegistryApp(RegistryFixture):
 		self.assertIn(
 			("role", "Главный бухгалтер"), {(r["kind"], r["title"]) for r in api.search("бухгалтер")}
 		)
-		name = api.create_exception(self.person(1), self.kadr, "Замещение", None)
+		name = api.create_exception(self.person(1), self.kadr, "Замещение", add_days(today(), 30))
 		self.assertTrue(frappe.db.exists("Access Exception", name))
-		self.assertRaises(frappe.ValidationError, api.create_exception, self.person(1), self.kadr, "  ")
+		self.assertRaises(
+			frappe.ValidationError, api.create_exception, self.person(1), self.kadr, "  ", "2099-01-01"
+		)
+		self.assertRaises(
+			frappe.ValidationError, api.create_exception, self.person(1), self.kadr, "Замещение", None
+		)
 
 	def test_permissions_and_page(self):
 		viewer = make_user("viewer-app@registry.test", "Access Catalog Viewer")

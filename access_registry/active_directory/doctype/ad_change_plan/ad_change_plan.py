@@ -34,6 +34,9 @@ class ADChangePlan(Document):
 				frappe.throw(_("Свой план одобрить нельзя: нужен второй человек"))
 		elif self.approved_by != before.approved_by or self.decided_on != before.decided_on:
 			frappe.throw(_("Поля решения заполняются только при решении по плану"))
+		for field in ("settings_saved", "server", "disabled_ou", "remove_groups", "domain"):
+			if (self.get(field) or None) != (before.get(field) or None):
+				frappe.throw(_("Настройки домена в плане сохраняются при сборке и не меняются"))
 		self._items_unchanged_except_include(before)
 
 	def _items_unchanged_except_include(self, before):

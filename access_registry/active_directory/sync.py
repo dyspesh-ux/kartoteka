@@ -74,6 +74,10 @@ def run_domain_sync(domain: str, commit: bool = True, fetch=None):
 	frappe.db.savepoint(SAVEPOINT)
 	try:
 		doc = frappe.get_doc("AD Domain", domain)
+		if fetch is None:
+			from access_registry.active_directory.ldap_client import transport_warnings
+
+			messages += transport_warnings(doc)
 		data = (fetch or fetch_directory)(doc)
 		importer = DomainImport(doc)
 		stats = importer.run(data)

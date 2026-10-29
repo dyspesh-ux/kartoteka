@@ -80,7 +80,12 @@ def snapshot(process: str | None = None, days: int = 30) -> dict:
 		if i.created_at and i.closed_at >= i.created_at
 	]
 	with_deadline = [i for i in done if i.deadline]
-	on_time = [i for i in with_deadline if i.closed_at.date() <= i.deadline]
+	# «Дата выполнения» when the executor filled it, else the day the item was moved to the final stage
+	on_time = [
+		i
+		for i in with_deadline
+		if (getdate(i.done_date) if i.done_date else i.closed_at.date()) <= i.deadline
+	]
 
 	kpis = {
 		"open": len(open_items),

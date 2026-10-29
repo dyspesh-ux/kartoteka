@@ -13,6 +13,7 @@
   "column_break_1",
   "domain",
   "upload_file",
+  "api_user",
   "section_break_2",
   "last_upload",
   "collector_settings",
@@ -69,6 +70,13 @@
    "label": "Файл выгрузки вручную"
   },
   {
+   "description": "Если указан — выгрузки этого сервера принимаются только от этого пользователя (и администраторов). Пусто — от любого пользователя с ролью 1C Sync.",
+   "fieldname": "api_user",
+   "fieldtype": "Link",
+   "label": "Технический пользователь API",
+   "options": "User"
+  },
+  {
    "fieldname": "section_break_2",
    "fieldtype": "Section Break",
    "label": "Последняя загрузка"
@@ -123,7 +131,7 @@
    "link_fieldname": "server"
   }
  ],
- "modified": "2026-10-03 10:00:00.000000",
+ "modified": "2026-10-29 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "File Shares",
  "name": "File Server",

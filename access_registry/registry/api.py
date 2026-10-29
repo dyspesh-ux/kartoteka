@@ -24,6 +24,7 @@ from access_registry.permissions import (
 	has_any,
 	require,
 )
+from access_registry.sync.persons import ACTIVE_EMPLOYMENT_STATUSES
 
 LIST_LIMIT = 500
 CACHE_KEY = "access_registry:registry_dashboard"
@@ -573,12 +574,20 @@ def person(name: str) -> dict:
 		order_by="event_date desc",
 		limit=10,
 	)
-	absences = frappe.get_all(
-		"HR Absence",
-		filters={"person": name, "cancelled": 0, "date_to": [">=", add_days(today(), -30)]},
-		fields=["state", "category", "date_from", "date_to"],
-		order_by="date_from",
+	# absences (sick leave, parental leave) and the details of HR events are personal data
+	absences = (
+		frappe.get_all(
+			"HR Absence",
+			filters={"person": name, "cancelled": 0, "date_to": [">=", add_days(today(), -30)]},
+			fields=["state", "category", "date_from", "date_to"],
+			order_by="date_from",
+		)
+		if personal
+		else []
 	)
+	if not personal:
+		for e in events:
+			e.details = None
 	b24_users = frappe.get_all(
 		"B24 User",
 		filters={"person": name},
@@ -709,6 +718,7 @@ def person(name: str) -> dict:
 		"employments": employments,
 		"events": events,
 		"absences": absences,
+		"personal_hidden": not personal,
 		"ib": ib,
 		"ad": ad,
 		"b24": b24_users,
@@ -1273,11 +1283,15 @@ def control(kind: str, show_suppressed: int = 0) -> dict:
 @frappe.whitelist(methods=["POST"])
 def suppress_alerts(kind: str, keys, reason: str, valid_to: str | None = None) -> int:
 	"""Suppresses the chosen alerts of a control list with a reason; every one gets a journal entry."""
+	from access_registry.access_roles.review import persons_of_user
+
 	aa.require_control(kind, WORK)
 	keys = frappe.parse_json(keys) if isinstance(keys, str) else keys
-	created = suppression.suppress(
-		kind, CONTROLS.get(kind, kind), _control_rows(kind)[1], keys, reason, valid_to
-	)
+	rows = _control_rows(kind)[1]
+	own = persons_of_user()
+	if own and any(r.get("person") in own for r in rows if suppression.alert_key(kind, r) in set(keys or [])):
+		raise frappe.PermissionError(_("Замечание о вас самих погасить нельзя: это решает другой человек"))
+	created = suppression.suppress(kind, CONTROLS.get(kind, kind), rows, keys, reason, valid_to)
 	frappe.cache().delete_value(CACHE_KEY)
 	return len(created)
 
@@ -1596,7 +1610,8 @@ def _control_quality():
 def _control_events():
 	"""Joiners, movers, leavers: what to grant and what to revoke after an HR event."""
 	events = frappe.db.sql(
-		"""select ev.name, ev.event_type, ev.event_date, ev.person, ev.details, p.full_name, p.status as person_status
+		"""select ev.name, ev.event_type, ev.event_date, ev.person, ev.employment, ev.details, p.full_name,
+			p.status as person_status
 		from `tabHR Event` ev join `tabPerson` p on p.name = ev.person
 		where ev.processed = 0 and ev.event_type in %(types)s
 		order by ev.event_date desc, p.full_name limit 1000""",
@@ -1609,8 +1624,31 @@ def _control_events():
 		for row in engine.reconcile(persons):
 			by_person[row["person"]].append(row)
 	accounts = Accounts()
+	employments = defaultdict(list)
+	if persons:
+		for e in frappe.get_all(
+			"Employment",
+			filters={
+				"person": ["in", list(persons)],
+				"missing": 0,
+				"status": ["in", ACTIVE_EMPLOYMENT_STATUSES],
+			},
+			fields=["name", "person", "title", "termination_date"],
+		):
+			employments[e.person].append(e)
 	for ev in events:
 		recon = by_person.get(ev.person, [])
+		# one employment ends, but the person keeps another one (part-time job, main job)
+		remaining = [
+			e.title
+			for e in employments.get(ev.person, [])
+			if e.name != ev.employment
+			and (
+				not e.termination_date
+				or not ev.event_date
+				or getdate(e.termination_date) > getdate(ev.event_date)
+			)
+		]
 		grant = [r["title"] for r in recon if r["status"] == engine.MISSING]
 		revoke = [r["title"] for r in recon if r["status"] in (engine.EXCESS, engine.EXCESS_NOT_WORKING)]
 		active = [
@@ -1624,6 +1662,10 @@ def _control_events():
 				todo.append(_("Отозвать лишнее после перевода: {0}").format(", ".join(revoke)))
 			if not active and ev.person_status == "Работает":
 				todo.append(_("Учёток ещё нет: завести"))
+		elif ev.event_type in JML_REVOKE + ("Предстоящее увольнение",) and remaining:
+			todo.append(_("Учётки не отключать: остаётся трудоустройство {0}").format("; ".join(remaining)))
+			if revoke:
+				todo.append(_("Отозвать лишнее для оставшейся работы: {0}").format(", ".join(revoke)))
 		elif ev.event_type in JML_REVOKE:
 			if active:
 				todo.append(_("Отключить учётки: {0}").format(", ".join(active)))
@@ -1861,16 +1903,22 @@ def _org_title(org):
 
 @frappe.whitelist(methods=["POST"])
 def create_exception(person: str, entitlement: str, reason: str, valid_to: str | None = None) -> str:
+	from access_registry.access_roles.review import persons_of_user
+
 	_check("roles", WORK)
+	if person in persons_of_user():
+		raise frappe.PermissionError(_("Исключение для себя согласовать нельзя: это решает другой человек"))
 	if not (reason or "").strip():
 		frappe.throw(_("Укажите, почему доступ согласован"))
+	if not valid_to:
+		frappe.throw(_("Укажите, до какого числа действует исключение"))
 	doc = frappe.get_doc(
 		{
 			"doctype": "Access Exception",
 			"person": person,
 			"entitlement": entitlement,
 			"reason": reason.strip(),
-			"valid_to": getdate(valid_to) if valid_to else None,
+			"valid_to": getdate(valid_to),
 		}
 	).insert()
 	frappe.cache().delete_value(CACHE_KEY)
@@ -1946,9 +1994,14 @@ def reviews() -> list:
 @frappe.whitelist()
 def review(name: str) -> dict:
 	_check("reviews")
-	from access_registry.access_roles.review import results
+	from access_registry.access_roles.review import results, still_granted
 
 	doc = frappe.get_doc("Access Review", name)
+	# a profile limited to some systems sees the decisions of those systems only
+	items = aa.filter_rows(results(name))
+	left = still_granted(name)
+	for i in items:
+		i.still_granted = i.name in left
 	return {
 		"doc": {
 			k: doc.get(k)
@@ -1964,8 +2017,11 @@ def review(name: str) -> dict:
 				"items_unassigned",
 			)
 		}
-		| {"due_date": str(doc.due_date) if doc.due_date else None},
-		"items": results(name),
+		| {
+			"due_date": str(doc.due_date) if doc.due_date else None,
+			"items_still_granted": sum(1 for i in items if i.still_granted),
+		},
+		"items": items,
 	}
 
 
@@ -1973,7 +2029,9 @@ def review(name: str) -> dict:
 def mark_event_processed(event: str) -> str:
 	"""An HR event is handled: access granted or revoked in the systems."""
 	aa.require_control("events", WORK)
-	frappe.db.set_value("HR Event", event, "processed", 1)
+	doc = frappe.get_doc("HR Event", event)
+	doc.processed = 1
+	doc.save(ignore_permissions=True)  # through the document: the version history keeps who and when
 	frappe.cache().delete_value(CACHE_KEY)
 	return event
 
@@ -2385,7 +2443,11 @@ def decide_ad_plan(name: str, decision: str, comment: str | None = None) -> str:
 
 @frappe.whitelist()
 def download_ad_script(name: str):
-	"""The PowerShell script of an approved plan (UTF-8 with BOM for Windows PowerShell 5.1)."""
+	"""The PowerShell script of an approved plan (UTF-8 with BOM for Windows PowerShell 5.1).
+
+	The plan is checked against the HR data of today: a disable row of a person who works again is
+	left out; a plan approved more than VALID_DAYS ago gives no script — build a new one."""
+	from access_registry.active_directory import plan as adplan
 	from access_registry.active_directory.script import render
 
 	_require_ad_plans()
@@ -2395,7 +2457,23 @@ def download_ad_script(name: str):
 		frappe.throw(_("Скрипт выдаётся только для одобренного плана"))
 	if not (rights["build"] or rights["approve"]):
 		raise frappe.PermissionError(_("Скачать скрипт может автор плана или ИБ"))
-	doc.add_comment("Info", _("Скрипт скачал(а) {0}").format(_user_name(frappe.session.user)))
+	age = (now_datetime() - frappe.utils.get_datetime(doc.decided_on)).days if doc.decided_on else 0
+	if age > adplan.VALID_DAYS:
+		frappe.throw(
+			_(
+				"План одобрен {0} дн. назад: за это время кадры и AD могли измениться. Соберите новый план."
+			).format(age)
+		)
+	dropped = adplan.recheck(doc)
+	for i in doc.items:
+		if i.name in dropped:
+			i.include = 0  # only in this script: the approved plan itself stays as it was
+	user = _user_name(frappe.session.user)
+	doc.add_comment(
+		"Info",
+		_("Скрипт скачал(а) {0}").format(user)
+		+ (_(". Снято перед выдачей: {0}").format("; ".join(dropped.values())) if dropped else ""),
+	)
 	frappe.response["filename"] = f"{doc.name}.ps1"
 	frappe.response["filecontent"] = "\ufeff" + render(doc, frappe.get_doc("AD Domain", doc.domain))
 	frappe.response["type"] = "download"

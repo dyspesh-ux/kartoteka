@@ -123,6 +123,30 @@ def scheduled_sync_night():
 	enqueue_all_sources()
 
 
+def scheduled_statuses():
+	"""Statuses depend on dates as well: «Увольняется» becomes «Уволен» after the last working day even
+	when ZUP has not been loaded (a tripped guard, 1C unavailable)."""
+	for name in frappe.get_all(
+		"Info Base",
+		filters={"enabled": 1, "configuration": HR_CONFIGURATION, "last_sync": ["is", "set"]},
+		pluck="name",
+	):
+		refresh_statuses(name)
+		frappe.db.commit()
+
+
+def refresh_statuses(source: str, today=None) -> dict:
+	settings = get_settings()
+	previous_user = frappe.session.user
+	_switch_user(settings.sync_user, None)
+	try:
+		sync = SourceSync(source, today=today)
+		sync.refresh_statuses()
+		return dict(sync.stats["Employment"])
+	finally:
+		_switch_user(previous_user, None)
+
+
 def enqueue_source_sync(source: str):
 	settings = get_settings()
 	return frappe.enqueue(
@@ -827,6 +851,11 @@ class SourceSync:
 		self.load_source_ids()
 		existing = self.load_existing("Employment", EMPLOYMENT_FIELDS, {"source": self.code})
 		affected_persons = {row.person for row in existing.values() if row.person}
+		working_before = {
+			row.person
+			for row in existing.values()
+			if row.person and not row.missing and row.status in ACTIVE_EMPLOYMENT_STATUSES
+		}
 
 		by_person = defaultdict(list)
 		for guid, row in employees.items():
@@ -861,7 +890,15 @@ class SourceSync:
 			full_name = " ".join(filter(None, names[:3]))
 			for guid, row in items:
 				seen.add(guid)
-				self.sync_employment(guid, row, person, person_guid, full_name, existing.get(self.key(guid)))
+				self.sync_employment(
+					guid,
+					row,
+					person,
+					person_guid,
+					full_name,
+					existing.get(self.key(guid)),
+					person in working_before,
+				)
 
 		for name, row in existing.items():
 			if row.guid in seen or row.missing:
@@ -871,7 +908,7 @@ class SourceSync:
 			self.add_event("Пропал из выгрузки", row.person, name, details=f"Трудоустройство {row.title}")
 		return affected_persons
 
-	def sync_employment(self, guid, row, person, person_guid, full_name, current):
+	def sync_employment(self, guid, row, person, person_guid, full_name, current, was_working=False):
 		name = self.key(guid)
 		hire_date = date_or_none(row.get("ДатаПриема"))
 		termination_date = date_or_none(row.get("ДатаУвольнения"))
@@ -911,6 +948,16 @@ class SourceSync:
 		}
 		self.upsert("Employment", name, values, current)
 		if current is None:
+			# a new employment of a working person: a transfer to another organization of the group is a
+			# dismissal plus a hire in ZUP, the person stays working and gets no «Приём»
+			if was_working and values["status"] in ACTIVE_EMPLOYMENT_STATUSES:
+				self.add_event(
+					"Перевод",
+					person,
+					name,
+					event_date=hire_date,
+					details=f"Новое трудоустройство: {values['title']}",
+				)
 			return
 
 		if current.missing:
@@ -944,6 +991,24 @@ class SourceSync:
 		return frappe.db.get_value(doctype, name, "title") or name
 
 	# ------------------------------------------------------------ person statuses
+
+	def refresh_statuses(self):
+		"""Recomputes statuses of employments by their dates, then of the persons (with HR events)."""
+		persons = set()
+		for row in frappe.get_all(
+			"Employment",
+			filters={"source": self.code, "missing": 0},
+			fields=["name", "person", "status", "hire_date", "termination_date"],
+			limit_page_length=0,
+		):
+			status = self.employment_status(
+				getdate(row.hire_date) if row.hire_date else None,
+				getdate(row.termination_date) if row.termination_date else None,
+			)
+			if status != row.status:
+				self.upsert("Employment", row.name, {"status": status}, row)
+				persons.add(row.person)
+		self.update_persons(persons)
 
 	def update_persons(self, persons: set):
 		for person in sorted(p for p in persons if p):
@@ -1134,6 +1199,12 @@ class SourceSync:
 		for emp_guid, count in unknown.items():
 			self.warn(f"отсутствия ({count}) сотрудника {emp_guid}, которого нет среди трудоустройств")
 
+		if not rows and any(not row.cancelled for row in existing.values()):
+			# an empty /absences is more likely a failed query in 1C than a company without absences
+			self.warn(
+				"выгрузка отсутствий пуста — отсутствия в реестре не отменены, проверьте метод /absences в 1С"
+			)
+			return
 		for name, row in existing.items():
 			if name in seen or row.cancelled:
 				continue

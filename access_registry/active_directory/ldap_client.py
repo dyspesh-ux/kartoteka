@@ -129,6 +129,26 @@ def normalize(attributes: dict, names: list) -> dict:
 # --------------------------------------------------------------------------- connection
 
 
+def transport_warnings(domain) -> list[str]:
+	"""ldap:// sends the password of the service account in clear text; no certificate check lets
+	anybody in the middle pose as the domain controller."""
+	warnings = []
+	if any(not url.lower().startswith("ldaps") for url in (domain.ldap_url or "").split()):
+		warnings.append(
+			_(
+				"Предупреждение: подключение по ldap:// — пароль учётки для чтения уходит по сети открытым текстом. "
+				"Используйте ldaps://…:636"
+			)
+		)
+	if not domain.verify_ssl:
+		warnings.append(
+			_(
+				"Предупреждение: сертификат контроллера домена не проверяется («Проверять сертификат LDAPS» выключено)"
+			)
+		)
+	return warnings
+
+
 def connect(domain):
 	import ldap3
 
@@ -208,7 +228,12 @@ def test_connection(domain) -> str:
 		who = conn.extend.standard.who_am_i() or domain.bind_user
 	finally:
 		conn.unbind()
-	return _("Подключение работает. Вошли как {0}, пробный поиск учёток: {1}.").format(
-		frappe.utils.escape_html(str(who)),
-		_("найдено") if found else _("ничего не найдено — проверьте Base DN и фильтр"),
+	return "<br>".join(
+		[
+			_("Подключение работает. Вошли как {0}, пробный поиск учёток: {1}.").format(
+				frappe.utils.escape_html(str(who)),
+				_("найдено") if found else _("ничего не найдено — проверьте Base DN и фильтр"),
+			),
+			*transport_warnings(domain),
+		]
 	)

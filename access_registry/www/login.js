@@ -59,8 +59,9 @@
 				}
 				return;
 			}
-			const target = form.dataset.redirect || data.home_page || "/registry";
-			window.location.href = target;
+			// only a path of this site: «javascript:…», «//other.host» and absolute URLs are ignored
+			const local = (url) => (typeof url === "string" && /^\/(?![\/\\])/.test(url) ? url : "");
+			window.location.href = local(form.dataset.redirect) || local(data.home_page) || "/registry";
 		} catch (err) {
 			fail(err.message);
 		} finally {

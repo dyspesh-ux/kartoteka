@@ -70,6 +70,9 @@ class TestAccessReview(RoleFixture):
 		self.assertEqual((review.items_done, review.items_revoke), (4, 1))
 		result = api.review(review.name)
 		self.assertEqual(len(result["items"]), 8)
+		# decided «Отозвать», but the latest load still shows the access
+		self.assertEqual(result["doc"]["items_still_granted"], 1)
+		self.assertTrue(next(i for i in result["items"] if i.name == kadr.name).still_granted)
 		revoke = review_results({"access_review": review.name, "decision": "Отозвать"})[1]
 		self.assertEqual(
 			[(r.full_name, r.access_title, r.comment) for r in revoke],
@@ -97,7 +100,13 @@ class TestAccessReview(RoleFixture):
 		owners.start()
 		items = self.items(owners.name)
 		self.assertEqual({i.access_title for i in items}, {"1С: Кадровик"})
-		self.assertEqual({i.reviewer_user for i in items}, {self.petrova})
+		for i in items:  # the owner does not review her own access: it goes to the fallback reviewer
+			self.assertEqual(i.reviewer_user, self.fallback if i.person == self.person(2) else self.petrova)
+		self.assertIn(self.person(2), {i.person for i in items})
+		own = next(i for i in items if i.person == self.person(2))
+		frappe.set_user(self.petrova)
+		self.assertRaises(frappe.PermissionError, api.decide, own.name, "Оставить")
+		frappe.set_user("Administrator")
 
 		frappe.delete_doc("Entitlement", self.empty, force=True)
 		raw = self.create(include_uncatalogued=1, system="1С")

@@ -3,6 +3,7 @@
 import copy
 import json
 import os
+from unittest.mock import patch
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
@@ -10,7 +11,7 @@ from frappe.tests.utils import FrappeTestCase
 from access_registry.bitrix24 import reports
 from access_registry.bitrix24.access import AccessExpander
 from access_registry.bitrix24.client import B24Client, B24Error, encode_query, normalize_webhook
-from access_registry.bitrix24.sync import parse_access_code, run_portal_sync
+from access_registry.bitrix24.sync import b24_date, b24_datetime, parse_access_code, run_portal_sync
 from access_registry.sync.departments import ensure_root
 from access_registry.sync.engine import run_source_sync
 from access_registry.tests.test_catalog import FL, HR_DOCTYPES, S1
@@ -147,7 +148,12 @@ class TestB24Client(FrappeTestCase):
 			}, 200
 
 		members = self.client(handler).workgroup_members(["1", "2"])
-		self.assertEqual(members, {"1": [{"USER_ID": "1", "ROLE": "A"}], "2": []})
+		self.assertEqual(members, {"1": [{"USER_ID": "1", "ROLE": "A"}], "2": None})
+
+	def test_times_are_moved_to_the_site_zone(self):
+		with patch("access_registry.bitrix24.sync.get_system_timezone", return_value="Asia/Yekaterinburg"):
+			self.assertEqual(str(b24_datetime("2026-06-01T23:30:00+03:00")), "2026-06-02 01:30:00")
+		self.assertEqual(str(b24_date("1980-01-15T00:00:00+03:00")), "1980-01-15")
 
 	def test_access_codes(self):
 		self.assertEqual(parse_access_code("SG10_K"), ("SG", "10", "K"))
@@ -159,6 +165,10 @@ class TestB24Client(FrappeTestCase):
 class TestBitrix24(FrappeTestCase):
 	def setUp(self):
 		frappe.set_user("Administrator")
+		# the fixture's times are in the portal's zone, +03:00; the test site may be in any zone
+		zone = patch("access_registry.bitrix24.sync.get_system_timezone", return_value="Europe/Moscow")
+		zone.start()
+		self.addCleanup(zone.stop)
 		for doctype in B24_DOCTYPES + AD_DOCTYPES + HR_DOCTYPES:
 			frappe.db.delete(doctype)
 		frappe.db.delete("Version", {"ref_doctype": ["like", "B24 %"]})
@@ -347,7 +357,7 @@ class TestBitrix24(FrappeTestCase):
 	def test_write_back_overwrite_uuid_limit_and_errors(self):
 		self.enable_writes(write_mode="Пустые и отличающиеся", person_uuid_field="uf_usr_registry_id")
 		self.assertEqual(frappe.db.get_value("B24 Portal", PORTAL, "person_uuid_field"), "UF_USR_REGISTRY_ID")
-		client = FakeClient(fail_for={"4"})
+		client = FakeClient(fail_for={"5"})
 		stats = self.assertSuccess(self.sync(client=client))
 		updates = dict(client.updates)
 		self.assertEqual(updates["3"]["PERSONAL_BIRTHDAY"], "1990-07-20")
@@ -355,7 +365,7 @@ class TestBitrix24(FrappeTestCase):
 		self.assertEqual(stats["b24_write_errors"], 1)
 		self.assertEqual(
 			frappe.db.get_value(
-				"B24 Write Log", {"b24_user": f"{PORTAL}:4", "field": "UF_USR_REGISTRY_ID"}, "status"
+				"B24 Write Log", {"b24_user": f"{PORTAL}:5", "field": "UF_USR_REGISTRY_ID"}, "status"
 			),
 			"Ошибка",
 		)
@@ -374,6 +384,34 @@ class TestBitrix24(FrappeTestCase):
 		log = self.sync(client=limited)
 		self.assertEqual(limited.updates, [])
 		self.assertIn("больше предела", log.messages)
+
+	def test_workgroup_members_kept_when_unreadable_and_requests_skipped(self):
+		data = portal_data()
+		data["workgroup_members"]["10"].append({"USER_ID": "5", "ROLE": "Z"})
+		self.assertSuccess(self.sync(data))
+		group = frappe.get_doc("B24 Workgroup", f"{PORTAL}:10")
+		self.assertEqual(sorted(m.user for m in group.members), [f"{PORTAL}:1", f"{PORTAL}:2", f"{PORTAL}:4"])
+		data["workgroup_members"]["10"] = None  # the portal refused to give the members
+		log = self.sync(data)
+		self.assertSuccess(log)
+		self.assertIn("не прочитаны", log.messages)
+		self.assertEqual(len(frappe.get_doc("B24 Workgroup", f"{PORTAL}:10").members), 3)
+
+	def test_write_back_skips_dismissed_and_contradicting_namesakes(self):
+		self.sync()
+		self.assertEqual(self.user(2).person_link_method, "Фамилия и имя")
+		frappe.db.set_value("Person", self.user(5).person, "status", "Уволен")
+		data = portal_data()
+		user_row(data, 2)["PERSONAL_BIRTHDAY"] = "1970-01-01T03:00:00+03:00"
+		self.enable_writes(write_mode="Пустые и отличающиеся")
+		client = FakeClient()
+		log = self.sync(data, client=client)
+		self.assertSuccess(log)
+		updates = dict(client.updates)
+		self.assertNotIn("5", updates)  # dismissed: HR data is not written
+		self.assertNotIn("2", updates)  # found by last and first name, birth date contradicts the HR data
+		self.assertIn("не совпадает с ЗУП", log.messages)
+		self.assertEqual(updates["3"]["PERSONAL_BIRTHDAY"], "1990-07-20")  # full name: overwrite mode applies
 
 	def test_no_writes_when_disabled(self):
 		client = FakeClient()

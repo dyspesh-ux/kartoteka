@@ -265,7 +265,9 @@ def raw_accesses(persons=None) -> dict:
 	for person, group, name in frappe.db.sql(
 		"""select u.person, m.parent, u.full_name
 		from `tabB24 Workgroup Member` m join `tabB24 User` u on u.name = m.user
-		where u.active = 1 and u.missing_in_source = 0 and ifnull(u.person, '') != ''"""
+			join `tabB24 Workgroup` g on g.name = m.parent
+		where u.active = 1 and u.missing_in_source = 0 and ifnull(u.person, '') != ''
+			and g.missing_in_source = 0 and g.active = 1"""
 	):
 		add(person, f"b24wg:{group}", f"Битрикс24: {name}")
 	if frappe.db.count("B24 Access Grant"):

@@ -42,6 +42,21 @@ def person_users() -> dict:
 	return result
 
 
+def persons_of_user(user: str | None = None) -> set:
+	"""Employees that are this Frappe user (by the e-mail in AD and Bitrix24): to refuse deciding on
+	oneself — suppressing one's own alerts, approving one's own exception."""
+	user = user or frappe.session.user
+	email = (frappe.db.get_value("User", user, "email") or user or "").lower()
+	if not email or user in ("Administrator", "Guest"):
+		return set()
+	rows = frappe.db.sql(
+		"""select person from `tabAD Account` where ifnull(person, '') != '' and (lower(mail) = %(e)s or lower(user_principal_name) = %(e)s)
+		union select person from `tabB24 User` where ifnull(person, '') != '' and lower(email) = %(e)s""",
+		{"e": email},
+	)
+	return {r[0] for r in rows}
+
+
 def managers(persons) -> dict:
 	"""Employee → head of the department of the main place of work (the parent's head for heads)."""
 	places = main_places(list(persons))
@@ -158,12 +173,16 @@ def start_review(name: str) -> dict:
 			reviewer = users.get(item["owner"])
 		else:
 			reviewer = None
+		reviewer = reviewer or review.reviewer
+		if reviewer and users.get(item["person"]) == reviewer:
+			# nobody reviews their own access: such items wait for another reviewer
+			reviewer = review.reviewer if review.reviewer != reviewer else None
 		frappe.get_doc(
 			{
 				"doctype": "Access Review Item",
 				"access_review": review.name,
 				**{k: v for k, v in item.items() if k != "owner"},
-				"reviewer_user": reviewer or review.reviewer,
+				"reviewer_user": reviewer,
 			}
 		).insert(ignore_permissions=True)
 	review.status = "Идёт"
@@ -201,6 +220,8 @@ def decide(item_name: str, decision: str, comment: str | None = None) -> dict:
 	item = frappe.get_doc("Access Review Item", item_name)
 	if not can_decide(item):
 		raise frappe.PermissionError(_("Это не ваше задание"))
+	if item.person in persons_of_user():
+		raise frappe.PermissionError(_("Свой доступ подтверждает другой проверяющий"))
 	if frappe.db.get_value("Access Review", item.access_review, "status") != "Идёт":
 		frappe.throw(_("Пересмотр не идёт: решения не принимаются"))
 	item.decision = decision
@@ -285,3 +306,22 @@ def results(name: str) -> list[dict]:
 		r.reviewer_name = names.get(r.reviewer_user) or r.reviewer_user or ""
 		r.decided_on = str(r.decided_on) if r.decided_on else None
 	return rows
+
+
+def still_granted(name: str) -> set:
+	"""Items decided «Отозвать» whose access is still there by the latest loads of the systems."""
+	items = frappe.get_all(
+		"Access Review Item",
+		filters={"access_review": name, "decision": REVOKE},
+		fields=["name", "person", "entitlement", "access_key"],
+		limit_page_length=0,
+	)
+	if not items:
+		return set()
+	actual, other = engine.actual_entitlements()
+	return {
+		i.name
+		for i in items
+		if (i.entitlement and i.entitlement in actual.get(i.person, {}))
+		or (i.access_key and i.access_key in other.get(i.person, {}))
+	}

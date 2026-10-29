@@ -11,6 +11,7 @@ where it is tested. Lines:
 
 import base64
 import gzip
+import io
 import re
 
 ACL_LINE = re.compile(r"^\s*\[(\d+)\]\s*(.*?)\s*(?:\(level:(\d+)\))?\s*$")
@@ -30,9 +31,19 @@ def _b64(value: str) -> str:
 		raise ParseError(f"не base64: {value[:40]}") from e
 
 
-def decode_upload(data: bytes) -> str:
+# far above any real file server (a million folders is ~200 MB of text); a gzip bomb stops here
+MAX_UPLOAD_BYTES = 512 * 1024 * 1024
+
+
+def decode_upload(data: bytes, limit: int = MAX_UPLOAD_BYTES) -> str:
 	if data[:2] == b"\x1f\x8b":
-		data = gzip.decompress(data)
+		try:
+			with gzip.GzipFile(fileobj=io.BytesIO(data)) as archive:
+				data = archive.read(limit + 1)
+		except (OSError, EOFError) as e:
+			raise ParseError(f"архив gzip повреждён: {e}") from e
+	if len(data) > limit:
+		raise ParseError(f"выгрузка больше {limit // (1024 * 1024)} МБ")
 	return data.decode("utf-8", "replace")
 
 

@@ -237,6 +237,14 @@ class TestHelpdesk(FrappeTestCase):
 		self.assertIn(REQ, open_call["select"])
 		self.assertNotIn("ufCrm9_0999", open_call["select"])
 
+	def test_on_time_by_the_done_date(self):
+		rows = items()
+		# moved to «Выполнена» in time, but the executor wrote that the work was done after the deadline
+		rows[3][DONE] = (now_datetime() + timedelta(days=3)).strftime("%Y-%m-%dT03:00:00+03:00")
+		self.sync(data(rows))
+		k = support.snapshot(days=30)["kpis"]
+		self.assertEqual((k["on_time"], k["with_deadline"]), (0, 1))
+
 	def test_snapshot(self):
 		self.sync()
 		d = support.snapshot(days=30)

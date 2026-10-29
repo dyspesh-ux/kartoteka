@@ -478,6 +478,28 @@ class TestAccessCatalog(FrappeTestCase):
 		self.assertEqual(result["users"], 6)
 		self.assertEqual(api.import_log(S1, json.dumps(log_payload()))["inserted"], 3)
 		self.assertIn("from", api.get_log_cursor(S1))
+		frappe.set_user("Administrator")
+		logs = frappe.get_all("Sync Log", filters={"source": S1}, fields=["kind", "status", "stats"])
+		self.assertEqual({row.kind for row in logs}, {"Права 1С", "Журнал 1С"})
+		for row in logs:
+			self.assertEqual(row.status, "Успех")
+			self.assertEqual(json.loads(row.stats)["sender"], user)
+
+	def test_api_only_from_the_technical_user_of_the_base(self):
+		for user in ("n8n@example.com", "other@example.com"):
+			if not frappe.db.exists("User", user):
+				frappe.get_doc(
+					{"doctype": "User", "email": user, "first_name": "n8n", "send_welcome_email": 0}
+				).insert()
+			frappe.get_doc("User", user).add_roles("1C Sync")
+		frappe.db.set_value("Info Base", S1, "api_user", "n8n@example.com")
+		frappe.set_user("other@example.com")
+		self.assertRaises(frappe.PermissionError, api.import_snapshot, S1, snapshot())
+		self.assertRaises(frappe.PermissionError, api.get_log_cursor, S1)
+		frappe.set_user("n8n@example.com")
+		self.assertIn("from", api.get_log_cursor(S1))
+		frappe.set_user("Administrator")
+		self.assertIn("from", api.get_log_cursor(S1))
 
 	# ---------------------------------------------------------------- pull by Frappe
 

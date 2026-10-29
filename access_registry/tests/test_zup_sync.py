@@ -9,7 +9,7 @@ from frappe.tests.utils import FrappeTestCase
 from frappe.utils import getdate
 
 from access_registry.sync.departments import ROOT_KEY, ensure_root, org_node_key
-from access_registry.sync.engine import resolve_hierarchy, run_source_sync
+from access_registry.sync.engine import refresh_statuses, resolve_hierarchy, run_source_sync
 from access_registry.sync.normalize import match_keys, normalize_name
 from access_registry.sync.persons import merge_persons
 
@@ -268,6 +268,45 @@ class TestZupSync(FrappeTestCase):
 		self.assertEqual(fired[0].person, person)
 		self.assertEqual(str(fired[0].event_date), "2026-06-30")
 		self.assertEqual(len(self.events("Предстоящее увольнение")), 1)
+
+	def test_04a_statuses_follow_dates_without_a_load(self):
+		data = load("zup1")
+		self.assertSuccess(self.sync(S1, data))
+		row(data, "employees", EMP(2), "СотрудникGUID")["ДатаУвольнения"] = "2026-06-30"
+		self.assertSuccess(self.sync(S1, data))
+		person = person_of(S1, FL(2))
+		refresh_statuses(S1, today=getdate("2026-06-15"))
+		self.assertEqual(frappe.db.get_value("Person", person, "status"), "Работает")
+		# ZUP is not loaded after the last working day: the status still follows the date
+		refresh_statuses(S1, today=getdate("2026-07-01"))
+		self.assertEqual(frappe.db.get_value("Employment", f"{S1}:{EMP(2)}", "status"), "Уволен")
+		self.assertEqual(frappe.db.get_value("Person", person, "status"), "Уволен")
+		self.assertEqual([e.person for e in self.events("Увольнение")], [person])
+		# the next load changes nothing and does not repeat the event
+		self.assertSuccess(self.sync(S1, data, today=getdate("2026-07-01")))
+		self.assertEqual(len(self.events("Увольнение")), 1)
+
+	def test_04b_part_time_ends_and_transfer_to_another_organization(self):
+		from access_registry.registry import api
+
+		data = load("zup1")
+		self.assertSuccess(self.sync(S1, data))
+		# the part-time job of FL(4) ends, the main one stays
+		row(data, "employees", EMP(5), "СотрудникGUID")["ДатаУвольнения"] = "2026-06-30"
+		# FL(1) is hired in another organization of the group: a new employee record in ZUP
+		moved = copy.deepcopy(row(data, "employees", EMP(1), "СотрудникGUID"))
+		moved.update({"СотрудникGUID": EMP(20), "ОрганизацияGUID": ORG(2), "ДатаПриема": "2026-05-20"})
+		data["employees"].append(moved)
+		self.assertSuccess(self.sync(S1, data))
+
+		transfers = [e for e in self.events("Перевод") if e.employment == f"{S1}:{EMP(20)}"]
+		self.assertEqual(len(transfers), 1)
+		self.assertEqual(transfers[0].person, person_of(S1, FL(1)))
+		self.assertEqual(self.events("Приём"), [])
+
+		todo = {r.employment: r.todo for r in api.control("events")["rows"]}
+		self.assertIn("Учётки не отключать", todo[f"{S1}:{EMP(5)}"])
+		self.assertNotIn("Запланировать отключение", todo[f"{S1}:{EMP(5)}"])
 
 	# ------------------------------------------------------------------ 5. not hired
 
@@ -638,6 +677,13 @@ class TestZupSync(FrappeTestCase):
 		data = load("zup1")
 		self.assertSuccess(self.sync(S1, data))
 		self.assertEqual(frappe.db.get_value("HR Absence", vacation, "cancelled"), 0)
+
+		# An empty /absences is taken for a failure of 1C: nothing is cancelled
+		data["absences"] = []
+		log = self.sync(S1, data)
+		self.assertSuccess(log)
+		self.assertIn("выгрузка отсутствий пуста", log.messages)
+		self.assertEqual(frappe.db.count("HR Absence", {"cancelled": 1}), 0)
 
 	# ------------------------------------------------------------------ 16. Latin look-alikes
 

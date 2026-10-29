@@ -1586,6 +1586,7 @@
 			return;
 		}
 		const k = d.kpis;
+		const orgsInPlan = new Set(d.equipment.map((r) => r.organization || "")).size;
 		const period = HIRING_PERIODS[d.days];
 		view.innerHTML = `
 			<div class="page-head"><div><h1>Подбор и закупка</h1><p>Вакансии из «${esc(d.process.title)}» и техника, которая понадобится новым сотрудникам.
@@ -1602,9 +1603,9 @@
 				${kpi({ label: "Руководителей", display: fmtNum(k.leaders), hint: "по полю «Статус кандидата»" })}
 				${kpi({ label: "Выход в ближайшие 30 дней", display: fmtNum(k.start_soon), hint: "где дата выхода заполнена" })}
 				${kpi({ label: "Подвисли", value: k.stale, tone: "tone-amber", hint: "этап не менялся больше 30 дней" })}</div>`)}
-			${block(2, "Что докупить", `Потребность вакансий в наборе против свободной техники на складе Snipe-IT. ${k.undetermined ? `У ${fmtNum(k.undetermined)} ${plural(k.undetermined, "вакансии", "вакансий", "вакансий")} потребность не определена — см. таблицу ниже.` : ""}`,
+			${block(2, "Что докупить", `Потребность вакансий в наборе против свободной техники на складе Snipe-IT: своей организации и общей (без компании). ${k.undetermined ? `У ${fmtNum(k.undetermined)} ${plural(k.undetermined, "вакансии", "вакансий", "вакансий")} потребность не определена — см. таблицу ниже.` : ""}`,
 				d.equipment.length
-					? `<div class="grid grid-2"><div class="card card-pad"><div class="group-title">Купить</div>${bars(d.equipment.filter((r) => r.buy).map((r) => ({ label: r.category, value: r.buy, sub: `нужно ${fmtNum(r.need)}, на складе ${fmtNum(r.stock)}` })))
+					? `<div class="grid grid-2"><div class="card card-pad"><div class="group-title">Купить</div>${bars(d.equipment.filter((r) => r.buy).map((r) => ({ label: r.organization && orgsInPlan > 1 ? `${r.category} · ${r.organization}` : r.category, value: r.buy, sub: `нужно ${fmtNum(r.need)}, со склада ${fmtNum(r.stock)}` })))
 						|| `<p class="muted">Склада хватает на все вакансии в наборе.</p>`}</div><div class="card hiring-equipment"></div></div>`
 					: `<div class="card empty"><b>Потребность не определена</b>В заявках не названа техника из категорий Snipe-IT, а для их должностей нет типового комплекта. Добавьте синонимы в карточке смарт-процесса.</div>`)}
 			${block(3, "Вакансии", "Должность и организация: сколько и на каких этапах.", `<div class="card hiring-vacancies"></div>`)}
@@ -1632,9 +1633,10 @@
 				filter: false,
 				columns: [
 					{ key: "category", label: "Категория" },
+					{ key: "organization", label: "Организация", render: (r) => (r.organization ? esc(r.organization) : `<span class="muted">не сопоставлена</span>`), csv: (r) => r.organization || "" },
 					{ key: "request", label: "По заявкам", type: "number" },
 					{ key: "position", label: "По должностям", type: "number" },
-					{ key: "stock", label: "На складе", type: "number" },
+					{ key: "stock", label: "Со склада", type: "number" },
 					{ key: "buy", label: "Купить", render: (r) => (r.buy ? `<b>${fmtNum(r.buy)}</b>` : "—"), csv: (r) => String(r.buy) },
 				],
 			});
@@ -2028,7 +2030,7 @@
 					text: `«${btn.dataset.title}» у сотрудника ${d.person.full_name}. Доступ перестанет считаться лишним до указанной даты.`,
 					fields: [
 						{ name: "reason", label: "Почему согласовано", type: "textarea", required: true },
-						{ name: "valid_to", label: "Действует по (пусто — бессрочно)", type: "date" },
+						{ name: "valid_to", label: "Действует по", type: "date", required: true },
 					],
 					submit: async (values) => {
 						await api("create_exception", { person: d.person.name, entitlement: btn.dataset.ent, ...values }, true);
@@ -2067,7 +2069,7 @@
 			.join("");
 		return `<section class="section"><div class="grid grid-2">
 			<div class="group"><h3>Трудоустройства</h3><div class="card list">${emps || `<div class="empty">Нет</div>`}</div></div>
-			<div><div class="group"><h3>Отсутствия</h3><div class="card list">${abs || `<div class="empty">Нет</div>`}</div></div>
+			<div><div class="group"><h3>Отсутствия</h3><div class="card list">${abs || `<div class="empty">${d.personal_hidden ? "Отсутствия видны только с доступом к персональным данным" : "Нет"}</div>`}</div></div>
 			<div class="group"><h3>Кадровые события</h3><div class="card list">${events || `<div class="empty">Нет</div>`}</div></div></div>
 		</div></section>`;
 	}
@@ -2514,7 +2516,11 @@
 						const item = items.find((i) => i.name === btn.dataset.item);
 						let comment = null;
 						if (btn.dataset.decide === "Отозвать") {
-							comment = prompt("Почему отозвать? (необязательно)", item.comment || "") ?? null;
+							comment = prompt("Почему отозвать? (необязательно)", item.comment || "");
+							if (comment === null) {
+								btn.disabled = false; // «Отмена»: no decision
+								return;
+							}
 						}
 						await api("decide", { item: item.name, decision: btn.dataset.decide, comment }, true);
 						item.decision = btn.dataset.decide;
@@ -2584,15 +2590,16 @@
 			<div class="grid grid-4" style="margin-bottom:16px">
 				${kpi({ label: "Решено", display: `${done}%`, hint: `${r.items_done} из ${r.items_total}`, tone: done === 100 ? "tone-green" : "tone-amber" })}
 				${kpi({ label: "На отзыв", value: r.items_revoke, tone: "tone-red", hint: "передать администраторам систем" })}
-				${kpi({ label: "Без проверяющего", value: r.items_unassigned, tone: "tone-amber", hint: "руководитель или владелец не найден" })}
+				${kpi({ label: "Без проверяющего", value: r.items_unassigned, tone: "tone-amber", hint: "руководитель или владелец не найден, или это свой доступ" })}
+				${kpi({ label: "Ещё не отозвано", value: r.items_still_granted, tone: "tone-red", hint: "решено отозвать, но по последней загрузке доступ есть" })}
 			</div>
-			<div class="chips" style="margin-bottom:12px">${["", "Отозвать", "Оставить", "Без решения"].map((f) => `<button class="chip ${f === filter ? "on" : ""}" data-f="${f}">${f || "Все"}</button>`).join("")}</div>
+			<div class="chips" style="margin-bottom:12px">${["", "Отозвать", "Ещё не отозвано", "Оставить", "Без решения"].map((f) => `<button class="chip ${f === filter ? "on" : ""}" data-f="${f}">${f || "Все"}</button>`).join("")}</div>
 			<div class="card items"></div>`;
 		const draw = () => {
 			view.querySelectorAll("[data-f]").forEach((b) => b.classList.toggle("on", b.dataset.f === filter));
 			table(view.querySelector(".items"), {
 				name: "пересмотр-" + r.title,
-				rows: d.items.filter((i) => !filter || (filter === "Без решения" ? !i.decision : i.decision === filter)),
+				rows: d.items.filter((i) => !filter || (filter === "Без решения" ? !i.decision : filter === "Ещё не отозвано" ? i.still_granted : i.decision === filter)),
 				empty: "Нет доступов",
 				columns: [
 					{ key: "full_name", label: "Сотрудник", type: "person" },
@@ -2600,7 +2607,7 @@
 					{ key: "access_title", label: "Доступ", render: (i) => (i.entitlement ? `<a href="#/entitlement/${enc(i.entitlement)}">${esc(i.access_title)}</a>` : esc(i.access_title)) },
 					{ key: "system", label: "Система", type: "badge" },
 					{ key: "reviewer_name", label: "Проверяющий" },
-					{ key: "decision", label: "Решение", render: (i) => (i.decision === "Отозвать" ? pill("отозвать", "t-red") : i.decision === "Оставить" ? pill("оставить", "t-green") : `<span class="muted">—</span>`), csv: (i) => i.decision || "" },
+					{ key: "decision", label: "Решение", render: (i) => (i.decision === "Отозвать" ? pill("отозвать", "t-red") + (i.still_granted ? " " + pill("ещё есть", "t-amber") : "") : i.decision === "Оставить" ? pill("оставить", "t-green") : `<span class="muted">—</span>`), csv: (i) => i.decision || "" },
 					{ key: "comment", label: "Комментарий" },
 				],
 			});

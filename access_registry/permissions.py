@@ -26,3 +26,11 @@ def require(*roles):
 	"""Raises PermissionError unless the user has one of the roles (administrators always pass)."""
 	if not has_any(*ADMINS, *roles):
 		raise frappe.PermissionError(_("Недостаточно прав"))
+
+
+def require_source_sender(doctype: str, name: str):
+	"""When the source card names its technical API user, only that user (and administrators) may
+	push data for it: a token of another collector cannot overwrite this source."""
+	sender = frappe.db.get_value(doctype, name, "api_user")
+	if sender and frappe.session.user != sender and not has_any(*ADMINS):
+		raise frappe.PermissionError(_("Данные этого источника принимаются только от {0}").format(sender))

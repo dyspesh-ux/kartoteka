@@ -1,5 +1,6 @@
 """Tests of the Synology shared folder mirror: collector output, AD resolution, effective access, findings."""
 
+import base64
 import copy
 import gzip
 import json
@@ -16,7 +17,7 @@ from access_registry.file_shares import api
 from access_registry.file_shares import reports as share_reports
 from access_registry.file_shares.access import ShareAccess
 from access_registry.file_shares.sync import run_upload
-from access_registry.file_shares.synology import ParseError, access_level, parse
+from access_registry.file_shares.synology import ParseError, access_level, decode_upload, parse
 from access_registry.sync.departments import ensure_root
 from access_registry.sync.engine import run_source_sync
 from access_registry.tests.test_ad import ACC, AD_DOCTYPES, GRP, directory
@@ -34,6 +35,20 @@ def collector_output(stop_on_same=0) -> str:
 	"""Output of synology/registry_collect.sh run on a synthetic tree (stub synoshare/synoacltool)."""
 	with open(os.path.join(FIXTURES, f"collect_stop{stop_on_same}.txt"), encoding="utf-8") as fh:
 		return fh.read()
+
+
+def without_folder(text: str, path: str) -> str:
+	"""The collector output without one DIR block (the folder and its ACL lines)."""
+	encoded = base64.b64encode(path.encode()).decode()
+	lines, skip = [], False
+	for line in text.splitlines():
+		if line.startswith("DIR "):
+			skip = line.split()[2] == encoded
+		elif not line.startswith("ACL "):
+			skip = False
+		if not skip:
+			lines.append(line)
+	return "\n".join(lines) + "\n"
 
 
 def ad_with_nested_group() -> dict:
@@ -214,12 +229,19 @@ class TestFileShares(FrappeTestCase):
 
 	def test_folder_gone_is_marked_missing(self):
 		self.assertSuccess(self.upload())
+		# the quick daily walk (STOP_ON_SAME=1) does not go inside /Отчёты: what the weekly full walk found
+		# there stays
+		stats = self.assertSuccess(self.upload(collector_output(1)))
+		self.assertNotIn("Folder ACL: пропало", stats)
+		self.assertEqual(stats["Folder ACL: быстрый обход не заходил, оставлено"], 1)
+		self.assertEqual(self.folder("buh", "/Отчёты/Квартальные/2026").missing_in_source, 0)
+		# a full walk without the folder: it is gone
 		stats = self.assertSuccess(
-			self.upload(collector_output(1))
-		)  # the fast run does not see /Отчёты/…/2026
+			self.upload(without_folder(collector_output(0), "/Отчёты/Квартальные/2026"))
+		)
 		self.assertEqual(stats["Folder ACL: пропало"], 1)
 		self.assertEqual(self.folder("buh", "/Отчёты/Квартальные/2026").missing_in_source, 1)
-		stats = self.assertSuccess(self.upload())
+		self.assertSuccess(self.upload())
 		self.assertEqual(self.folder("buh", "/Отчёты/Квартальные/2026").missing_in_source, 0)
 
 	def test_guard_stops_big_shrink(self):
@@ -227,7 +249,8 @@ class TestFileShares(FrappeTestCase):
 		frappe.db.set_single_value("Access Registry Settings", "guard_min_records", 5)
 		frappe.db.set_single_value("Access Registry Settings", "shrink_threshold_pct", 10)
 		frappe.clear_document_cache("Access Registry Settings", "Access Registry Settings")
-		log = self.upload(collector_output(1))
+		self.assertSuccess(self.upload(collector_output(1)))  # the quick walk loses nothing
+		log = self.upload(without_folder(collector_output(0), "/Отчёты/Квартальные/2026"))
 		self.assertEqual(log.status, "Остановлен предохранителем")
 		self.assertEqual(frappe.db.count("Folder ACL", {"missing_in_source": 1}), 0)
 
@@ -266,6 +289,23 @@ class TestFileShares(FrappeTestCase):
 			(row["via"], row["person"]),
 			("CORP\\petrova", frappe.db.get_value("AD Account", self.account(2), "person")),
 		)
+
+	def test_deny_is_weighed_right_by_right(self):
+		self.assertSuccess(self.upload())
+		access = ShareAccess()
+		petrova = self.account(2)
+		entry = lambda allow, rights, inherited=0: frappe._dict(  # noqa: E731
+			ad_account=petrova,
+			principal="CORP\\petrova",
+			allow="Разрешить" if allow else "Запретить",
+			rights=rights,
+			inherited=inherited,
+			level="",
+		)
+		level = lambda entries: access.folder_access(None, entries, None).get(petrova, ("—",))[0]  # noqa: E731
+		self.assertEqual(level([entry(True, "rwxpdDaARWc--"), entry(False, "-w-pdD-------")]), "Чтение")
+		self.assertEqual(level([entry(True, "rwxpdDaARWc--"), entry(False, "rwxpdDaARWcCo", 1)]), "Изменение")
+		self.assertEqual(level([entry(True, "rwxpdDaARWc--", 1), entry(False, "rwxpdDaARWcCo")]), "—")
 
 	def test_disabled_account_has_no_access(self):
 		self.assertSuccess(self.upload())
@@ -320,7 +360,28 @@ class TestFileShares(FrappeTestCase):
 		result = api.upload(SERVER)
 		self.assertEqual(result["status"], "Успех")
 		self.assertEqual(result["stats"]["folders"], 6)
+		self.assertEqual(result["stats"]["sender"], user)
 		self.assertRaises(frappe.DoesNotExistError, api.upload, "NAS99")
+
+	def test_upload_api_only_from_the_technical_user_of_the_server(self):
+		user = "nas-collector@example.com"
+		if not frappe.db.exists("User", user):
+			frappe.get_doc(
+				{"doctype": "User", "email": user, "first_name": "NAS", "send_welcome_email": 0}
+			).insert()
+		frappe.get_doc("User", user).add_roles("1C Sync")
+		frappe.db.set_value("File Server", SERVER, "api_user", "Administrator")
+		frappe.set_user(user)
+		self.request(collector_output().encode())
+		self.assertRaises(frappe.PermissionError, api.upload, SERVER)
+		frappe.set_user("Administrator")
+		self.assertEqual(frappe.db.count("Folder ACL"), 0)
+
+	def test_gzip_bomb_is_refused(self):
+		bomb = gzip.compress(b"#REGISTRY-SYNOLOGY 1\n" + b" " * 4096)
+		self.assertRaises(ParseError, decode_upload, bomb, 1024)
+		self.assertRaises(ParseError, decode_upload, bomb[:-8])
+		self.assertTrue(decode_upload(bomb, 8192).startswith("#REGISTRY-SYNOLOGY"))
 
 	def test_upload_api_requires_role(self):
 		user = "share-viewer@example.com"

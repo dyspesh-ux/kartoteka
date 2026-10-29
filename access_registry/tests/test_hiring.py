@@ -264,6 +264,37 @@ class TestHiring(SnipeFixture):
 		self.assertEqual([f["stage"] for f in d["funnel"] if f["hired"]], ["Оформлен", "Испытательный срок"])
 		self.assertEqual({s["service"] for s in d["services"]}, {"Почта", "1С"})
 
+	def test_hired_stage_by_name(self):
+		from access_registry.bitrix24.smart_items import OPEN, hired_stage
+
+		rows = [
+			{"stage_id": s, "stage_name": s, "state": OPEN}
+			for s in ("Отбор", "Оффер принят", "Принят на работу", "Испытательный срок")
+		]
+		self.assertEqual(hired_stage(rows), "Принят на работу")
+
+	def test_kit_from_the_text_of_a_request(self):
+		patterns = hiring.category_patterns(["Ноутбуки", "Мониторы", "Телефоны", "Гарнитуры"], "")
+		kit = lambda text: hiring.kit_from_text(text, patterns)  # noqa: E731
+		self.assertEqual(kit("Ноутбук, 2 монитора"), {"Ноутбуки": 1, "Мониторы": 2})
+		self.assertEqual(kit("ноутбук не нужен, монитор"), {"Мониторы": 1})
+		self.assertEqual(kit("без монитора; ноутбук"), {"Ноутбуки": 1})
+		self.assertEqual(kit("гарнитура для телефонии"), {"Гарнитуры": 1})
+		self.assertEqual(kit("телефон и гарнитура"), {"Телефоны": 1, "Гарнитуры": 1})
+
+	def test_purchase_does_not_take_stock_of_another_organization(self):
+		from collections import Counter
+
+		matcher = type("Matcher", (), {"title": lambda self, key: key.upper()})()
+		need = {
+			("a", "Ноутбуки"): {"request": 2, "position": 0},
+			("b", "Ноутбуки"): {"request": 0, "position": 1},
+		}
+		on_hand = Counter({("b", "Ноутбуки"): 3, (None, "Ноутбуки"): 1})
+		rows = {r["organization"]: r for r in hiring.purchase(need, on_hand, matcher)}
+		self.assertEqual((rows["A"]["stock"], rows["A"]["buy"]), (1, 1))  # the common stock only
+		self.assertEqual((rows["B"]["stock"], rows["B"]["buy"]), (1, 0))
+
 	def test_section_and_separation(self):
 		self.sync_hiring([item(1, "NEW")])
 		from access_registry.bitrix24 import support

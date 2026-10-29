@@ -1,3 +1,7 @@
+// A PowerShell single-quoted literal: every character PowerShell takes for a single quote
+// (' ‘ ’ ‚ ‛) is doubled, so names from AD cannot end the string and run as code.
+const lit = (value) => "'" + String(value || "").replace(/['\u2018\u2019\u201a\u201b]/g, "$&$&") + "'";
+
 // Copyright (c) 2026, Access Registry contributors
 // For license information, please see license.txt
 
@@ -21,7 +25,7 @@ frappe.query_reports["AD employeeNumber"] = {
 				"param([switch]$Apply)",
 				"Import-Module ActiveDirectory",
 				"$items = @(",
-				...rows.map((r, i) => `    @{ Guid = '${r.object_guid}'; Uuid = '${r.person}'; Name = '${String(r.display_name || "").replace(/'/g, "''")}' }${i < rows.length - 1 ? "," : ""}`),
+				...rows.map((r, i) => `    @{ Guid = ${lit(r.object_guid)}; Uuid = ${lit(r.person)}; Name = ${lit(r.display_name)} }${i < rows.length - 1 ? "," : ""}`),
 				")",
 				"foreach ($i in $items) {",
 				"    $u = Get-ADUser -Identity $i.Guid -Properties employeeNumber",

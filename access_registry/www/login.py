@@ -18,6 +18,15 @@ from access_registry.branding import APP_NAME, LOGO
 no_cache = 1
 
 
+def local_path(url) -> str:
+	"""A path of this site only. The platform's sanitize_redirect keeps «javascript:…» (it has no host),
+	which the sign-in form would then open in the user's session."""
+	url = str(url or "").strip()
+	if url.startswith("/") and not url.startswith(("//", "/\\")) and not any(c in url for c in "\r\n\t"):
+		return url
+	return ""
+
+
 def get_context(context):
 	platform_login.get_context(context)  # raises a redirect for signed-in users
 	providers = context.get("provider_logins") or []
@@ -32,8 +41,9 @@ def get_context(context):
 			"password_off": password_off,
 			"show_password": not password_off and (not providers or asked_local),
 			"sso_missing": not providers,
-			"redirect_to": platform_login.sanitize_redirect(frappe.local.request.args.get("redirect-to"))
-			or "",
+			"redirect_to": local_path(
+				platform_login.sanitize_redirect(frappe.local.request.args.get("redirect-to"))
+			),
 		}
 	)
 	return context

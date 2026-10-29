@@ -16,6 +16,10 @@
   "decided_on",
   "decision_comment",
   "data_as_of",
+  "settings_saved",
+  "server",
+  "disabled_ou",
+  "remove_groups",
   "section_break_2",
   "items",
   "section_break_3",
@@ -86,6 +90,31 @@
    "read_only": 1
   },
   {
+   "fieldname": "settings_saved",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Настройки домена сохранены",
+   "read_only": 1
+  },
+  {
+   "fieldname": "server",
+   "fieldtype": "Data",
+   "label": "Контроллер домена",
+   "read_only": 1
+  },
+  {
+   "fieldname": "disabled_ou",
+   "fieldtype": "Small Text",
+   "label": "OU для отключённых (на момент сборки)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remove_groups",
+   "fieldtype": "Check",
+   "label": "Снимать группы (на момент сборки)",
+   "read_only": 1
+  },
+  {
    "fieldname": "section_break_2",
    "fieldtype": "Section Break",
    "label": "Изменения"
@@ -113,7 +142,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-18 07:00:00.000000",
+ "modified": "2026-10-29 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Active Directory",
  "name": "AD Change Plan",
@@ -121,7 +150,6 @@
  "permissions": [
   {
    "create": 1,
-   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,
@@ -133,7 +161,6 @@
   },
   {
    "create": 1,
-   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,

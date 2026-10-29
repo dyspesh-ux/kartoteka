@@ -16,6 +16,7 @@ from frappe.utils import add_days, get_datetime, get_url, getdate, now_datetime,
 
 from access_registry import app_access
 from access_registry.access_roles import suppression
+from access_registry.redact import redact
 
 # control lists in the digest, in the order of the letter
 KINDS = [
@@ -369,7 +370,7 @@ def run(preview: bool = False, force: bool = False):
 		)
 	except Exception:
 		log.status = FAILED
-		log.error = frappe.get_traceback()[-2000:]
+		log.error = redact(frappe.get_traceback()[-2000:])
 	log.insert(ignore_permissions=True)
 	if not preview:
 		frappe.db.set_single_value(

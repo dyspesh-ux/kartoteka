@@ -233,12 +233,13 @@ class B24Client:
 		return self.list_all("sonet_group.get", {"ORDER": {"ID": "ASC"}, "IS_ADMIN": "Y"})
 
 	def workgroup_members(self, group_ids: list) -> dict:
-		"""{group id: [{USER_ID, ROLE}]}; ROLE: A — владелец, E — модератор, K — участник."""
+		"""{group id: [{USER_ID, ROLE}]}; ROLE: A — владелец, E — модератор, K — участник, Z — запрос.
+		None for a group whose members could not be read: its stored members stay as they are."""
 		answers = self.batch({f"g{gid}": ("sonet_group.user.get", {"ID": gid}) for gid in group_ids})
 		result = {}
 		for gid in group_ids:
 			value = answers.get(f"g{gid}")
-			result[str(gid)] = [] if isinstance(value, B24Error) or not value else list(value)
+			result[str(gid)] = None if isinstance(value, B24Error) else list(value or [])
 		return result
 
 	def crm_types(self) -> list:

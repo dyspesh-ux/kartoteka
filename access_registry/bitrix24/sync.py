@@ -10,9 +10,10 @@ import hashlib
 import json
 import traceback
 from collections import Counter, defaultdict
+from zoneinfo import ZoneInfo
 
 import frappe
-from frappe.utils import cint, flt, get_datetime, getdate, now_datetime
+from frappe.utils import cint, flt, get_datetime, get_system_timezone, getdate, now_datetime
 
 from access_registry.access_catalog.importer import save_changed, sync_child_table
 from access_registry.access_catalog.linking import NameMatcher
@@ -29,6 +30,8 @@ BY_AD = "Учётка AD"
 BY_NAME = "ФИО"
 BY_SHORT_NAME = "Фамилия и имя"
 BY_HAND = "Вручную"
+# HR data is written only into profiles of working employees linked by one of these methods
+WRITE_LINK_METHODS = (BY_UUID, BY_AD, BY_NAME, BY_SHORT_NAME, BY_HAND)
 
 ROLE_TITLES = {"A": "Владелец", "E": "Модератор", "K": "Участник", "Z": "Запрос"}
 ADMIN_GROUP = 1  # Bitrix: group 1 — administrators
@@ -258,7 +261,8 @@ def src_hash(payload) -> str:
 
 
 def b24_date(value):
-	"""Bitrix24 date or datetime («1980-01-15T03:00:00+03:00», «15.01.1980») → date or None."""
+	"""Bitrix24 date or datetime («1980-01-15T03:00:00+03:00», «15.01.1980») → date or None.
+	A date field comes as midnight of the portal's time zone: its calendar date is taken as is."""
 	if not value:
 		return None
 	text = str(value).strip()
@@ -279,8 +283,8 @@ def b24_datetime(value):
 		dt = get_datetime(str(value))
 	except Exception:
 		return None
-	if dt and dt.tzinfo:
-		dt = dt.replace(tzinfo=None)
+	if dt and dt.tzinfo:  # the portal's time zone may differ from the site's
+		dt = dt.astimezone(ZoneInfo(get_system_timezone())).replace(tzinfo=None)
 	return dt
 
 
@@ -697,9 +701,14 @@ class PortalImport:
 		for row in groups:
 			uid = self.key(row["ID"])
 			seen.add(uid)
+			if str(row["ID"]) in members and members[str(row["ID"])] is None:
+				self.warn(f"участники группы «{row.get('NAME') or uid}» не прочитаны, оставлены прежние")
+				continue
 			rows = []
 			for m in members.get(str(row["ID"])) or []:
 				user = self.key(m.get("USER_ID"))
+				if m.get("ROLE") == "Z":  # a request to join is not membership yet
+					continue
 				if user in names:
 					rows.append(
 						{
@@ -956,15 +965,28 @@ class ProfileWriter:
 		uuid_field = (self.portal.person_uuid_field or "").strip()
 		users = frappe.db.sql(
 			"""select u.name, u.b24_id, u.person, u.second_name, u.birthday, u.uuid_in_portal,
-				p.middle_name, p.birth_date
+				u.person_link_method, p.middle_name, p.birth_date
 			from `tabB24 User` u join `tabPerson` p on p.name = u.person
-			where u.portal = %s and u.active = 1 and u.missing_in_source = 0
-				and ifnull(u.user_type, '') in ('', 'employee')""",
-			self.portal.name,
+			where u.portal = %(portal)s and u.active = 1 and u.missing_in_source = 0
+				and ifnull(u.user_type, '') in ('', 'employee')
+				and p.status in ('Работает', 'Увольняется') and u.person_link_method in %(methods)s""",
+			{"portal": self.portal.name, "methods": WRITE_LINK_METHODS},
 			as_dict=True,
 		)
 		plan = []
 		for u in users:
+			if (
+				u.birthday
+				and u.birth_date
+				and u.person_link_method == BY_SHORT_NAME
+				and getdate(u.birthday) != getdate(u.birth_date)
+			):
+				# found by last and first name only, and the birth date contradicts it: likely a namesake
+				self.warnings.append(
+					f"Предупреждение: {u.name} найден по фамилии и имени, но дата рождения в Битрикс24 не совпадает с ЗУП — "
+					"запись пропущена. Проверьте привязку (при верной укажите сотрудника вручную)"
+				)
+				continue
 			changes = {}
 			if self.portal.write_middle_name and u.middle_name:
 				current = u.second_name or ""

@@ -3,7 +3,7 @@
 import frappe
 from frappe import _
 
-from access_registry.permissions import require
+from access_registry.permissions import require, require_source_sender
 
 UPLOAD_ROLES = ("1C Sync",)  # the technical role of collectors and n8n; administrators always pass
 
@@ -14,6 +14,7 @@ def upload(server: str):
 	require(*UPLOAD_ROLES)
 	if not frappe.db.exists("File Server", server):
 		frappe.throw(_("Сервер {0} не заведён в «Файловые серверы»").format(server), frappe.DoesNotExistError)
+	require_source_sender("File Server", server)
 	data = frappe.request.get_data() if frappe.request else b""
 	if not data:
 		frappe.throw(_("Пустая выгрузка"))

@@ -31,11 +31,12 @@
    "reqd": 1
   },
   {
-   "description": "Пусто — бессрочно. По окончании право снова считается лишним",
+   "description": "Исключение всегда с концом срока: потом доступ снова проверяется",
    "fieldname": "valid_to",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Действует по"
+   "label": "Действует по",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_1",
@@ -57,7 +58,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-11 12:00:00.000000",
+ "modified": "2026-10-29 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "Access Roles",
  "name": "Access Exception",

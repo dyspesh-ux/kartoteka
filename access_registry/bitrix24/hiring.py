@@ -23,6 +23,7 @@ import frappe
 from frappe.utils import add_days, cint, get_datetime, getdate, now_datetime
 
 from access_registry.bitrix24.smart_items import CANCELLED, DONE, HIRING, OPEN
+from access_registry.it_assets.orgs import OrgMatcher
 
 PERIODS = (30, 90, 365)
 STALE_DAYS = 30
@@ -109,11 +110,23 @@ def kit_from_text(text, patterns) -> dict:
 	kit = {}
 	for category, regexes in patterns.items():
 		for regex in regexes:
-			m = regex.search(text)
+			m = next((m for m in regex.finditer(text) if not _not_wanted(text, m)), None)
 			if m:
 				kit[category] = max(kit.get(category, 0), cint(m.group(1)) or 1)
 				break
 	return kit
+
+
+NOT_BEFORE = re.compile(
+	r"(?:\bбез|\bне|\bдля)\s+$"
+)  # «без монитора», «не ноутбук», «гарнитура для телефонии»
+NOT_AFTER = re.compile(r"^\w*\s+(?:не\s+(?:нуж|треб|надо)|нет\b)")  # «ноутбук не нужен», «монитор нет»
+
+
+def _not_wanted(text, m) -> bool:
+	return bool(
+		NOT_BEFORE.search(text[max(0, m.start() - 12) : m.start()]) or NOT_AFTER.search(text[m.end() :])
+	)
 
 
 def typical_kits(positions) -> dict:
@@ -154,9 +167,10 @@ def typical_kits(positions) -> dict:
 	return kits
 
 
-def stock() -> Counter:
+def stock(matcher) -> Counter:
+	"""{(organization key or None, category): free assets}; None — the company is not set or not matched."""
 	return Counter(
-		a.category
+		(matcher.company(a.company) if a.company else None, a.category)
 		for a in frappe.get_all(
 			"IT Asset",
 			filters={
@@ -164,10 +178,35 @@ def stock() -> Counter:
 				"status_type": "deployable",
 				"assigned_type": ["in", ["", None]],
 			},
-			fields=["category"],
+			fields=["category", "company"],
 		)
 		if a.category
 	)
+
+
+def purchase(need: dict, on_hand: Counter, matcher) -> list:
+	"""A vacancy takes the stock of its organization, then the common stock (no company); the rest is bought.
+	Equipment of another organization is not offered: it would become «техника чужой организации»."""
+	common = Counter({category: n for (key, category), n in on_hand.items() if key is None})
+	rows = []
+	for (key, category), want in sorted(need.items(), key=lambda x: (-sum(x[1].values()), str(x[0]))):
+		total = want["request"] + want["position"]
+		own = min(total, on_hand.get((key, category), 0)) if key else 0
+		shared = min(total - own, common[category])
+		common[category] -= shared
+		rows.append(
+			{
+				"category": category,
+				"organization": matcher.title(key) if key else None,
+				"request": want["request"],
+				"position": want["position"],
+				"need": total,
+				"stock": own + shared,
+				"buy": total - own - shared,
+			}
+		)
+	rows.sort(key=lambda r: (-r["buy"], -r["need"], r["category"], r["organization"] or ""))
+	return rows
 
 
 # --------------------------------------------------------------------------- snapshot
@@ -262,6 +301,7 @@ def snapshot(process: str | None = None, days: int = 90) -> dict:
 	)
 	patterns = category_patterns(categories, doc.equipment_synonyms)
 	kits = typical_kits([i.position for i in recruiting])
+	matcher = OrgMatcher()
 	need = defaultdict(lambda: {"request": 0, "position": 0})
 	plan_rows, undetermined = [], 0
 	for i in recruiting:
@@ -271,8 +311,9 @@ def snapshot(process: str | None = None, days: int = 90) -> dict:
 			kit, source = (k["kit"], "по должности") if k and k["kit"] else ({}, "не определено")
 		if not kit:
 			undetermined += 1
+		org = matcher.company(i.organization) if i.organization else None
 		for category, qty in kit.items():
-			need[category]["request" if source == "по заявке" else "position"] += qty
+			need[(org, category)]["request" if source == "по заявке" else "position"] += qty
 		plan_rows.append(
 			{
 				"item_id": i.item_id,
@@ -290,21 +331,7 @@ def snapshot(process: str | None = None, days: int = 90) -> dict:
 				"mobile": i.mobile,
 			}
 		)
-	on_hand = stock()
-	equipment = []
-	for category in sorted(set(need) | {c for c in on_hand if c in need}):
-		total = need[category]["request"] + need[category]["position"]
-		equipment.append(
-			{
-				"category": category,
-				"request": need[category]["request"],
-				"position": need[category]["position"],
-				"need": total,
-				"stock": on_hand.get(category, 0),
-				"buy": max(0, total - on_hand.get(category, 0)),
-			}
-		)
-	equipment.sort(key=lambda r: (-r["buy"], -r["need"], r["category"]))
+	equipment = purchase(need, stock(matcher), matcher)
 
 	services = Counter()
 	for i in recruiting:

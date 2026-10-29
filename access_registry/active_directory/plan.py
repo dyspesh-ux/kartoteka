@@ -21,15 +21,19 @@ from frappe import _
 from frappe.utils import add_days, cint, flt, formatdate, getdate, today
 
 from access_registry.access_catalog.access_report import main_places
+from access_registry.active_directory.groups import effective_account_groups
 
 WORKING = ("Работает", "Увольняется")
 DISABLE, UPDATE = "Отключить", "Изменить"
+NAME_LINK = "ФИО"  # AD Account.person_link_method of a link by full name only
+VALID_DAYS = 7  # an approved plan gives its script this many days; then the data is too old
 ATTRIBUTES = (
 	# AD attribute, flag on AD Domain, field of AD Account, value from the main place of work
 	("title", "plan_attr_title", "title", "position_title"),
 	("department", "plan_attr_department", "department", "department_title"),
 	("company", "plan_attr_company", "company", "organization_title"),
-	("employeeNumber", "plan_attr_employee_number", "employee_number", "tab_number"),
+	# employeeNumber carries the UUID of the employee: the most reliable link of an account
+	("employeeNumber", "plan_attr_employee_number", "employee_number", "uuid"),
 )
 
 
@@ -73,6 +77,7 @@ def build(domain: str, today_date=None) -> frappe._dict:
 			"department",
 			"company",
 			"employee_number",
+			"person_link_method",
 		],
 	)
 	groups = defaultdict(set)
@@ -82,6 +87,18 @@ def build(domain: str, today_date=None) -> frappe._dict:
 		fields=["parent", "group_name"],
 	):
 		groups[row.parent].add((row.group_name or "").lower())
+	# nested membership counts too: a member of a group inside «Domain Admins» is an administrator
+	names = {
+		g.name: {(g.group_name or "").lower(), (g.sam_account_name or "").lower()}
+		for g in frappe.get_all(
+			"AD Group", filters={"domain": domain}, fields=["name", "group_name", "sam_account_name"]
+		)
+	}
+	ours = {a.name for a in accounts}
+	for account, effective in effective_account_groups().items():
+		if account in ours:
+			for group in effective:
+				groups[account] |= names.get(group, set())
 
 	persons = sorted({a.person for a in accounts if a.person})
 	employments = defaultdict(list)
@@ -101,7 +118,6 @@ def build(domain: str, today_date=None) -> frappe._dict:
 		employments[e.person].append(e)
 	org_titles = dict(frappe.get_all("HR Organization", fields=["name", "title"], as_list=True))
 	places = main_places(persons)
-	tab_numbers = _main_tab_numbers(persons)
 
 	items, skipped = [], []
 
@@ -134,7 +150,7 @@ def build(domain: str, today_date=None) -> frappe._dict:
 		working = [e for e in jobs if e.status in WORKING]
 		if working:
 			place = places.get(a.person) or {}
-			values = {**place, "tab_number": tab_numbers.get(a.person)}
+			values = {**place, "uuid": a.person}
 			for attribute, flag, field, source in ATTRIBUTES:
 				if not d.get(flag):
 					continue
@@ -155,6 +171,15 @@ def build(domain: str, today_date=None) -> frappe._dict:
 			continue
 		if any(e.missing for e in jobs):
 			skip(a, _("место работы пропало из выгрузки ЗУП — сначала проверьте кадры"))
+			continue
+		if a.person_link_method == NAME_LINK and not d.plan_allow_name_links:
+			# a namesake is not a reason to switch off someone's account
+			skip(
+				a,
+				_(
+					"привязана к уволенному сотруднику только по ФИО — проверьте и привяжите вручную или по employeeNumber"
+				),
+			)
 			continue
 		ends = [getdate(e.termination_date) for e in jobs if e.termination_date]
 		if not ends or len(ends) < len(jobs):
@@ -208,23 +233,6 @@ def build(domain: str, today_date=None) -> frappe._dict:
 	)
 
 
-def _main_tab_numbers(persons) -> dict:
-	"""Tab number of the main place of work (the employment main_places picks)."""
-	places = main_places(persons)
-	result = {}
-	for e in frappe.get_all(
-		"Employment",
-		filters={"person": ["in", list(persons) or [""]], "status": ["in", WORKING]},
-		fields=["person", "organization", "tab_number", "hire_date"],
-	):
-		place = places.get(e.person) or {}
-		if e.organization == place.get("organization") and str(e.hire_date or "") == str(
-			place.get("hire_date") or ""
-		):
-			result[e.person] = e.tab_number
-	return result
-
-
 def create(domain: str) -> str:
 	"""Builds the plan and saves it as a draft «AD Change Plan»."""
 	plan = build(domain)
@@ -240,9 +248,39 @@ def create(domain: str) -> str:
 			"disable_count": plan["disable_count"],
 			"update_count": plan["update_count"],
 			"data_as_of": plan["data_as_of"],
+			# the script runs with what ИБ approved, not with a domain card changed later
+			"settings_saved": 1,
+			"server": frappe.db.get_value("AD Domain", domain, "dns_name"),
+			"disabled_ou": frappe.db.get_value("AD Domain", domain, "plan_disabled_ou"),
+			"remove_groups": frappe.db.get_value("AD Domain", domain, "plan_remove_groups"),
 		}
 	).insert(ignore_permissions=True)
 	return doc.name
+
+
+def recheck(plan_doc) -> dict:
+	"""Right before the script is handed out: {item name: why} of disable rows that no longer hold —
+	the person works again (re-hired, a new job) or vanished from the export. The approval was for
+	the data of its day."""
+	persons = {i.person for i in plan_doc.items if i.include and i.action == DISABLE and i.person}
+	if not persons:
+		return {}
+	jobs = defaultdict(list)
+	for e in frappe.get_all(
+		"Employment", filters={"person": ["in", list(persons)]}, fields=["person", "status", "missing"]
+	):
+		jobs[e.person].append(e)
+	dropped = {}
+	for i in plan_doc.items:
+		if not (i.include and i.action == DISABLE and i.person):
+			continue
+		if any(e.status in WORKING for e in jobs[i.person]):
+			dropped[i.name] = _("{0}: снова работает — отключение снято").format(i.sam_account_name)
+		elif any(e.missing for e in jobs[i.person]):
+			dropped[i.name] = _("{0}: место работы пропало из выгрузки ЗУП — отключение снято").format(
+				i.sam_account_name
+			)
+	return dropped
 
 
 def _skipped_note(plan) -> str:

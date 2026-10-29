@@ -21,7 +21,11 @@ STOP_ON_SAME=1
 MAX_DEPTH=12
 SHARES=""                                       # shares to read, space separated; empty — all
 SKIP_SHARES="homes home photo web_packages"      # never read these
-OUT="/tmp/registry-acl.txt"
+# a private temporary directory: a fixed /tmp path could be pre-created by another user (symlink)
+WORK_DIR="$(mktemp -d /tmp/registry-acl.XXXXXX)"
+chmod 700 "$WORK_DIR"
+trap 'rm -rf "$WORK_DIR"' EXIT
+OUT="$WORK_DIR/registry-acl.txt"
 CURL_OPTS=""                                    # e.g. "--cacert /volume1/scripts/ca.pem"; -k only for tests
 
 set -u
@@ -93,14 +97,18 @@ printf '%s\n' "$SHARES" | tr ' ' '\n' | while IFS= read -r share; do
 done
 emit "END"
 
-echo "Collected: $(grep -c '^DIR ' "$OUT") folders, $(grep -c '^SHARE ' "$OUT") shares → $OUT"
+echo "Collected: $(grep -c '^DIR ' "$OUT") folders, $(grep -c '^SHARE ' "$OUT") shares"
 if [ "$DRY_RUN" = "1" ]; then
+	cp "$OUT" ./registry-acl.txt && echo "Dry run: the file is ./registry-acl.txt"
 	exit 0
 fi
 gzip -c "$OUT" > "$OUT.gz"
+# the key goes in a header file readable by this user only, not on the command line (seen in ps)
+HEADERS="$WORK_DIR/headers"
+( umask 077; printf 'Authorization: token %s:%s\n' "$API_KEY" "$API_SECRET" > "$HEADERS" )
 # shellcheck disable=SC2086
 curl -sS $CURL_OPTS -w '\nHTTP %{http_code}\n' -X POST \
-	-H "Authorization: token $API_KEY:$API_SECRET" \
+	-H @"$HEADERS" \
 	-H "Content-Type: application/octet-stream" \
 	--data-binary @"$OUT.gz" \
 	"$REGISTRY_URL/api/method/access_registry.file_shares.api.upload?server=$SERVER_CODE"

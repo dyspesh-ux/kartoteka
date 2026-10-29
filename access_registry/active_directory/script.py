@@ -11,17 +11,31 @@ Safety lives in the script itself, because it runs with the administrator's righ
 - the whole run is written to a transcript next to the script.
 """
 
+import base64
+import json
+
 from frappe.utils import format_datetime
 
 from access_registry.active_directory.plan import DISABLE
 
+# every character PowerShell takes for a single quote: ' ‘ ’ ‚ ‛
+QUOTES = "'\u2018\u2019\u201a\u201b"
+
 
 def ps(value) -> str:
-	"""A PowerShell single-quoted literal: nothing inside is expanded."""
-	return "'" + str(value or "").replace("'", "''").replace("‘", "‘‘").replace("’", "’’") + "'"
+	"""A PowerShell single-quoted literal: nothing inside is expanded, every quote doubled."""
+	text = str(value or "")
+	for q in QUOTES:
+		text = text.replace(q, q + q)
+	return "'" + text + "'"
 
 
 ATTRIBUTES = {"title", "department", "company", "employeeNumber"}
+
+
+def payload(data) -> str:
+	"""Data of the plan as Base64 of JSON: values from ZUP and AD never become PowerShell code."""
+	return base64.b64encode(json.dumps(data, ensure_ascii=False).encode("utf-8")).decode("ascii")
 
 
 def render(plan, domain) -> str:
@@ -33,48 +47,66 @@ def render(plan, domain) -> str:
 	for i in items:
 		if i.action == DISABLE:
 			rows.append(
-				f"\t@{{ Action = 'disable'; Guid = {ps(i.object_guid)}; Sam = {ps(i.sam_account_name)}; "
-				f"Reason = {ps(i.reason)} }}"
+				{
+					"Action": "disable",
+					"Guid": i.object_guid,
+					"Sam": i.sam_account_name,
+					"Reason": i.reason or "",
+				}
 			)
 		else:
 			rows.append(
-				f"\t@{{ Action = 'set'; Guid = {ps(i.object_guid)}; Sam = {ps(i.sam_account_name)}; "
-				f"Attribute = {ps(i.attribute)}; Before = {ps(i.before)}; After = {ps(i.after)} }}"
+				{
+					"Action": "set",
+					"Guid": i.object_guid,
+					"Sam": i.sam_account_name,
+					"Attribute": i.attribute,
+					"Before": i.before or "",
+					"After": i.after or "",
+				}
 			)
+	# the settings the plan was approved with, not today's domain card (older plans: the card)
+	settings = {
+		"PlanId": plan.name,
+		"Server": getattr(plan, "server", None) or domain.dns_name or "",
+		"DisabledOU": getattr(plan, "disabled_ou", None)
+		if getattr(plan, "settings_saved", None)
+		else (domain.plan_disabled_ou or ""),
+		"RemoveGroups": bool(
+			getattr(plan, "remove_groups", None)
+			if getattr(plan, "settings_saved", None)
+			else domain.plan_remove_groups
+		),
+		"Items": rows,
+	}
 	header = [
 		f"# План изменений AD {plan.name}, домен {domain.name}",
 		f"# Собран: {format_datetime(plan.creation)} ({plan.owner}); данные AD на {format_datetime(plan.data_as_of) if plan.data_as_of else '—'}",
 		f"# Одобрил: {plan.approved_by} {format_datetime(plan.decided_on)}",
 		f"# Отключить: {sum(1 for i in items if i.action == DISABLE)}, изменить атрибутов: {sum(1 for i in items if i.action != DISABLE)}",
+		"# Данные плана — в $Payload (Base64 от JSON): посмотреть их можно без запуска, раскодировав строку.",
 		"#",
 		"# Запуск: сначала без -Apply — скрипт только покажет, что сделает:",
 		f"#   .\\{plan.name}.ps1",
 		f"#   .\\{plan.name}.ps1 -Apply",
 		"# Рядом появятся журнал (.log) и скрипт отката (-rollback.ps1).",
 	]
-	return (
-		"\n".join(header)
-		+ "\n"
-		+ TEMPLATE.replace("__PLAN__", ps(plan.name))
-		.replace("__SERVER__", ps(domain.dns_name or ""))
-		.replace("__DISABLED_OU__", ps(domain.plan_disabled_ou or ""))
-		.replace("__REMOVE_GROUPS__", "$true" if domain.plan_remove_groups else "$false")
-		.replace("__ITEMS__", ",\n".join(rows))
-	)
+	return "\n".join(header) + "\n" + TEMPLATE.replace("__PAYLOAD__", payload(settings))
 
 
 TEMPLATE = r"""#Requires -Modules ActiveDirectory
 param(
 	[switch]$Apply,
-	[string]$Server = __SERVER__
+	[string]$Server
 )
 $ErrorActionPreference = 'Stop'
-$PlanId = __PLAN__
-$DisabledOU = __DISABLED_OU__
-$RemoveGroups = __REMOVE_GROUPS__
-$Items = @(
-__ITEMS__
-)
+$Payload = '__PAYLOAD__'
+$Plan = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($Payload)) | ConvertFrom-Json
+$PlanId = $Plan.PlanId
+if (-not $Server) { $Server = $Plan.Server }
+$DisabledOU = $Plan.DisabledOU
+$RemoveGroups = [bool]$Plan.RemoveGroups
+$Items = @($Plan.Items)
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $base = Join-Path $PSScriptRoot "ad-plan-$PlanId-$stamp"
@@ -82,10 +114,10 @@ Start-Transcript -Path "$base.log" | Out-Null
 $rollback = "$base-rollback.ps1"
 $srv = @{}
 if ($Server) { $srv = @{ Server = $Server } }
+# a literal for the rollback script: every character PowerShell takes for a single quote is doubled
+function Lit([string]$s) { "'" + ($s -replace "['\u2018\u2019\u201a\u201b]", '$0$0') + "'" }
 $on = ''
-if ($Server) { $on = " -Server '" + ($Server -replace "['‘’]", '$0$0') + "'" }
-
-function Lit([string]$s) { "'" + ($s -replace "['‘’]", '$0$0') + "'" }
+if ($Server) { $on = " -Server " + (Lit $Server) }
 function Undo([string]$line) { if ($Apply) { Add-Content -Path $rollback -Value $line -Encoding UTF8 } }
 
 if ($Apply) {

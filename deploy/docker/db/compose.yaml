@@ -14,8 +14,8 @@ services:
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in db.env}
       MARIADB_AUTO_UPGRADE: 1
     ports:
-      # publish only on the address the application server reaches; close it for everybody else
-      - ${DB_BIND_ADDRESS:-0.0.0.0}:${DB_PUBLISH_PORT:-3306}:3306
+      # published only on the address the application server reaches (set it explicitly: not 0.0.0.0)
+      - ${DB_BIND_ADDRESS:?set DB_BIND_ADDRESS in db.env — the address of this server in the network of the application server}:${DB_PUBLISH_PORT:-3306}:3306
     volumes:
       - db-data:/var/lib/mysql
     healthcheck:

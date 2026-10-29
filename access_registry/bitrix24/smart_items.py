@@ -490,6 +490,8 @@ def _flag(value) -> int:
 
 
 HIRED_STAGE = re.compile(r"оформлен|принят|испытат|вышел", re.I)
+# «Оффер принят», «Предложение принято кандидатом» — still recruiting
+NOT_HIRED_STAGE = re.compile(r"оффер|offer|предложен|кандидат", re.I)
 
 
 def hired_stage(stage_rows) -> str | None:
@@ -498,7 +500,9 @@ def hired_stage(stage_rows) -> str | None:
 		(
 			r["stage_id"]
 			for r in stage_rows
-			if r["state"] == OPEN and HIRED_STAGE.search(r["stage_name"] or "")
+			if r["state"] == OPEN
+			and HIRED_STAGE.search(r["stage_name"] or "")
+			and not NOT_HIRED_STAGE.search(r["stage_name"] or "")
 		),
 		None,
 	)

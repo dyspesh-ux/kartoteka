@@ -1,5 +1,9 @@
 """AD change plan (stage 1): what goes into the plan, the guards, approval by ИБ, the script."""
 
+import base64
+import json
+import re
+
 import frappe
 from frappe.utils import add_days, today
 
@@ -24,6 +28,7 @@ class TestAdPlan(SnipeFixture):
 				"plan_max_disable_share": 100,
 				"plan_protected_groups": "Domain Admins",
 				"plan_grace_days": 1,
+				"plan_allow_name_links": 1,  # the fixture's accounts are linked by full name
 			}
 		)
 		self.domain.save()
@@ -64,6 +69,22 @@ class TestAdPlan(SnipeFixture):
 		jobs = frappe.get_all("Employment", filters={"person": a.person}, pluck="name")
 		frappe.db.set_value("Employment", jobs[0], {"status": "Работает", "termination_date": None})
 		self.assertNotIn(a.name, {i["account"] for i in self.items(adplan.build(DOMAIN), adplan.DISABLE)})
+
+	def test_name_links_are_not_disabled_by_default(self):
+		a = self.linked[0]
+		self.dismiss(a.person)
+		self.assertEqual(frappe.db.get_value("AD Account", a.name, "person_link_method"), adplan.NAME_LINK)
+		self.domain.reload()
+		self.domain.plan_allow_name_links = 0
+		self.domain.save()
+		plan = adplan.build(DOMAIN)
+		self.assertNotIn(a.name, {i["account"] for i in self.items(plan, adplan.DISABLE)})
+		self.assertTrue(any(a.sam_account_name in s for s in plan["skipped"]))
+		# employeeNumber = UUID makes the link reliable
+		frappe.db.set_value(
+			"AD Account", a.name, {"employee_number": a.person, "person_link_method": "employeeNumber"}
+		)
+		self.assertIn(a.name, {i["account"] for i in self.items(adplan.build(DOMAIN), adplan.DISABLE)})
 
 	def test_updates_from_hr(self):
 		from access_registry.access_catalog.access_report import main_places
@@ -110,6 +131,23 @@ class TestAdPlan(SnipeFixture):
 		self.domain.save()
 		self.assertRaises(adplan.PlanStopped, adplan.build, DOMAIN)
 
+	def test_protected_group_counts_through_nesting(self):
+		a = self.linked[0]
+		self.dismiss(a.person)
+		admins = frappe.get_doc(
+			{"doctype": "AD Group", "uid": f"{DOMAIN}:da", "domain": DOMAIN, "group_name": "Domain Admins"}
+		).insert(ignore_permissions=True)
+		direct = frappe.get_all(
+			"AD Account Group", filters={"parenttype": "AD Account", "parent": a.name}, pluck="group"
+		)
+		self.assertTrue(direct, "the account is in some group")
+		helpdesk = frappe.get_doc("AD Group", direct[0])
+		helpdesk.append("parent_groups", {"group": admins.name, "group_name": "Domain Admins"})
+		helpdesk.save(ignore_permissions=True)
+		plan = adplan.build(DOMAIN)
+		self.assertNotIn(a.name, {i["account"] for i in plan["items"]})
+		self.assertTrue(any("защищённой группы" in x for x in plan["skipped"]))
+
 	def test_four_eyes_script_and_states(self):
 		a = self.linked[0]
 		self.dismiss(a.person)
@@ -139,9 +177,11 @@ class TestAdPlan(SnipeFixture):
 		doc = frappe.get_doc("AD Change Plan", name)
 		script = render(doc, frappe.get_doc("AD Domain", DOMAIN))
 		self.assertIn("[switch]$Apply", script)
-		self.assertIn(frappe.db.get_value("AD Account", a.name, "object_guid"), script)
-		self.assertIn("OU=Disabled,DC=corp,DC=example,DC=local", script)
-		self.assertEqual(script.count("Action = '"), 1)  # unchecked rows are not in the script
+		data = json.loads(base64.b64decode(re.search(r"\$Payload = '([^']*)'", script).group(1)))
+		self.assertEqual(
+			[i["Guid"] for i in data["Items"]], [frappe.db.get_value("AD Account", a.name, "object_guid")]
+		)
+		self.assertEqual(data["DisabledOU"], "OU=Disabled,DC=corp,DC=example,DC=local")
 		api.download_ad_script(name)
 		self.assertTrue(frappe.response["filecontent"].startswith("\ufeff"))
 		self.assertTrue(
@@ -168,6 +208,9 @@ class TestAdPlan(SnipeFixture):
 		self.assertEqual(ps("O'Brien"), "'O''Brien'")
 		self.assertEqual(ps("$(Remove-Item C:\\)"), "'$(Remove-Item C:\\)'")  # single quotes: nothing expands
 		self.assertEqual(ps("a’b"), "'a’’b'")
+		self.assertEqual(
+			ps("a\u201ab\u201bc"), "'a\u201a\u201ab\u201b\u201bc'"
+		)  # PowerShell takes them for quotes too
 
 	def test_plan_cannot_be_forged_outside_the_app(self):
 		a = self.linked[0]
