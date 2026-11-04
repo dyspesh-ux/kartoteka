@@ -11,7 +11,7 @@ from frappe.utils import getdate
 from access_registry.sync.departments import ROOT_KEY, ensure_root, org_node_key
 from access_registry.sync.engine import refresh_statuses, resolve_hierarchy, run_source_sync
 from access_registry.sync.normalize import match_keys, normalize_name
-from access_registry.sync.persons import merge_persons, rescan_merge_candidates
+from access_registry.sync.persons import merge_persons, pair_key, rescan_merge_candidates
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 TODAY = getdate("2026-06-01")
@@ -744,7 +744,7 @@ class TestZupSync(FrappeTestCase):
 				}
 			).insert(ignore_permissions=True)
 
-		make_person("Смирнов")
+		first = make_person("Смирнов")
 		person_b = make_person("Смирнов")
 		# The pair predates candidate search: only a full rescan finds it
 		self.assertEqual(frappe.db.count("Person Merge Candidate"), 0)
@@ -764,8 +764,11 @@ class TestZupSync(FrappeTestCase):
 		)
 		self.assertEqual(len(partial), 2)
 
-		# «Разные люди» pairs are not suggested again
-		frappe.get_doc("Person Merge Candidate", {"person_b": person_b.name}).mark_different()
+		# «Разные люди» pairs are not suggested again; the pair key is order-independent
+		candidate = frappe.get_doc(
+			"Person Merge Candidate", {"pair_key": pair_key(first.name, person_b.name)}
+		)
+		candidate.mark_different()
 		created = rescan_merge_candidates()
 		self.assertEqual(created, {"full": 0, "partial": 0})
 		self.assertEqual(
