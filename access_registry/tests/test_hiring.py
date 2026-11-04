@@ -295,6 +295,43 @@ class TestHiring(SnipeFixture):
 		self.assertEqual((rows["A"]["stock"], rows["A"]["buy"]), (1, 1))  # the common stock only
 		self.assertEqual((rows["B"]["stock"], rows["B"]["buy"]), (1, 0))
 
+	def test_norm(self):
+		self.assertEqual(hiring.norm("ООО «Ромашка»"), "ооо ромашка")
+		self.assertEqual(hiring.norm("Удалённая работа"), "удаленная работа")
+		self.assertEqual(hiring.norm(None), "")
+
+	def test_synonyms_and_quantities(self):
+		patterns = hiring.category_patterns(
+			["Ноутбуки", "Мониторы", "ПК"], "ПК: компьютер, системный блок\nМониторы: экран"
+		)
+		kit = lambda text: hiring.kit_from_text(text, patterns)  # noqa: E731
+		self.assertEqual(
+			kit("3 шт. ноутбука, системный блок и экран"), {"Ноутбуки": 3, "ПК": 1, "Мониторы": 1}
+		)
+		self.assertEqual(kit("компьютер без монитора"), {"ПК": 1})
+
+	def test_snapshot_without_processes(self):
+		frappe.db.delete("B24 Smart Item")
+		frappe.db.delete("B24 Smart Process")
+		self.assertEqual(hiring.snapshot(), {"processes": [], "periods": (30, 90, 365), "days": 90})
+		self.sync_hiring([item(1, "NEW")])
+		self.assertEqual(hiring.snapshot(days=7)["days"], 90)  # an unknown period falls back
+		self.assertEqual(hiring.snapshot(days=365)["days"], 365)
+
+	def test_snapshot_more_kpis(self):
+		self.sync_hiring(
+			[item(1, "NEW", days=40, level="1"), item(2, "UC_C")]  # stale and a leader, one being hired
+		)
+		d = hiring.snapshot()
+		k = d["kpis"]
+		self.assertEqual((k["recruiting"], k["onboarding"]), (1, 1))
+		self.assertEqual((k["stale"], k["leaders"]), (1, 1))
+		self.assertEqual((k["positions"], k["organizations"]), (1, 1))
+		self.assertIsNone(k["median_days"])  # nobody has been hired yet
+		self.assertEqual(next(r for r in d["fill"] if r["field"] == "Должность")["share"], 100)
+		self.assertEqual(d["process"]["hired_stage"], "Оформлен")
+		self.assertEqual([f["hired"] for f in d["funnel"]], [False, False, False, True, True])
+
 	def test_section_and_separation(self):
 		self.sync_hiring([item(1, "NEW")])
 		from access_registry.bitrix24 import support

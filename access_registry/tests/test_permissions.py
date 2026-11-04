@@ -3,6 +3,7 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
+from access_registry import permissions
 from access_registry.install import REGISTRY_ROLES
 
 
@@ -107,3 +108,46 @@ class TestRegistryRoles(FrappeTestCase):
 			self.assertIn("Registry Auditor", roles.get(report, set()), report)
 		page_roles = set(frappe.get_all("Has Role", filters={"parent": "access-overview"}, pluck="role"))
 		self.assertTrue({"Registry Auditor", "Access Catalog Viewer"} <= page_roles)
+
+
+class TestRequireHelpers(FrappeTestCase):
+	"""The require/has_any helpers and the technical-user check of the source cards."""
+
+	def setUp(self):
+		frappe.set_user("Administrator")
+
+	def tearDown(self):
+		frappe.set_user("Administrator")
+		frappe.db.rollback()
+
+	def test_administrator_always_passes(self):
+		frappe.set_user("Administrator")
+		self.assertTrue(permissions.has_any("No Such Role"))
+		permissions.require("No Such Role")  # no raise: administrators pass any require
+
+	def test_require_raises_for_users_without_roles(self):
+		user = make_user("plain-user@registry.test")
+		frappe.set_user(user)
+		self.assertFalse(permissions.has_any("Registry Auditor"))
+		self.assertRaises(frappe.PermissionError, permissions.require, "Registry Auditor")
+		manager = make_user("plain-process@registry.test", "Process Manager")
+		frappe.set_user(manager)
+		permissions.require("Process Manager", "Registry Auditor")  # one of the list is enough
+
+	def test_require_source_sender(self):
+		server = frappe.get_doc({"doctype": "File Server", "server_code": "PERM-TEST"}).insert()
+		sender = make_user("sender@registry.test")
+		other = make_user("other-sender@registry.test")
+		# no technical user on the card: anyone may push data for it
+		frappe.set_user(other)
+		permissions.require_source_sender("File Server", server.name)
+		# only the named technical user (and administrators) may push
+		frappe.db.set_value("File Server", server.name, "api_user", sender)
+		frappe.set_user(other)
+		self.assertRaises(
+			frappe.PermissionError, permissions.require_source_sender, "File Server", server.name
+		)
+		frappe.set_user(sender)
+		permissions.require_source_sender("File Server", server.name)
+		frappe.set_user("Administrator")
+		permissions.require_source_sender("File Server", server.name)

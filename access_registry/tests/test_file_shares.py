@@ -16,7 +16,7 @@ from access_registry.active_directory.sync import run_domain_sync
 from access_registry.file_shares import api
 from access_registry.file_shares import reports as share_reports
 from access_registry.file_shares.access import ShareAccess
-from access_registry.file_shares.sync import run_upload
+from access_registry.file_shares.sync import Principals, run_upload
 from access_registry.file_shares.synology import ParseError, access_level, decode_upload, parse
 from access_registry.sync.departments import ensure_root
 from access_registry.sync.engine import run_source_sync
@@ -45,6 +45,20 @@ def without_folder(text: str, path: str) -> str:
 		if line.startswith("DIR "):
 			skip = line.split()[2] == encoded
 		elif not line.startswith("ACL "):
+			skip = False
+		if not skip:
+			lines.append(line)
+	return "\n".join(lines) + "\n"
+
+
+def without_share(text: str, name: str) -> str:
+	"""The collector output without the SHARE block of one share and all its folder blocks."""
+	encoded = base64.b64encode(name.encode()).decode()
+	lines, skip = [], False
+	for line in text.splitlines():
+		if line.startswith(("SHARE ", "DIR ")):
+			skip = line.split()[1] == encoded
+		elif line == "END":
 			skip = False
 		if not skip:
 			lines.append(line)
@@ -415,3 +429,244 @@ class TestFileShares(FrappeTestCase):
 			[{k: s[k] for k in ("share_name", "path", "level")} for s in shares],
 		)
 		self.assertIn(SERVER, [s["name"] for s in app.sources() if s["doctype"] == "File Server"])
+
+	# ---------------------------------------------------------------- parser: malformed input
+
+	def test_parse_malformed_lines(self):
+		broken_dir = collector_output().replace("DIR YnVo Lw== 0", "DIR YnVo Lw==")
+		self.assertRaises(ParseError, parse, broken_dir)
+		bad_b64 = collector_output().replace("DIR YnVo Lw== 0", "DIR !bad! Lw== 0")
+		self.assertRaises(ParseError, parse, bad_b64)
+
+	def test_decode_upload_accepts_plain_text_and_bad_utf8(self):
+		self.assertEqual(decode_upload(b"#REGISTRY-SYNOLOGY 1"), "#REGISTRY-SYNOLOGY 1")
+		self.assertEqual(decode_upload(b"\xff\xfe"), "\ufffd\ufffd")  # invalid utf-8 is replaced, not fatal
+
+	def test_collector_errors_and_server_mismatch_are_warned(self):
+		failure = base64.b64encode(b"synoacltool: read failed").decode()
+		text = collector_output().replace("SERVER TkFTMDE=", "SERVER WFhU") + f"ERROR YnVo {failure}\n"
+		log = self.upload(text)
+		self.assertEqual(log.status, "Успех", log.messages)
+		self.assertIn("в выгрузке SERVER_CODE=XXT, а загружается в сервер NAS01", log.messages)
+		self.assertIn("сборщик: buh synoacltool: read failed", log.messages)
+
+	def test_unread_acl_becomes_an_issue(self):
+		text = collector_output().replace(
+			"ACL \t [0] user:CORP\\uvolen:allow:rwxpdDaARWc--:fd-- (level:0)",
+			"ACL synoacltool error: Permission denied\n"
+			"ACL this line is ignored\n"
+			"ACL \t [0] user:CORP\\uvolen:allow:rwxpdDaARWc--:fd-- (level:0)",
+		)
+		self.assertSuccess(self.upload(text))
+		self.assertIn(
+			"сборщик не прочитал права: synoacltool error: Permission denied",
+			self.folder("buh", "/Старое").issues,
+		)
+
+	def test_principals_resolution(self):
+		principals = Principals(frappe.get_doc("File Server", SERVER))
+		gg_buh = f"{DOMAIN}:{GRP(9)}"
+
+		everyone = principals.resolve("everyone", "")
+		self.assertEqual((everyone["principal"], everyone["principal_type"]), ("Все", "Все"))
+		auth = principals.resolve("authenticated_user", "")
+		self.assertEqual((auth["principal"], auth["principal_type"]), ("Прошедшие проверку", "Все"))
+		owner = principals.resolve("owner", "")
+		self.assertEqual((owner["principal"], owner["principal_type"]), ("Владелец", "Владелец"))
+
+		by_upn = principals.resolve("user", "petrova@corp.example.local")
+		self.assertEqual(
+			(by_upn["principal_type"], by_upn["ad_account"]), ("Пользователь AD", self.account(2))
+		)
+		self.assertEqual(
+			principals.resolve("user", "PETROVA@CORP.EXAMPLE.LOCAL")["ad_account"], self.account(2)
+		)
+		self.assertEqual(
+			principals.resolve("user", "ghost@corp.example.local")["principal_type"], "Не найден в AD"
+		)
+
+		direct = principals.resolve("user", "CORP\\PETROVA")
+		self.assertEqual(
+			(direct["principal_type"], direct["ad_account"]), ("Пользователь AD", self.account(2))
+		)
+		self.assertEqual(
+			principals.resolve("group", "OTHER\\GG_Buh_Share")["principal_type"], "Не найден в AD"
+		)
+		group = principals.resolve("group", "corp\\gg_buh_share")
+		self.assertEqual((group["principal_type"], group["ad_group"]), ("Группа AD", gg_buh))
+
+		self.assertEqual(principals.resolve("user", "backup")["principal_type"], "Локальный пользователь")
+		self.assertEqual(principals.resolve("group", "operators")["principal_type"], "Локальная группа")
+
+	# ---------------------------------------------------------------- import: edge cases
+
+	def test_failed_upload_is_logged_and_updates_server_status(self):
+		log = self.upload("not a collector output")
+		self.assertEqual(log.status, "Ошибка")
+		self.assertIn("Выгрузка не разобрана", log.messages)
+		stats = json.loads(log.stats)
+		self.assertEqual((stats["server"], stats["sender"]), (SERVER, frappe.session.user))
+		server = frappe.get_doc("File Server", SERVER)
+		self.assertTrue(server.last_status.startswith("Ошибка"))
+		self.assertFalse(server.last_upload)
+		self.assertEqual((server.shares_count or 0, server.folders_count or 0), (0, 0))
+		self.assertEqual(frappe.db.count("Folder ACL"), 0)
+
+	def test_upload_log_contains_no_personal_data(self):
+		log = self.upload()
+		self.assertEqual(log.status, "Успех", log.messages)
+		person = frappe.db.get_value("AD Account", self.account(1), "person")
+		full_name = frappe.db.get_value("Person", person, "full_name")
+		self.assertTrue(full_name)
+		self.assertNotIn(full_name, log.messages)  # personal names never reach the Sync Log
+		self.assertNotIn(full_name, log.stats or "")
+
+	def test_share_gone_is_marked_missing_and_restored(self):
+		self.assertSuccess(self.upload())
+		stats = self.assertSuccess(self.upload(without_share(collector_output(), "public")))
+		self.assertEqual(stats.get("File Share: пропало"), 1)
+		self.assertEqual(stats.get("Folder ACL: пропало"), 1)
+		self.assertEqual(frappe.get_doc("File Share", f"{SERVER}:public").missing_in_source, 1)
+		self.assertEqual(self.folder("public", "/").missing_in_source, 1)
+		_c, issues = share_reports.share_issues({"server": SERVER})
+		self.assertNotIn("public", {i["share_name"] for i in issues})
+		stats = self.assertSuccess(self.upload())  # a full walk finds the share again
+		self.assertEqual(stats.get("File Share: изменено"), 1)  # same record, the flag is just cleared
+		self.assertEqual(stats.get("Folder ACL: изменено"), 1)
+		self.assertEqual(frappe.get_doc("File Share", f"{SERVER}:public").missing_in_source, 0)
+		self.assertEqual(self.folder("public", "/").missing_in_source, 0)
+
+	def test_deep_folders_are_kept_when_the_walk_is_shallow(self):
+		"""A walk with a smaller MAX_DEPTH cannot prove deep folders gone: they are kept for a full walk."""
+		self.assertSuccess(self.upload())
+		shallow = without_folder(collector_output(), "/Отчёты/Квартальные/2026").replace(
+			"MAX_DEPTH 12", "MAX_DEPTH 1"
+		)
+		stats = self.assertSuccess(self.upload(shallow))
+		self.assertEqual(stats.get("Folder ACL: глубже MAX_DEPTH, не проверено"), 1)
+		self.assertNotIn("Folder ACL: пропало", stats)
+		self.assertEqual(self.folder("buh", "/Отчёты/Квартальные/2026").missing_in_source, 0)
+
+	def test_guard_does_not_trip_below_min_records(self):
+		self.assertSuccess(self.upload())
+		frappe.db.set_single_value("Access Registry Settings", "guard_min_records", 100)
+		frappe.db.set_single_value("Access Registry Settings", "shrink_threshold_pct", 10)
+		frappe.clear_document_cache("Access Registry Settings", "Access Registry Settings")
+		# two of six folders disappear (33% > 10%), but the registry is smaller than the guard minimum
+		text = without_folder(without_folder(collector_output(), "/Старое"), "/Архив")
+		stats = self.assertSuccess(self.upload(text))
+		self.assertEqual(stats.get("Folder ACL: пропало"), 2)
+		self.assertEqual(frappe.db.count("Folder ACL", {"server": SERVER, "missing_in_source": 1}), 2)
+
+	# ---------------------------------------------------------------- effective access: edge cases
+
+	def test_share_deny_wins_over_acl_allow(self):
+		"""Deny (NA) in the DSM privilege list removes the account even when the folder ACL allows him."""
+		frappe.db.set_value("AD Account", self.account(3), "enabled", 1)  # sidorov is disabled in the fixture
+		text = (
+			collector_output()
+			.replace(
+				"RW list ....[@CORP\\GG_Buh_Share,admin]",
+				"RW list ....[@CORP\\GG_Buh_Share,admin,CORP\\sidorov]",
+			)
+			.replace(
+				"ACL \t [1] group:administrators:allow:rwxpdDaARWcCo:fd-- (level:0)\nDIR YnVo L9CQ0YDRhdC40LI=",
+				"ACL \t [1] group:administrators:allow:rwxpdDaARWcCo:fd-- (level:0)\n"
+				"ACL \t [2] user:CORP\\sidorov:allow:rwxpdDaARWcCo:fd-- (level:0)\n"
+				"DIR YnVo L9CQ0YDRhdC40LI=",
+			)
+		)
+		self.assertSuccess(self.upload(text))
+		self.assertNotIn("sidorov", self.access("buh", "/"))
+		allowed = text.replace("NA list ....[CORP\\sidorov]", "NA list ....[]")
+		self.assertSuccess(self.upload(allowed))
+		self.assertEqual(self.access("buh", "/")["sidorov"], "Изменение")  # RW caps his full ACL access
+
+	def test_folder_access_falls_back_to_level_when_rights_are_missing(self):
+		"""Entries stored before the rights string was kept derive their decision from the level alone."""
+		access = ShareAccess()
+		petrova = self.account(2)
+
+		def entry(allow, level):
+			return frappe._dict(
+				ad_account=petrova,
+				principal="CORP\\petrova",
+				allow="Разрешить" if allow else "Запретить",
+				rights="",
+				inherited=0,
+				level=level,
+			)
+
+		result = access.folder_access(None, [entry(True, "Полный доступ")], None)
+		self.assertEqual(result[petrova], ("Полный доступ", "CORP\\petrova"))
+		self.assertNotIn(petrova, access.folder_access(None, [entry(False, "Запрет")], None))
+
+	def test_unlinked_account_is_reported_as_not_bound(self):
+		"""An AD account not linked to a Person shows up in the report with a «не привязан» status."""
+		data = ad_with_nested_group()
+		zup_users = next(g for g in data["groups"] if g["sAMAccountName"] == "GG_1C_ZUP_Users")
+		svc_backup = next(u for u in data["users"] if u["objectGUID"] == ACC(6))
+		svc_backup.setdefault("memberOf", []).append(zup_users["distinguishedName"])
+		log = run_domain_sync(DOMAIN, commit=False, fetch=lambda _d: data)
+		self.assertEqual(log.status, "Успех", log.messages)
+		self.assertSuccess(self.upload())
+		_c, rows = share_reports.share_access({"server": SERVER, "share": f"{SERVER}:public"})
+		row = next(r for r in rows if r["login"] == "CORP\\svc_backup")
+		self.assertFalse(row["person"])
+		self.assertEqual(row["person_status"], "не привязан")
+		self.assertEqual(row["full_name"], "svc_backup")  # falls back to the AD display name
+		_c, not_working = share_reports.share_access({"only_not_working": 1})
+		self.assertIn("CORP\\svc_backup", {r["login"] for r in not_working})
+
+	# ---------------------------------------------------------------- reports: filters
+
+	def test_share_access_path_filter(self):
+		self.assertSuccess(self.upload())
+		_c, rows = share_reports.share_access({"path": "Квартальные"})
+		self.assertTrue(rows)
+		self.assertTrue(all("Квартальные" in (r["path"] or "") for r in rows))
+		_c, none = share_reports.share_access({"path": "no-such-folder"})
+		self.assertEqual(none, [])
+
+	# ---------------------------------------------------------------- API: permissions
+
+	def test_upload_api_rejects_empty_body(self):
+		user = "nas-collector@example.com"
+		if not frappe.db.exists("User", user):
+			frappe.get_doc(
+				{"doctype": "User", "email": user, "first_name": "NAS", "send_welcome_email": 0}
+			).insert()
+		frappe.get_doc("User", user).add_roles("1C Sync")
+		frappe.set_user(user)
+		self.request(b"")
+		self.assertRaises(frappe.ValidationError, api.upload, SERVER)
+		frappe.local.request = None
+		self.assertRaises(frappe.ValidationError, api.upload, SERVER)  # no request at all
+
+	def test_upload_api_administrator_passes_sender_binding(self):
+		user = "nas-collector@example.com"
+		if not frappe.db.exists("User", user):
+			frappe.get_doc(
+				{"doctype": "User", "email": user, "first_name": "NAS", "send_welcome_email": 0}
+			).insert()
+		frappe.get_doc("User", user).add_roles("1C Sync")
+		frappe.db.set_value("File Server", SERVER, "api_user", user)
+		frappe.set_user("Administrator")
+		self.request(collector_output().encode())
+		result = api.upload(SERVER)
+		self.assertEqual(result["status"], "Успех")
+		self.assertEqual(result["stats"]["sender"], "Administrator")
+
+	def test_load_file_requires_administrator(self):
+		user = "share-viewer@example.com"
+		if not frappe.db.exists("User", user):
+			frappe.get_doc(
+				{"doctype": "User", "email": user, "first_name": "Viewer", "send_welcome_email": 0}
+			).insert()
+		frappe.get_doc("User", user).add_roles("Access Catalog Viewer")
+		frappe.set_user(user)
+		server = frappe.get_doc("File Server", SERVER)
+		self.assertRaises(frappe.PermissionError, server.load_file)  # a read role is not enough
+		frappe.set_user("Administrator")
+		server = frappe.get_doc("File Server", SERVER)
+		self.assertRaises(frappe.ValidationError, server.load_file)  # nothing is attached yet

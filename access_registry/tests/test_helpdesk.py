@@ -267,6 +267,44 @@ class TestHelpdesk(FrappeTestCase):
 		self.assertEqual(d["trend"][-1]["open"], 3)
 		self.assertEqual(sum(a["value"] for a in d["ages"]), 3)
 
+	def test_snapshot_without_processes(self):
+		frappe.db.delete("B24 Smart Item")
+		frappe.db.delete("B24 Smart Process")
+		self.assertEqual(support.snapshot(), {"processes": [], "periods": (7, 30, 90), "days": 30})
+		self.sync()
+		self.assertEqual(support.snapshot(days=45)["days"], 30)  # an unknown period falls back
+		self.assertEqual(support.snapshot(days=7)["days"], 7)
+
+	def test_ages_due_today_and_median_hours(self):
+		rows = items() + [item(7, "NEW", 0, due=0)]  # deadline today
+		self.sync(data(rows))
+		k = support.snapshot(days=30)["kpis"]
+		self.assertEqual(k["due_today"], 1)
+		self.assertEqual(k["overdue"], 1)  # the deadline today is not overdue yet
+		self.assertAlmostEqual(k["median_hours"], 468.0, delta=0.2)  # ~24 h and ~38 days
+		d = support.snapshot(days=30)
+		self.assertEqual(
+			[(a["label"], a["value"]) for a in d["ages"]],
+			[("до 1 дня", 2), ("1–3 дня", 0), ("3–7 дней", 1), ("1–4 недели", 1), ("больше месяца", 0)],
+		)
+
+	def test_person_items(self):
+		self.sync()
+		person = frappe.get_doc(
+			{
+				"doctype": "Person",
+				"last_name": "Сидорова",
+				"first_name": "Ольга",
+				"status": "Работает",
+			}
+		).insert()
+		frappe.db.set_value("B24 Smart Item", f"{self.process.name}:2", "requester", person.name)
+		frappe.db.set_value("B24 Smart Item", f"{self.process.name}:4", "requester", person.name)
+		d = support.person_items(person.name)
+		self.assertEqual((d["open"], d["total"]), (1, 2))
+		self.assertEqual([i["item_id"] for i in d["items"]], [2, 4])  # the latest first
+		self.assertIsInstance(d["items"][0]["created_at"], str)
+
 	def test_section_access(self):
 		self.sync()
 		user = make_user("helpdesk-user@registry.test")

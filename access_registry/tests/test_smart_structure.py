@@ -7,7 +7,8 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from access_registry.bitrix24.client import B24Error
-from access_registry.bitrix24.smart_structure import build, describe
+from access_registry.bitrix24.smart_structure import _field, build, describe, start
+from access_registry.tests.test_permissions import make_user
 
 
 class FakeClient:
@@ -104,3 +105,117 @@ class TestSmartStructure(FrappeTestCase):
 			self.assertEqual(len(data["smart_processes"]), 2)
 		finally:
 			frappe.db.rollback()
+
+
+class TestFieldDescription(FrappeTestCase):
+	def test_shapes(self):
+		f = _field(
+			"ufX",
+			{
+				"formLabel": "Система",  # no «title»: the form label is used
+				"type": "enumeration",
+				"isMultiple": "Y",
+				"items": [{"ID": "1", "VALUE": "1С"}, {"ID": "2", "VALUE": "AD"}, "broken"],
+			},
+		)
+		self.assertEqual(
+			(f["title"], f["type"], f["multiple"], f["required"], f["system"], f["options"]),
+			("Система", "enumeration", True, False, False, ["1С", "AD"]),
+		)
+		f = _field("title", {"type": "string"})  # a system field without any label
+		self.assertTrue(f["system"])
+		self.assertEqual(f["title"], "title")
+		self.assertNotIn("options", f)
+		f = _field("ufPos", {"type": "crm", "settings": {"DYNAMIC_1086": "Y", "DYNAMIC_1116": "N"}})
+		self.assertEqual(f["links_to"], ["DYNAMIC_1086"])  # only the links switched on
+
+
+class EmptyPortalClient:
+	def crm_types(self):
+		return []
+
+	def batch(self, *args, **kwargs):
+		raise AssertionError("nothing to ask about on an empty portal")
+
+
+class MessyClient:
+	"""Categories come as a bare list; the stages of the funnel cannot be read."""
+
+	def crm_types(self):
+		return [{"entityTypeId": 1060, "title": "Заявки на доступ", "isCategoriesEnabled": "Y"}]
+
+	def batch(self, commands, halt=False, totals=None):
+		results = {}
+		for key, (method, _params) in commands.items():
+			if method == "crm.category.list":
+				results[key] = [{"id": 3, "name": "Основная"}]  # a list, not {"categories": [...]}
+			elif method == "crm.item.fields":
+				results[key] = {"fields": {"title": {"type": "string", "title": "Название"}}}
+			elif method == "crm.item.list":
+				results[key] = {"items": []}
+				if totals is not None:
+					totals[key] = 0
+			elif method == "crm.status.list":
+				results[key] = B24Error("ACCESS_DENIED", "Доступ запрещён", method)
+		return results
+
+
+class TestDescribeEdges(FrappeTestCase):
+	def test_portal_without_processes(self):
+		self.assertEqual(describe(EmptyPortalClient())["smart_processes"], [])
+
+	def test_list_categories_and_unreadable_stages(self):
+		data = describe(MessyClient())
+		(process,) = data["smart_processes"]
+		self.assertEqual(process["items"], 0)
+		self.assertEqual(process["funnels"][0]["name"], "Основная")
+		self.assertEqual(process["funnels"][0]["stages"], [])  # the error does not break the funnel
+		self.assertIn("ACCESS_DENIED", process["error"])
+
+
+class TestStartAndBuild(FrappeTestCase):
+	def setUp(self):
+		frappe.set_user("Administrator")
+		frappe.db.delete("B24 Portal", "smart-edges")
+		self.portal = frappe.get_doc(
+			{
+				"doctype": "B24 Portal",
+				"portal_code": "smart-edges",
+				"title": "Портал",
+				"webhook": "https://b24.example.local/rest/1/secret/",
+			}
+		).insert()
+
+	def tearDown(self):
+		frappe.set_user("Administrator")
+		frappe.db.rollback()
+
+	def test_start_enqueues_and_checks_rights(self):
+		with patch("frappe.enqueue") as enqueue:
+			message = start(self.portal.name)
+		self.assertIn("Структура смарт-процессов", message)
+		kwargs = enqueue.call_args.kwargs
+		self.assertEqual(kwargs["job_id"], f"b24_smart_structure::{self.portal.name}")
+		self.assertTrue(kwargs["deduplicate"])
+		user = make_user("smart-structure@registry.test")
+		frappe.set_user(user)
+		frappe.flags.in_test = False  # frappe.only_for() is a no-op under the test runner
+		try:
+			with patch("frappe.enqueue"):
+				self.assertRaises(frappe.PermissionError, start, self.portal.name)
+		finally:
+			frappe.flags.in_test = True
+
+	def test_build_failure_is_reported_to_the_user(self):
+		with (
+			patch(
+				"access_registry.bitrix24.sync.make_client",
+				side_effect=B24Error("NO_AUTH", "Вебхук не работает", "batch"),
+			),
+			patch("frappe.publish_realtime") as publish,
+		):
+			self.assertIsNone(build(self.portal.name, user="Administrator"))
+		(_event, payload), kwargs = publish.call_args
+		self.assertEqual(payload["portal"], self.portal.name)
+		self.assertIn("NO_AUTH", payload["error"])
+		self.assertEqual(kwargs["user"], "Administrator")

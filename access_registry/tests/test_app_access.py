@@ -201,3 +201,139 @@ class TestAppAccess(RegistryFixture):
 		self.as_user()
 		self.assertEqual(app_access.systems(), list(app_access.SYSTEMS))
 		self.assertIn("shares", app_access.control_lists())
+
+	def test_guest_and_administrator(self):
+		guest = app_access.access("Guest")
+		self.assertFalse(any(guest["sections"].values()))
+		self.assertFalse(guest["personal"])
+		self.assertFalse(app_access.can_open_app("Guest"))
+		self.assertEqual(app_access.report_names("Guest"), [])
+		admin = app_access.access("Administrator")
+		self.assertTrue((admin["admin"], admin["ad_approver"], admin["personal"]))
+		expected = {
+			s: app_access.WORK if s in app_access.WORK_SECTIONS else app_access.VIEW
+			for s in app_access.SECTIONS
+		}
+		self.assertEqual(admin["sections"], expected)
+
+	def test_role_manager_and_process_manager_roles(self):
+		manager = make_user("profile-rolemanager@registry.test", "Access Role Manager")
+		a = app_access.access(manager)
+		self.assertEqual(
+			(a["sections"]["control"], a["sections"]["roles"]), (app_access.WORK, app_access.WORK)
+		)
+		self.assertFalse(a["personal"])  # working in the role model is not personal data
+		self.assertIn("роль «Access Role Manager»", a["via"])
+		process = make_user("profile-process@registry.test", "Process Manager")
+		a = app_access.access(process)
+		self.assertTrue(all(v == app_access.VIEW for v in a["sections"].values()))
+		self.assertEqual(a["sections"]["control"], app_access.VIEW)  # «Контроль» for reading only
+
+	def test_system_allowed_and_filter_rows(self):
+		self.assertTrue(app_access.system_allowed("", ["ad"]))  # rows without a system are shown
+		self.assertTrue(app_access.system_allowed(None, ["ad"]))
+		self.assertTrue(app_access.system_allowed("  AD  ", ["ad"]))  # trimmed
+		self.assertFalse(app_access.system_allowed("1С", ["ad"]))
+		self.assertFalse(app_access.system_allowed("Другое", ["ad"]))  # unknown systems: all only
+		self.assertTrue(app_access.system_allowed("Другое", list(app_access.SYSTEMS)))
+		rows = [{"system": "AD"}, {"system": "1С"}, {}, {"system": "Другое"}]
+		self.assertEqual(app_access.filter_rows(rows, allowed=["ad"]), rows[:3:2] + rows[2:3])
+		self.assertEqual(
+			app_access.filter_rows(rows, allowed=list(app_access.SYSTEMS)), rows
+		)  # everything for those who see all systems
+		by_other_key = [{"sys": "AD"}, {"sys": "Битрикс24"}]
+		self.assertEqual(len(app_access.filter_rows(by_other_key, key="sys", allowed=["ad", "b24"])), 2)
+
+	def test_control_lists_follow_system_limits(self):
+		frappe.set_user("Administrator")
+		api.save_profile(
+			{
+				"profile_name": "Только AD (доступ)",
+				"sections": {"control": 1},
+				"systems": ["ad"],
+				"members": [self.user],
+			}
+		)
+		self.as_user()
+		lists = app_access.control_lists()
+		self.assertNotIn("shares", lists)
+		self.assertNotIn("assets", lists)
+		self.assertIn("dismissed", lists)  # not bound to one system
+		# adding «Общие папки» opens its lists, «Техника» stays closed
+		frappe.set_user("Administrator")
+		name = frappe.db.get_value("Registry Access Profile", {"profile_name": "Только AD (доступ)"})
+		api.save_profile(
+			{
+				"name": name,
+				"profile_name": "Только AD (доступ)",
+				"sections": {"control": 1},
+				"systems": ["ad", "shares"],
+				"members": [self.user],
+			}
+		)
+		self.as_user()
+		lists = app_access.control_lists()
+		self.assertIn("shares", lists)
+		self.assertNotIn("assets", lists)
+
+	def test_require_section_and_control_errors(self):
+		self.profile(control=1, lists=["unlinked"])
+		self.as_user()
+		app_access.require_section("control")  # the view level is enough
+		app_access.require_control("unlinked")
+		self.assertRaises(frappe.PermissionError, app_access.require_control, "dismissed")  # not its list
+		self.assertRaises(frappe.PermissionError, app_access.require_control, "unlinked", app_access.WORK)
+		with self.assertRaises(frappe.PermissionError) as err:
+			app_access.require_section("control", app_access.WORK)
+		self.assertIn("нужен уровень", str(err.exception))
+		frappe.set_user("Administrator")
+		self.assertRaises(frappe.ValidationError, app_access.require_control, "nope")  # unknown list first
+
+	def test_reviewer_opens_app_for_reviews(self):
+		reviewer = make_user("profile-reviewer@registry.test", "Access Reviewer")
+		a = app_access.access(reviewer)
+		self.assertTrue(a["reviewer"])
+		self.assertFalse(any(a["sections"].values()))  # no sections, only the review assignments
+		self.assertTrue(app_access.can_open_app(reviewer))
+
+	def test_ad_approve_flag_of_profile(self):
+		frappe.set_user("Administrator")
+		api.save_profile(
+			{
+				"profile_name": "Одобряет планы AD",
+				"sections": {"people": 1},
+				"ad_approve": 1,
+				"members": [self.user],
+			}
+		)
+		self.as_user()
+		self.assertTrue(app_access.access()["ad_approver"])
+
+	def test_access_admin_collects_reviewers_and_skips_inactive(self):
+		reviewer = make_user("admin-reviewer@registry.test", "Access Reviewer")
+		role_admin = make_user("admin-role@registry.test", "Registry Admin")
+		self.profile(people=1, members=[self.user])
+		lonely = make_user("admin-lonely@registry.test")
+		name = self.profile("Временный", people=1, members=[lonely])
+		frappe.db.set_value("Registry Access Profile", name, "enabled", 0)
+		frappe.clear_document_cache("Registry Access Profile", name)
+		frappe.set_user("Administrator")
+		users = {u["user"]: u for u in api.access_admin()["users"]}
+		self.assertIn(self.user, users)
+		self.assertIn(reviewer, users)
+		self.assertEqual(users[reviewer]["via"], ["только свои задания пересмотра"])
+		self.assertIn(role_admin, users)
+		self.assertNotIn(lonely, users)  # the disabled profile gives nothing
+		self.assertNotIn("Administrator", users)
+
+	def test_find_users_search_limits_and_rights(self):
+		frappe.set_user("Administrator")
+		found = {u["user"] for u in api.find_users("profile-user")}
+		self.assertIn(self.user, found)
+		self.assertNotIn("Administrator", {u["user"] for u in api.find_users("Administrator")})
+		self.assertNotIn("Guest", {u["user"] for u in api.find_users(" ")})
+		self.assertLessEqual(len(api.find_users("")), 10)  # the limit of the picker
+		self.as_user()
+		self.assertRaises(frappe.PermissionError, api.find_users, "x")
+		self.assertRaises(frappe.PermissionError, api.access_admin)
+		self.assertRaises(frappe.PermissionError, api.profile_history, "anything")
