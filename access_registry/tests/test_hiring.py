@@ -314,6 +314,14 @@ class TestHiring(SnipeFixture):
 		frappe.db.delete("B24 Smart Item")
 		frappe.db.delete("B24 Smart Process")
 		self.assertEqual(hiring.snapshot(), {"processes": [], "periods": (30, 90, 365), "days": 90})
+		self.process = frappe.get_doc(
+			{
+				"doctype": "B24 Smart Process",
+				"portal": PORTAL,
+				"entity_type_id": ETID,
+				"purpose": smart_items.HIRING,
+			}
+		).insert()
 		self.sync_hiring([item(1, "NEW")])
 		self.assertEqual(hiring.snapshot(days=7)["days"], 90)  # an unknown period falls back
 		self.assertEqual(hiring.snapshot(days=365)["days"], 365)

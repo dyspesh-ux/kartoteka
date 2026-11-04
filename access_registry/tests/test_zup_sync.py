@@ -765,7 +765,7 @@ class TestZupSync(FrappeTestCase):
 		self.assertEqual(len(partial), 2)
 
 		# «Разные люди» pairs are not suggested again
-		frappe.get_doc("Person Merge Candidate", {"person_b": person_b}).mark_different()
+		frappe.get_doc("Person Merge Candidate", {"person_b": person_b.name}).mark_different()
 		created = rescan_merge_candidates()
 		self.assertEqual(created, {"full": 0, "partial": 0})
 		self.assertEqual(

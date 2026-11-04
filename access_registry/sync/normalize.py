@@ -56,7 +56,8 @@ def iso_date(value) -> str:
 		value = value.date()
 	if isinstance(value, datetime.date):
 		return value.isoformat()
-	return getdate(value).isoformat()
+	parsed = getdate(value)  # None for invalid strings like the 1C empty date «0001-01-01»
+	return parsed.isoformat() if parsed else ""
 
 
 def date_or_none(value):
@@ -64,7 +65,8 @@ def date_or_none(value):
 	if not value:
 		return None
 	date = getdate(value)
-	if date.year <= 1:
+	# getdate() returns None for the 1C empty date «0001-01-01» (invalid per dateutil)
+	if not date or date.year <= 1:
 		return None
 	return date
 

@@ -82,11 +82,12 @@ class TestNormalize(FrappeTestCase):
 		self.assertEqual(iso_date(datetime.datetime(1980, 1, 15, 23, 59)), "1980-01-15")
 		self.assertEqual(iso_date("1980-01-15"), "1980-01-15")
 
-	def test_date_or_none_treats_empty_1c_dates_as_none(self):
+	def test_date_or_none(self):
 		self.assertIsNone(date_or_none(None))
 		self.assertIsNone(date_or_none(""))
-		self.assertIsNone(date_or_none("0001-01-01"))
 		self.assertEqual(date_or_none("1980-01-15"), getdate("1980-01-15"))
+		# the 1C empty date: getdate() returns None for it in Frappe v15
+		self.assertIsNone(date_or_none("0001-01-01"))
 
 	def test_comparable_check_and_int(self):
 		self.assertEqual(comparable("1", "Check"), 1)
@@ -267,10 +268,18 @@ class TestPersonDb(FrappeTestCase):
 		)
 		self.assertEqual(sorted(partial), sorted([a.name, b.name]))
 
-		# one more person with the same partial key: every pair already exists or shares the full key
+		# D is a full duplicate of C and a partial match for A and B: three new pairs
 		d = make_person(last_name="Смирнова")
+		self.assertEqual(propose_candidates(d.name, d.match_key, d.match_key_partial), 3)
+		self.assertTrue(
+			frappe.db.exists(
+				"Person Merge Candidate",
+				{"person_a": c.name, "person_b": d.name, "reason": REASON_FULL_MATCH},
+			)
+		)
+		# a repeated proposal for the same person suggests nothing new
 		self.assertEqual(propose_candidates(d.name, d.match_key, d.match_key_partial), 0)
-		self.assertEqual(frappe.db.count("Person Merge Candidate"), 3)
+		self.assertEqual(frappe.db.count("Person Merge Candidate"), 6)
 
 	def test_propose_candidates_without_keys_suggests_nothing(self):
 		make_person(birth_date=None)
@@ -328,18 +337,28 @@ class TestPersonDb(FrappeTestCase):
 		).insert(ignore_permissions=True)
 
 	def test_merge_moves_only_new_source_ids(self):
-		keep = self._person_with_sources([{"source": "S1", "person_guid": "g1"}])
+		# Person Source ID.source is a Link to Info Base: the fixture sources must exist
+		for code in ("CLN1", "CLN2"):
+			frappe.get_doc(
+				{
+					"doctype": "Info Base",
+					"source_code": code,
+					"title": code,
+					"base_url": "http://127.0.0.1:9/hs",
+				}
+			).insert()
+		keep = self._person_with_sources([{"source": "CLN1", "person_guid": "g1"}])
 		drop = self._person_with_sources(
 			[
-				{"source": "S1", "person_guid": "g1"},  # already on «keep»: must not be duplicated
-				{"source": "S2", "person_guid": "g2"},
+				{"source": "CLN1", "person_guid": "g1"},  # already on «keep»: must not be duplicated
+				{"source": "CLN2", "person_guid": "g2"},
 			]
 		)
 		merge_persons(keep.name, drop.name)
 		survivor = frappe.get_doc("Person", keep.name)
 		self.assertEqual(
 			sorted((row.source, row.person_guid) for row in survivor.source_ids),
-			[("S1", "g1"), ("S2", "g2")],
+			[("CLN1", "g1"), ("CLN2", "g2")],
 		)
 		self.assertEqual([row.idx for row in survivor.source_ids], [1, 2])
 		self.assertFalse(frappe.db.exists("Person", drop.name))
@@ -505,13 +524,16 @@ class TestSourceClient(FrappeTestCase):
 		self.assertEqual(session.headers["Accept"], "application/json")
 
 	def test_session_without_username_has_no_auth(self):
-		source = self._info_base(username=None)
+		# insert fills the svc_hr_export field default, so null the attribute in memory:
+		# _session only reads it, and a source without a username must not get auth
+		source = self._info_base()
+		source.username = None
 		session = _session(source)
 		self.assertIsNone(session.auth)
 		self.assertTrue(session.verify)  # the field default
 
 	def test_fetch_source_data_continues_after_meta_failure(self):
-		source = self._info_base(username=None)
+		source = self._info_base()
 
 		def fake_get(session, source, path, params=None, timeout=None):
 			if path == "meta":
@@ -542,7 +564,7 @@ class TestSourceClient(FrappeTestCase):
 		self.assertEqual(absences_call.kwargs["timeout"], 7)
 
 	def test_fetch_source_data_fails_when_a_regular_endpoint_errors(self):
-		source = self._info_base(username=None)
+		source = self._info_base()
 
 		def fake_get(session, source, path, params=None, timeout=None):
 			if path == "employees":

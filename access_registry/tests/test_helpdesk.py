@@ -271,21 +271,32 @@ class TestHelpdesk(FrappeTestCase):
 		frappe.db.delete("B24 Smart Item")
 		frappe.db.delete("B24 Smart Process")
 		self.assertEqual(support.snapshot(), {"processes": [], "periods": (7, 30, 90), "days": 30})
+		self.process = frappe.get_doc(
+			{"doctype": "B24 Smart Process", "portal": PORTAL, "entity_type_id": ETID}
+		).insert()
 		self.sync()
 		self.assertEqual(support.snapshot(days=45)["days"], 30)  # an unknown period falls back
 		self.assertEqual(support.snapshot(days=7)["days"], 7)
 
 	def test_ages_due_today_and_median_hours(self):
-		rows = items() + [item(7, "NEW", 0, due=0)]  # deadline today
+		# ages well inside the buckets: a time zone shift between the portal and the site
+		# moves an age by hours, days in the middle of a bucket stay in it
+		rows = [
+			item(1, "NEW", 2),
+			item(2, "NEW", 5),
+			item(3, "NEW", 20),
+			item(4, "NEW", 0, due=0),  # deadline today
+			item(5, "SUCCESS", 10, moved_days_ago=5),  # closed in five days
+		]
 		self.sync(data(rows))
 		k = support.snapshot(days=30)["kpis"]
 		self.assertEqual(k["due_today"], 1)
-		self.assertEqual(k["overdue"], 1)  # the deadline today is not overdue yet
-		self.assertAlmostEqual(k["median_hours"], 468.0, delta=0.2)  # ~24 h and ~38 days
+		self.assertEqual(k["overdue"], 0)  # the deadline today is not overdue yet
+		self.assertAlmostEqual(k["median_hours"], 120.0, delta=0.2)  # five days from request to done
 		d = support.snapshot(days=30)
 		self.assertEqual(
 			[(a["label"], a["value"]) for a in d["ages"]],
-			[("до 1 дня", 2), ("1–3 дня", 0), ("3–7 дней", 1), ("1–4 недели", 1), ("больше месяца", 0)],
+			[("до 1 дня", 1), ("1–3 дня", 1), ("3–7 дней", 1), ("1–4 недели", 1), ("больше месяца", 0)],
 		)
 
 	def test_person_items(self):

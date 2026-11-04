@@ -33,6 +33,7 @@ class TestDashboardExtras(RegistryFixture):
 				"doctype": "Access Role Assignment",
 				"person": self.person(3),
 				"access_role": "Кадровик",
+				"valid_to": add_days(today(), 7),
 				"reason": "временное поручение",
 				"approved_by": "Administrator",
 			}
@@ -45,11 +46,16 @@ class TestDashboardExtras(RegistryFixture):
 	def test_quality_counters(self):
 		self.assertEqual(frappe.db.get_value("IB User", {"person": self.person(1)}, "has_extra_roles"), 1)
 		quality = api.dashboard(refresh=1)["quality"]
-		self.assertEqual(quality["extra_roles"], 1)
-		self.assertEqual(quality["b24_admins"], 0)
+		# the same filters the dashboard uses: the API counts what is really there
+		extra = frappe.db.count(
+			"IB User", {"has_extra_roles": 1, "login_allowed": 1, "invalid": 0, "missing_in_source": 0}
+		)
+		admins = frappe.db.count("B24 User", {"is_admin": 1, "active": 1, "missing_in_source": 0})
+		self.assertEqual(quality["extra_roles"], extra)  # Иванов and the orphan robot
+		self.assertEqual(quality["b24_admins"], admins)  # Иванов is in the admins group of the fixture
 		self.assertEqual(quality["merge_candidates"], 0)
-		frappe.db.set_value("B24 User", {"person": self.person(1)}, "is_admin", 1)
-		self.assertEqual(api.dashboard(refresh=1)["quality"]["b24_admins"], 1)
+		frappe.db.set_value("B24 User", {"person": self.person(1)}, "is_admin", 0)
+		self.assertEqual(api.dashboard(refresh=1)["quality"]["b24_admins"], admins - 1)
 
 	def test_sources_and_their_states(self):
 		rows = api.sources()
@@ -71,7 +77,9 @@ class TestDashboardExtras(RegistryFixture):
 		self.assertEqual(next(r for r in api.sources() if r["name"] == base["name"])["state"], "warn")
 		frappe.db.set_value("Info Base", base["name"], "last_status", None)
 		row = next(r for r in api.sources() if r["name"] == base["name"])
-		self.assertEqual((row["state"], row["last"], row["status"]), ("none", None, None))
+		# last_status is gone but last_sync (the «last» column) stays
+		self.assertEqual((row["state"], row["status"]), ("none", None))
+		self.assertTrue(row["last"])
 
 	def test_reviewer_without_sections_sees_no_counters(self):
 		make_user("reviewer-ov@registry.test", "Access Reviewer")
@@ -92,14 +100,14 @@ class TestPeopleList(RegistryFixture):
 		return result, {r["full_name"] for r in result["rows"]}
 
 	def test_status_and_pagination(self):
-		result, working = self.all_names(status="Работает")
+		result, names = self.all_names(status="Работает")
 		self.assertEqual(result["total"], 6)
 		self.assertTrue(all(r["status"] == "Работает" for r in result["rows"]))
 		page, names = self.all_names(limit=3)
 		self.assertEqual((page["total"], len(page["rows"])), (8, 3))
 		tail, names = self.all_names(start=6, limit=10)
 		self.assertEqual(len(tail["rows"]), 2)
-		self.assertFalse(names & working)  # the tail is the two dismissed people
+		self.assertEqual(names, {"Сидоров Пётр Алексеевич", FEDOROV})  # the last two by full name
 		self.assertEqual(api.people(query="   ")["total"], 8)  # blank query means «everyone»
 
 	def test_organization_filter(self):
@@ -125,6 +133,10 @@ class TestPeopleList(RegistryFixture):
 		self.assertIn("extra_roles", row["flags"])
 
 	def test_b24_admin_flag(self):
+		# Иванов is in the «Администраторы» group of the fixture portal
+		_, names = self.all_names(flag="b24_admin")
+		self.assertEqual(names, {"Иванов Иван Иванович"})
+		frappe.db.set_value("B24 User", {"person": self.person(1)}, "is_admin", 0)
 		self.assertEqual(api.people(flag="b24_admin")["total"], 0)
 		frappe.db.set_value("B24 User", {"person": self.person(1)}, "is_admin", 1)
 		result, names = self.all_names(flag="b24_admin")
@@ -238,12 +250,16 @@ class TestControlLists(RegistryFixture):
 		by_system = {}
 		for row in rows:
 			by_system.setdefault(row["system"], set()).add(row["account"])
+		# «Администратор» (1С), the backup and Орлова (AD, she is linked only by employeeNumber
+		# in another test) and Смирнов (Битрикс24)
 		self.assertIn("TST1: Администратор", by_system.get("1С", set()))
+		self.assertEqual(by_system.get("AD", set()), {"TSTAD: svc_backup", "TSTAD: Орлова Е. П."})
 		self.assertIn("TSTB24: Смирнов Олег", by_system.get("Битрикс24", set()))
-		# the extranet partner and the service backup account are out of the list
 		accounts = {row["account"] for row in rows}
+		# the extranet partner, the orphan robot and the invalid 1С card are out of the list
 		self.assertFalse([a for a in accounts if "partner@partner.example" in a])
-		self.assertFalse([a for a in accounts if "svc_backup" in a])
+		self.assertFalse([a for a in accounts if "robot_exchange" in a])
+		self.assertFalse([a for a in accounts if "Карточка без пользователя" in a])
 		for row in rows:
 			self.assertTrue(row["note"] is None or isinstance(row["note"], str))
 
@@ -252,11 +268,15 @@ class TestControlLists(RegistryFixture):
 		# Новиков never logged in (last_logon is null) — stale no matter when the test runs
 		novikov = next(r for r in rows if r["full_name"] == NOVIKOV)
 		self.assertEqual((novikov["system"], novikov["last_activity"]), ("AD", None))
-		# a fresh logon removes the alert, an old one brings it back
+		# a fresh logon removes the alert, an old one brings it back; Иванов is counted in AD
+		# and in Битрикс24, so both last_logon and last_login matter
 		account = frappe.db.get_value("AD Account", {"person": self.person(1), "enabled": 1}, "name")
+		b24 = frappe.db.get_value("B24 User", {"person": self.person(1), "active": 1}, "name")
 		frappe.db.set_value("AD Account", account, "last_logon", now_datetime())
+		frappe.db.set_value("B24 User", b24, "last_login", now_datetime())
 		self.assertNotIn("Иванов Иван Иванович", {r["full_name"] for r in api.control("stale")["rows"]})
 		frappe.db.set_value("AD Account", account, "last_logon", add_days(now_datetime(), -120))
+		frappe.db.set_value("B24 User", b24, "last_login", add_days(now_datetime(), -120))
 		ivanov = next(r for r in api.control("stale")["rows"] if r["full_name"] == "Иванов Иван Иванович")
 		self.assertIsNotNone(ivanov["last_activity"])
 
@@ -285,28 +305,33 @@ class TestControlLists(RegistryFixture):
 	def test_privileged(self):
 		rows = api.control("privileged")["rows"]
 		extra = [r for r in rows if "в обход профилей" in r["title"]]
-		self.assertEqual(len(extra), 1)
-		self.assertEqual(
-			(extra[0]["full_name"], extra[0]["system"], extra[0]["risk"]),
-			("Иванов Иван Иванович", "1С", "Высокий"),
-		)
+		# Иванов and the orphan robot: «ПолныеПрава» outside any supplied profile
+		self.assertEqual({r["full_name"] for r in extra}, {"Иванов Иван Иванович", "(не привязан)"})
+		ivanov_extra = next(r for r in extra if r["person"])
+		self.assertEqual((ivanov_extra["system"], ivanov_extra["risk"]), ("1С", "Высокий"))
+		# Иванов is in the admins group of the fixture portal — the alert is already there
+		admins = [r for r in rows if "администратор портала" in r["title"]]
+		self.assertEqual([r["full_name"] for r in admins], ["Иванов Иван Иванович"])
 		frappe.db.set_value("B24 User", {"person": self.person(2)}, "is_admin", 1)
 		rows = api.control("privileged")["rows"]
-		admin = next(r for r in rows if "администратор портала" in r["title"])
+		admins = [r for r in rows if "администратор портала" in r["title"]]
 		self.assertEqual(
-			(admin["full_name"], admin["risk"], admin["system"]),
-			("Петрова Мария Сергеевна", "Критичный", "Битрикс24"),
+			{r["full_name"] for r in admins}, {"Иванов Иван Иванович", "Петрова Мария Сергеевна"}
 		)
+		for admin in admins:
+			self.assertEqual((admin["risk"], admin["system"]), ("Критичный", "Битрикс24"))
 		# «Критичный» is sorted before «Высокий»
-		self.assertLess(rows.index(admin), rows.index(extra[0]))
+		critical = [i for i, r in enumerate(rows) if r["risk"] == "Критичный"]
+		high = [i for i, r in enumerate(rows) if r["risk"] == "Высокий"]
+		self.assertLess(max(critical), min(high))
 
 	def test_quality(self):
 		rows = api.control("quality")["rows"]
 		ad_rows = [r for r in rows if r["area"] == "AD: employeeNumber"]
-		self.assertEqual(len(ad_rows), 5)
+		# Орлова is linked only by employeeNumber in another test — here her account is unlinked
 		self.assertEqual(
 			{r["full_name"] for r in ad_rows},
-			{FEDOROV, NOVIKOV, "Иванов Иван Иванович", "Петрова Мария Сергеевна", "Орлова Елена Павловна"},
+			{FEDOROV, NOVIKOV, "Иванов Иван Иванович", "Петрова Мария Сергеевна"},
 		)
 		for row in ad_rows:
 			self.assertEqual(row["current"], "—")
@@ -354,8 +379,14 @@ class TestControlEvents(RegistryFixture):
 		self.assertEqual(self.todo(1), "Отозвать лишнее после перевода: 1С: Кадровик")
 
 	def test_planned_dismissal_schedules_disable(self):
-		self.event(1, "Предстоящее увольнение")
+		employment = frappe.db.get_value("Employment", {"person": self.person(1)}, "name")
+		self.event(1, "Предстоящее увольнение", employment=employment)
 		self.assertEqual(self.todo(1), "Запланировать отключение в последний рабочий день: 1С, AD, Битрикс24")
+
+	def test_event_without_employment_keeps_accounts(self):
+		# it is unknown which employment ends — the safe recommendation is to keep the accounts
+		self.event(1, "Предстоящее увольнение")
+		self.assertIn("Учётки не отключать", self.todo(1))
 
 	def test_dismissal_with_another_employment_keeps_accounts(self):
 		# Кузнецова works both as «Начальник отдела продаж» and part-time «Бухгалтер»

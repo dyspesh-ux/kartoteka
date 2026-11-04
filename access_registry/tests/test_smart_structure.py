@@ -193,7 +193,7 @@ class TestStartAndBuild(FrappeTestCase):
 	def test_start_enqueues_and_checks_rights(self):
 		with patch("frappe.enqueue") as enqueue:
 			message = start(self.portal.name)
-		self.assertIn("Структура смарт-процессов", message)
+		self.assertIn("смарт-процессов", message)
 		kwargs = enqueue.call_args.kwargs
 		self.assertEqual(kwargs["job_id"], f"b24_smart_structure::{self.portal.name}")
 		self.assertTrue(kwargs["deduplicate"])

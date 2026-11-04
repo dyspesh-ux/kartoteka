@@ -237,7 +237,7 @@ class TestAppAccess(RegistryFixture):
 		self.assertFalse(app_access.system_allowed("Другое", ["ad"]))  # unknown systems: all only
 		self.assertTrue(app_access.system_allowed("Другое", list(app_access.SYSTEMS)))
 		rows = [{"system": "AD"}, {"system": "1С"}, {}, {"system": "Другое"}]
-		self.assertEqual(app_access.filter_rows(rows, allowed=["ad"]), rows[:3:2] + rows[2:3])
+		self.assertEqual(app_access.filter_rows(rows, allowed=["ad"]), [rows[0], rows[2]])
 		self.assertEqual(
 			app_access.filter_rows(rows, allowed=list(app_access.SYSTEMS)), rows
 		)  # everything for those who see all systems

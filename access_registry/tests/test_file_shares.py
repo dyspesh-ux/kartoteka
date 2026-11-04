@@ -615,8 +615,10 @@ class TestFileShares(FrappeTestCase):
 		self.assertFalse(row["person"])
 		self.assertEqual(row["person_status"], "не привязан")
 		self.assertEqual(row["full_name"], "svc_backup")  # falls back to the AD display name
+		# «не привязан» ≠ «неработающий»: only_not_working lists accounts of bound persons
+		# whose status is not «Работает»; unlinked accounts stay out (same rule as in share_issues)
 		_c, not_working = share_reports.share_access({"only_not_working": 1})
-		self.assertIn("CORP\\svc_backup", {r["login"] for r in not_working})
+		self.assertNotIn("CORP\\svc_backup", {r["login"] for r in not_working})
 
 	# ---------------------------------------------------------------- reports: filters
 
