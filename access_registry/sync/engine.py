@@ -19,15 +19,12 @@ from access_registry.sync.normalize import comparable, date_or_none, match_keys
 from access_registry.sync.persons import (
 	ACTIVE_EMPLOYMENT_STATUSES,
 	compute_person_state,
-	create_merge_candidate,
+	propose_candidates,
 )
 
 LOCK_NAME = "access_registry:zup_sync"
 SAVEPOINT = "access_registry_sync"
 MAX_MESSAGES = 1000
-
-REASON_FULL_MATCH = "Совпадают ФИО и дата рождения"
-REASON_PARTIAL_MATCH = "Совпадают имя, отчество и дата рождения (смена фамилии?)"
 
 ORG_FIELDS = [
 	"source",
@@ -783,6 +780,17 @@ class SourceSync:
 				person.update(incoming)
 				person.save(ignore_permissions=True, ignore_version=False)
 				link.update(incoming)
+				# The updated data may now match another Person (e.g. the birth date arrived
+				# in ZUP later): suggest candidates that the creation branch could not see.
+				key, partial_key = match_keys(
+					incoming["last_name"],
+					incoming["first_name"],
+					incoming["middle_name"],
+					incoming["birth_date"],
+				)
+				self.stats["Person Merge Candidate"]["created"] += propose_candidates(
+					link.parent, key, partial_key
+				)
 				self.stats["Person"]["updated"] += 1
 			else:
 				self.stats["Person"]["unchanged"] += 1
@@ -820,22 +828,7 @@ class SourceSync:
 		)
 		self.stats["Person"]["created"] += 1
 
-		for other in full_matches:
-			if create_merge_candidate(other, person.name, REASON_FULL_MATCH):
-				self.stats["Person Merge Candidate"]["created"] += 1
-		if partial_key:
-			partial = frappe.get_all(
-				"Person",
-				filters={
-					"match_key_partial": partial_key,
-					"match_key": ["!=", key],
-					"name": ["!=", person.name],
-				},
-				pluck="name",
-			)
-			for other in partial:
-				if create_merge_candidate(other, person.name, REASON_PARTIAL_MATCH):
-					self.stats["Person Merge Candidate"]["created"] += 1
+		self.stats["Person Merge Candidate"]["created"] += propose_candidates(person.name, key, partial_key)
 		return person.name
 
 	def employment_status(self, hire_date, termination_date) -> str:

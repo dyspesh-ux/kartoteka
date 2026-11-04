@@ -8,6 +8,9 @@ ACTIVE_EMPLOYMENT_STATUSES = ("Работает", "Увольняется")
 MAIN_EMPLOYMENT_KIND = "ОсновноеМестоРаботы"
 PARENTAL_LEAVE_CATEGORY = "ОтпускПоУходу"
 
+REASON_FULL_MATCH = "Совпадают ФИО и дата рождения"
+REASON_PARTIAL_MATCH = "Совпадают имя, отчество и дата рождения (смена фамилии?)"
+
 
 def compute_person_state(employments: list) -> dict:
 	"""Person status, presence and the external-part-time flag from all employments (all sources)."""
@@ -60,6 +63,83 @@ def create_merge_candidate(person_a: str, person_b: str, reason: str) -> bool:
 		}
 	).insert(ignore_permissions=True)
 	return True
+
+
+def propose_candidates(person_name: str, match_key: str, match_key_partial: str) -> int:
+	"""Suggests merge candidates for ``person_name`` against all matching Persons.
+
+	Full match — every Person with the same ``match_key``; partial — Persons with the same
+	``match_key_partial`` but a different ``match_key`` (surname change?). Pairs that already
+	exist in any status, including «Разные люди», are not suggested again. Returns the
+	number of candidates created.
+	"""
+	created = 0
+	if match_key:
+		full_matches = frappe.get_all(
+			"Person", filters={"match_key": match_key, "name": ["!=", person_name]}, pluck="name"
+		)
+		for other in full_matches:
+			if create_merge_candidate(other, person_name, REASON_FULL_MATCH):
+				created += 1
+	if match_key_partial:
+		partial = frappe.get_all(
+			"Person",
+			filters={
+				"match_key_partial": match_key_partial,
+				"match_key": ["!=", match_key],
+				"name": ["!=", person_name],
+			},
+			pluck="name",
+		)
+		for other in partial:
+			if create_merge_candidate(other, person_name, REASON_PARTIAL_MATCH):
+				created += 1
+	return created
+
+
+def rescan_merge_candidates() -> dict:
+	"""Suggests merge candidates for all existing Persons. Merges nothing.
+
+	Scans every Person with a non-empty match key: groups with more than one Person by
+	full key become full-match candidate pairs, groups by partial key become partial-match
+	pairs (pairs with an equal full key are already covered by the full pass).
+	Returns {"full": created_full, "partial": created_partial}.
+	"""
+	rows = frappe.get_all(
+		"Person",
+		filters={"match_key": ["!=", ""]},
+		fields=["name", "match_key", "match_key_partial"],
+		limit_page_length=0,
+	)
+	created = {"full": 0, "partial": 0}
+
+	by_full: dict[str, list[str]] = {}
+	by_partial: dict[str, list[str]] = {}
+	for row in rows:
+		by_full.setdefault(row.match_key, []).append(row.name)
+		if row.match_key_partial:
+			by_partial.setdefault(row.match_key_partial, []).append(row.name)
+
+	full_pairs: set[str] = set()
+	for names in by_full.values():
+		for idx, person_a in enumerate(names):
+			for person_b in names[idx + 1 :]:
+				full_pairs.add(pair_key(person_a, person_b))
+				if create_merge_candidate(person_a, person_b, REASON_FULL_MATCH):
+					created["full"] += 1
+
+	key_of = {row.name: row.match_key for row in rows}
+	for names in by_partial.values():
+		for idx, person_a in enumerate(names):
+			for person_b in names[idx + 1 :]:
+				if pair_key(person_a, person_b) in full_pairs:
+					continue
+				if key_of[person_a] == key_of[person_b]:
+					# Equal full keys: covered by the full pass (candidate dedup would skip it anyway).
+					continue
+				if create_merge_candidate(person_a, person_b, REASON_PARTIAL_MATCH):
+					created["partial"] += 1
+	return created
 
 
 def merge_persons(keep: str, drop: str, candidate: str | None = None) -> str:

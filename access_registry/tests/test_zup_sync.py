@@ -11,7 +11,7 @@ from frappe.utils import getdate
 from access_registry.sync.departments import ROOT_KEY, ensure_root, org_node_key
 from access_registry.sync.engine import refresh_statuses, resolve_hierarchy, run_source_sync
 from access_registry.sync.normalize import match_keys, normalize_name
-from access_registry.sync.persons import merge_persons
+from access_registry.sync.persons import merge_persons, rescan_merge_candidates
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 TODAY = getdate("2026-06-01")
@@ -697,6 +697,80 @@ class TestZupSync(FrappeTestCase):
 		self.assertEqual(normalize_name("  Aндрeев  Oлег "), normalize_name("Андреев олег"))
 		self.assertEqual(normalize_name("Фёдоров"), "федоров")
 		self.assertEqual(match_keys("Иванов", "", "", "1980-01-01"), ("", ""))
+
+	# ------------------------------------------------------------------ 17. candidates for data that aligned later
+
+	def test_17_candidate_when_birth_date_arrives_later(self):
+		data = load("zup1")
+		emp = row(data, "employees", EMP(3), "СотрудникGUID")
+		clone = copy.deepcopy(emp)
+		clone.update({"СотрудникGUID": EMP(21), "ФизЛицоGUID": FL(21), "ДатаРождения": None})
+		data["employees"].append(clone)
+		log = self.sync(S1, data)
+		self.assertSuccess(log)
+
+		person_a = person_of(S1, FL(3))
+		person_b = person_of(S1, FL(21))
+		self.assertNotEqual(person_a, person_b)
+		# No birth date — no match keys, no candidate
+		self.assertFalse(frappe.db.get_value("Person", person_b, "match_key"))
+		self.assertEqual(frappe.db.count("Person Merge Candidate"), 0)
+
+		# ZUP reports the birth date: the update branch suggests the candidate
+		row(data, "employees", EMP(21), "СотрудникGUID")["ДатаРождения"] = "1990-07-20"
+		log = self.sync(S1, data)
+		self.assertSuccess(log)
+		self.assertEqual(
+			frappe.db.get_value("Person", person_b, "match_key"),
+			frappe.db.get_value("Person", person_a, "match_key"),
+		)
+		candidate = frappe.get_doc("Person Merge Candidate", {"person_b": person_b})
+		self.assertEqual(candidate.person_a, person_a)
+		self.assertEqual(candidate.reason, "Совпадают ФИО и дата рождения")
+		self.assertEqual(candidate.status, "Открыт")
+		self.assertEqual(json.loads(log.stats)["Person Merge Candidate"]["created"], 1)
+
+	def test_17b_rescan_merge_candidates(self):
+		self.assertSuccess(self.sync(S1, load("zup1")))
+
+		def make_person(last_name, first_name="Олег", middle_name="Петрович", birth_date="1985-03-10"):
+			return frappe.get_doc(
+				{
+					"doctype": "Person",
+					"last_name": last_name,
+					"first_name": first_name,
+					"middle_name": middle_name,
+					"birth_date": birth_date,
+				}
+			).insert(ignore_permissions=True)
+
+		make_person("Смирнов")
+		person_b = make_person("Смирнов")
+		# The pair predates candidate search: only a full rescan finds it
+		self.assertEqual(frappe.db.count("Person Merge Candidate"), 0)
+		created = rescan_merge_candidates()
+		self.assertEqual(created, {"full": 1, "partial": 0})
+		# A repeated run suggests nothing new
+		self.assertEqual(rescan_merge_candidates(), {"full": 0, "partial": 0})
+
+		# Partial match: same first name, middle name and birth date, different surname
+		make_person("Смирнова", first_name="Олег", middle_name="Петрович", birth_date="1985-03-10")
+		created = rescan_merge_candidates()
+		self.assertEqual(created["partial"], 2)
+		partial = frappe.get_all(
+			"Person Merge Candidate",
+			filters={"reason": "Совпадают имя, отчество и дата рождения (смена фамилии?)"},
+			pluck="name",
+		)
+		self.assertEqual(len(partial), 2)
+
+		# «Разные люди» pairs are not suggested again
+		frappe.get_doc("Person Merge Candidate", {"person_b": person_b}).mark_different()
+		created = rescan_merge_candidates()
+		self.assertEqual(created, {"full": 0, "partial": 0})
+		self.assertEqual(
+			frappe.db.count("Person Merge Candidate", {"reason": "Совпадают ФИО и дата рождения"}), 1
+		)
 
 	# ------------------------------------------------------------------ errors and misc
 
