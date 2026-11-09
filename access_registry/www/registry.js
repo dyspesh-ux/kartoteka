@@ -53,7 +53,7 @@
 
 	async function api(method, args = {}, post = false) {
 		const options = { headers: { Accept: "application/json" }, credentials: "same-origin" };
-		let url = API + method;
+		let url = method.includes(".") ? "/api/method/" + method : API + method;
 		if (post) {
 			options.method = "POST";
 			options.headers["Content-Type"] = "application/json";
@@ -2234,9 +2234,11 @@
 		view.innerHTML = `
 			<div class="page-head"><div><h1>Права доступа</h1><p>Каталог того, что выдаётся в системах: профили 1С, группы AD, группы и права Битрикс24.
 				У каждого права — владелец и уровень риска.</p></div>
-				${state.boot.can.roles ? `<div style="display:flex;gap:8px"><a class="btn" href="/app/query-report/Unmanaged Access">Доступы вне каталога</a><a class="btn primary" href="/app/entitlement/new">Добавить право</a></div>` : ""}</div>
+				<div style="display:flex;gap:8px;flex-wrap:wrap">${state.boot.can.exceptions ? `<button type="button" class="btn" id="fill-catalog">Заполнить из систем</button>` : ""}${state.boot.can.roles ? `<a class="btn" href="/app/role-model-import/new">Импорт из Excel</a><a class="btn" href="/app/query-report/Unmanaged Access">Доступы вне каталога</a><a class="btn primary" href="/app/entitlement/new">Добавить право</a>` : ""}</div></div>
+			${!rows.length && state.boot.can.exceptions ? `<div class="card empty" style="margin-bottom:14px"><b>Каталог пуст</b>Права уже заведены в системах — заполните каталог из них одной кнопкой.${state.boot.can.roles ? ` Или загрузите ролевую модель из Excel (лист «Права», затем «Роли»): кнопка «Импорт из Excel» выше.` : ""}</div>` : ""}
 			<div class="chips" style="margin-bottom:14px">${["", ...systems].map((s) => `<button class="chip ${s === current ? "on" : ""}" data-s="${esc(s)}">${esc(s || "Все")} <span class="n">${rows.filter((r) => !s || r.system === s).length}</span></button>`).join("")}</div>
 			<div class="card ents"></div>`;
+			view.querySelector("#fill-catalog")?.addEventListener("click", catalogFillModal);
 		const draw = () => {
 			view.querySelectorAll("[data-s]").forEach((b) => b.classList.toggle("on", b.dataset.s === current));
 			table(view.querySelector(".ents"), {
@@ -2291,6 +2293,55 @@
 
 	// ------------------------------------------------------------------ roles
 
+	async function catalogFillModal() {
+		const rows = await api("access_registry.access_roles.catalog.catalog_candidates", { min_holders: 1 });
+		const back = document.createElement("div");
+		back.className = "modal-back";
+		back.innerHTML = `<div class="modal" style="max-width:760px"><h3>Заполнить каталог из систем</h3>
+			<p class="muted" style="margin:0 0 12px">Права, которые уже есть у сотрудников, но ещё не описаны в каталоге.
+				Карточки создадутся с привязкой к системе и оценкой риска — владельца и описание уточните позже.</p>
+			<div class="cand"></div>
+			<div class="error-box" style="display:none;padding:8px 0 0"></div>
+			<div class="actions"><button type="button" class="btn cancel">Отмена</button>
+				<button type="button" class="btn" data-add="checked">Добавить отмеченные</button>
+				<button type="button" class="btn primary" data-add="all">Добавить все (${rows.length})</button></div></div>`;
+		document.body.appendChild(back);
+		const close = () => back.remove();
+		back.querySelector(".cancel").addEventListener("click", close);
+		back.addEventListener("click", (e) => e.target === back && close());
+		table(back.querySelector(".cand"), {
+			name: "каталог-из-систем",
+			rows,
+			empty: "Всё описано в каталоге — новых прав не найдено.",
+			columns: [
+				{ key: "include", label: "", width: 36, render: (r) => `<input type="checkbox" data-key="${esc(r.key)}" checked aria-label="добавить">` },
+				{ key: "title", label: "Право", render: (r) => `<b>${esc(r.title)}</b>` },
+				{ key: "system", label: "Система", type: "badge" },
+				{ key: "holders", label: "Есть у", type: "number" },
+			],
+		});
+		const picked = (which) =>
+			which === "all"
+				? rows.map((r) => r.key)
+				: [...back.querySelectorAll("[data-key]")].filter((x) => x.checked).map((x) => x.dataset.key);
+		back.querySelectorAll("[data-add]").forEach((b) =>
+			b.addEventListener("click", async () => {
+				const keys = picked(b.dataset.add);
+				if (!keys.length) return;
+				try {
+					await api("access_registry.access_roles.catalog.catalog_add", { keys }, true);
+					toast(`Добавлено в каталог: ${keys.length}`);
+					close();
+					route();
+				} catch (err) {
+					const box = back.querySelector(".error-box");
+					box.style.display = "block";
+					box.textContent = err.message;
+				}
+			})
+		);
+	}
+
 	async function viewRoles(view) {
 		const rows = await api("roles");
 		let num = 0;
@@ -2310,11 +2361,12 @@
 		view.innerHTML = `
 			<div class="page-head"><div><h1>Роли доступа</h1><p>Роль — набор прав. Должностные роли получают по правилам (должность, подразделение, организация),
 				базовые — все работающие, дополнительные — только назначением на срок.</p></div>
-				${state.boot.can.roles ? `<div style="display:flex;gap:8px"><a class="btn" href="/app/query-report/Role Mining">Подбор ролей</a><a class="btn primary" href="/app/access-role/new">Новая роль</a></div>` : ""}</div>
+				<div style="display:flex;gap:8px;flex-wrap:wrap">${state.boot.can.exceptions ? `<button type="button" class="btn" id="fill-catalog">Заполнить каталог из систем</button>` : ""}${state.boot.can.roles ? `<a class="btn" href="/app/role-model-import/new">Импорт из Excel</a><a class="btn" href="/app/query-report/Role Mining">Подбор ролей</a><a class="btn primary" href="/app/access-role/new">Новая роль</a>` : ""}</div></div>
 			${group("Действуют", "По ним считается, что положено сотрудникам.", rows.filter((r) => r.status === "Действует"))}
 			${group("Черновики — на проверку", "Предложены подбором ролей или заведены вручную; на сверку не влияют, пока не утверждены.", rows.filter((r) => r.status === "Черновик"))}
 			${group("Архив", "Больше не действуют, хранятся для истории.", rows.filter((r) => r.status === "Архив"))}
 			${rows.length ? "" : `<div class="card empty"><b>Ролей пока нет</b>Подбор ролей предложит черновики по доступам, которые уже выданы.</div>`}`;
+			view.querySelector("#fill-catalog")?.addEventListener("click", catalogFillModal);
 	}
 
 	async function viewRole(view, name) {

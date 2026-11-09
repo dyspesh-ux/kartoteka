@@ -36,6 +36,17 @@
    "dependencies": "",
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Импорт ролевой модели",
+   "link_count": 0,
+   "link_to": "Role Model Import",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Роли доступа",
    "link_count": 0,
    "link_to": "Access Role",
