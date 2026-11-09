@@ -178,7 +178,10 @@ class TestHelpdesk(FrappeTestCase):
 		self.assertEqual(smart_items.detect_fields(FIELDS, {"category_field": SRC})["category_field"], SRC)
 
 	def test_sync_mirror(self):
-		log = self.sync()
+		# second load: one item gone, one moved to «done». The same rows keep the same timestamps,
+		# so only the stage change counts as «updated» (rebuilt rows would differ by seconds)
+		payload = data()
+		log = self.sync(payload)
 		self.assertEqual(log.status, "Успех", log.messages)
 		self.assertEqual(self.process.name, f"{PORTAL}:{ETID}")
 		doc = frappe.get_doc("B24 Smart Process", self.process.name)
@@ -200,8 +203,7 @@ class TestHelpdesk(FrappeTestCase):
 		self.assertFalse(frappe.db.get_value("B24 Smart Item", f"{self.process.name}:3", "assigned_name"))
 
 		# second load: one item gone, one moved to «done»
-		rows = items()
-		rows = [r for r in rows if r["id"] != 6]
+		rows = [r for r in payload["items"] if r["id"] != 6]
 		rows[0]["stageId"] = "DT1300_5:SUCCESS"
 		stats = frappe.parse_json(self.sync(data(rows)).stats)
 		self.assertEqual((stats["deleted"], stats["updated"], stats["created"]), (1, 1, 0))
