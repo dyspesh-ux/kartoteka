@@ -23,6 +23,12 @@ class TestScheduler(FrappeTestCase):
 		for method in self.methods():
 			self.assertTrue(callable(frappe.get_attr(method)), method)
 
+	def test_merge_rescan_job(self):
+		# nightly: pairs that became duplicates after creation (e.g. a birth date arrived later)
+		cron = frappe.get_hooks("scheduler_events")["cron"]
+		self.assertIn("access_registry.sync.persons.scheduled_merge_rescan", cron["45 6 * * *"])
+		self.assertIsNone(frappe.get_attr("access_registry.sync.persons.scheduled_merge_rescan")())
+
 	def test_jobs_exist_after_migrate(self):
 		jobs = set(
 			frappe.get_all(

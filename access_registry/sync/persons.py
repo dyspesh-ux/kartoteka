@@ -142,6 +142,14 @@ def rescan_merge_candidates() -> dict:
 	return created
 
 
+def scheduled_merge_rescan() -> None:
+	"""Nightly: pairs that became duplicates after creation (e.g. a birth date arrived later)."""
+	created = rescan_merge_candidates()
+	frappe.logger("access_registry").info(
+		"scheduled_merge_rescan: full={full} partial={partial}".format(**created)
+	)
+
+
 def merge_persons(keep: str, drop: str, candidate: str | None = None) -> str:
 	"""Merges Person ``drop`` into ``keep``. The UUID (name) of ``keep`` never changes.
 

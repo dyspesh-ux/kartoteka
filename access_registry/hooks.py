@@ -53,6 +53,9 @@ scheduler_events = {
 		"30 4 * * *": ["access_registry.access_roles.api.scheduled_refresh"],
 		# Statuses by dates (the last working day has passed) even when ZUP was not loaded.
 		"10 0 * * *": ["access_registry.sync.engine.scheduled_statuses"],
+		# Merge candidates: pairs that became duplicates after creation (e.g. a birth date
+		# arrived later) — after the 06:00 night sync, before the day syncs start at 07:00.
+		"45 6 * * *": ["access_registry.sync.persons.scheduled_merge_rescan"],
 		# Suppressed alerts whose date has passed show again.
 		"5 0 * * *": ["access_registry.access_roles.suppression.expire"],
 		# Morning digest: checked hourly at :05, sent once a day in the hour chosen in its settings.
