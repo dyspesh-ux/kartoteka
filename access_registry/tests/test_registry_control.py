@@ -351,6 +351,52 @@ class TestControlLists(RegistryFixture):
 			)
 
 
+class TestQualityTitlesDepartments(RegistryFixture):
+	"""«AD: должность» и «AD: отдел»: эталон — ЗУП, факт — атрибуты учётки AD."""
+
+	def rows(self):
+		return [
+			r
+			for r in api.control("quality")["rows"]
+			if r["area"] in ("AD: должность", "AD: отдел")
+		]
+
+	def ad_account(self, n):
+		return frappe.db.get_value("AD Account", {"person": self.person(n), "enabled": 1}, "name")
+
+	def test_empty_ad_attributes_are_discrepancies(self):
+		rows = self.rows()
+		names = {r["full_name"] for r in rows}
+		# работают и имеют учётку AD; Фёдоров и Новиков уволены — вне списка
+		self.assertEqual(names, {"Иванов Иван Иванович", "Петрова Мария Сергеевна", "Сидоров Пётр Алексеевич"})
+		ivanov = next(r for r in rows if r["person"] == self.person(1) and r["area"] == "AD: должность")
+		self.assertEqual((ivanov["current"], ivanov["expected"]), ("—", "Генеральный директор"))
+		self.assertTrue(ivanov["ref"].startswith("TSTAD:") and ivanov["ref_doctype"] == "AD Account")
+
+	def test_match_after_normalization_disappears(self):
+		frappe.db.set_value("AD Account", self.ad_account(1), "title", "  ГЕНЕРАЛЬНЫЙ   директор ")
+		rows = self.rows()
+		self.assertFalse([r for r in rows if r["person"] == self.person(1) and r["area"] == "AD: должность"])
+		# отдел в AD по-прежнему пуст — строка по отделу осталась
+		self.assertTrue([r for r in rows if r["person"] == self.person(1) and r["area"] == "AD: отдел"])
+
+	def test_different_department_is_a_discrepancy(self):
+		frappe.db.set_value("AD Account", self.ad_account(2), "department", "Продажи")
+		dept = next(r for r in self.rows() if r["person"] == self.person(2) and r["area"] == "AD: отдел")
+		self.assertEqual((dept["current"], dept["expected"]), ("Продажи", "Бухгалтерия"))
+
+	def test_disabled_account_is_excluded(self):
+		frappe.db.set_value("AD Account", self.ad_account(1), "enabled", 0)
+		self.assertFalse([r for r in self.rows() if r["person"] == self.person(1)])
+
+	def test_suppression_key_separates_areas(self):
+		ivanov = next(r for r in self.rows() if r["person"] == self.person(1) and r["area"] == "AD: должность")
+		api.suppress_alerts("quality", [ivanov["alert_key"]], "скоро поправят в AD")
+		rows = self.rows()
+		self.assertFalse([r for r in rows if r["person"] == self.person(1) and r["area"] == "AD: должность"])
+		self.assertTrue([r for r in rows if r["person"] == self.person(1) and r["area"] == "AD: отдел"])
+
+
 class TestControlEvents(RegistryFixture):
 	"""«Кадровые события: что сделать» — every kind of recommendation."""
 

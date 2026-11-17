@@ -24,6 +24,7 @@ from access_registry.permissions import (
 	has_any,
 	require,
 )
+from access_registry.sync.normalize import normalize_name
 from access_registry.sync.persons import ACTIVE_EMPLOYMENT_STATUSES
 
 LIST_LIMIT = 500
@@ -1599,6 +1600,33 @@ def _control_quality():
 				"expected": r.person,
 			}
 		)
+	ad_accounts = frappe.db.sql(
+		"""select a.name as ref, a.person, a.title, a.department, p.full_name
+		from `tabAD Account` a join `tabPerson` p on p.name = a.person
+		where a.enabled = 1 and a.missing_in_source = 0 and p.status = 'Работает'""",
+		as_dict=True,
+	)
+	places = main_places([r.person for r in ad_accounts])
+	for r in ad_accounts:
+		place = places.get(r.person) or {}
+		for area, current, expected in (
+			("AD: должность", r.title, place.get("position_title")),
+			("AD: отдел", r.department, place.get("department_title")),
+		):
+			if not expected or normalize_name(current) == normalize_name(expected):
+				continue
+			rows.append(
+				{
+					"person": r.person,
+					"full_name": r.full_name,
+					"area": area,
+					"system": "AD",
+					"current": current or "—",
+					"expected": expected,
+					"ref": r.ref,
+					"ref_doctype": "AD Account",
+				}
+			)
 	return [
 		_column("full_name", _("Кто или что"), "person"),
 		_column("area", _("Где расхождение"), "badge"),
