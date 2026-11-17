@@ -67,12 +67,13 @@ class TestMorningDigest(RegistryFixture):
 		self.assertIn(full_name, log.message_html)
 		self.assertIn("/registry#/control/dismissed", log.message_html)
 
-		# back to work: the alert is resolved, nothing new
+		# back to work: the «dismissed» alert is resolved, and the HR-vs-AD attributes of a working
+		# employee are discrepancies again — two «quality» alerts (title and department)
 		frappe.db.set_value("Person", person, "status", "Работает")
 		log = digest.run()
-		self.assertEqual(log.new_alerts, 0)
+		self.assertEqual(log.new_alerts, 2)
 		self.assertGreaterEqual(log.resolved_alerts, 1)
-		self.assertIn("нового нет", log.subject)
+		self.assertIn("новых замечаний", log.subject)
 
 	def test_suppressed_alerts_are_not_new(self):
 		digest.run()

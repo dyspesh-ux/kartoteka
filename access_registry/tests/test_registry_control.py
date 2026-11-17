@@ -363,10 +363,9 @@ class TestQualityTitlesDepartments(RegistryFixture):
 	def test_empty_ad_attributes_are_discrepancies(self):
 		rows = self.rows()
 		names = {r["full_name"] for r in rows}
-		# работают и имеют учётку AD; Фёдоров и Новиков уволены — вне списка
-		self.assertEqual(
-			names, {"Иванов Иван Иванович", "Петрова Мария Сергеевна", "Сидоров Пётр Алексеевич"}
-		)
+		# работают с включённой учёткой AD: Иванов и Петрова; Фёдоров и Новиков уволены, учётка
+		# Сидорова отключена — вне списка
+		self.assertEqual(names, {"Иванов Иван Иванович", "Петрова Мария Сергеевна"})
 		ivanov = next(r for r in rows if r["person"] == self.person(1) and r["area"] == "AD: должность")
 		self.assertEqual((ivanov["current"], ivanov["expected"]), ("—", "Генеральный директор"))
 		self.assertTrue(ivanov["ref"].startswith("TSTAD:") and ivanov["ref_doctype"] == "AD Account")
