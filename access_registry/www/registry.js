@@ -669,7 +669,7 @@
 			${block(3, "Процессы и качество данных", "Кто подменит ключевых людей и совпадают ли системы с кадрами.", `<div class="grid grid-3">
 					${kpi({ href: "#/control/processes", label: "Риски процессов", value: d.processes.risks, tone: "tone-amber",
 						hint: `${d.processes.total} ${plural(d.processes.total, "процесс", "процесса", "процессов")}, ролей: ${d.processes.roles}` })}
-					${kpi({ href: "#/control/quality", label: "Расхождения с кадрами", display: "→", hint: "профили Битрикс24, руководители, employeeNumber в AD" })}
+					${kpi({ href: "#/control/quality", label: "Расхождения с кадрами", display: "→", hint: "профили и руководители Битрикс24, employeeNumber, должность и отдел в AD" })}
 					${kpi({ href: DESK ? "/app/person-merge-candidate?status=Открыт" : null, label: "Кандидаты на склейку", value: d.quality.merge_candidates, tone: "tone-amber", hint: "один человек в разных базах ЗУП" })}
 				</div>`)}
 			${block(4, "Источники", "Откуда реестр берёт данные и когда загружал их в последний раз.", `<div class="card list">${sourcesList(d.sources.slice(0, 8))}</div>`,

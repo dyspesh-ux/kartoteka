@@ -355,11 +355,7 @@ class TestQualityTitlesDepartments(RegistryFixture):
 	"""«AD: должность» и «AD: отдел»: эталон — ЗУП, факт — атрибуты учётки AD."""
 
 	def rows(self):
-		return [
-			r
-			for r in api.control("quality")["rows"]
-			if r["area"] in ("AD: должность", "AD: отдел")
-		]
+		return [r for r in api.control("quality")["rows"] if r["area"] in ("AD: должность", "AD: отдел")]
 
 	def ad_account(self, n):
 		return frappe.db.get_value("AD Account", {"person": self.person(n), "enabled": 1}, "name")
@@ -368,7 +364,9 @@ class TestQualityTitlesDepartments(RegistryFixture):
 		rows = self.rows()
 		names = {r["full_name"] for r in rows}
 		# работают и имеют учётку AD; Фёдоров и Новиков уволены — вне списка
-		self.assertEqual(names, {"Иванов Иван Иванович", "Петрова Мария Сергеевна", "Сидоров Пётр Алексеевич"})
+		self.assertEqual(
+			names, {"Иванов Иван Иванович", "Петрова Мария Сергеевна", "Сидоров Пётр Алексеевич"}
+		)
 		ivanov = next(r for r in rows if r["person"] == self.person(1) and r["area"] == "AD: должность")
 		self.assertEqual((ivanov["current"], ivanov["expected"]), ("—", "Генеральный директор"))
 		self.assertTrue(ivanov["ref"].startswith("TSTAD:") and ivanov["ref_doctype"] == "AD Account")
@@ -390,7 +388,9 @@ class TestQualityTitlesDepartments(RegistryFixture):
 		self.assertFalse([r for r in self.rows() if r["person"] == self.person(1)])
 
 	def test_suppression_key_separates_areas(self):
-		ivanov = next(r for r in self.rows() if r["person"] == self.person(1) and r["area"] == "AD: должность")
+		ivanov = next(
+			r for r in self.rows() if r["person"] == self.person(1) and r["area"] == "AD: должность"
+		)
 		api.suppress_alerts("quality", [ivanov["alert_key"]], "скоро поправят в AD")
 		rows = self.rows()
 		self.assertFalse([r for r in rows if r["person"] == self.person(1) and r["area"] == "AD: должность"])
