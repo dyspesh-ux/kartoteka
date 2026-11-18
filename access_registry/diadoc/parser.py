@@ -92,7 +92,7 @@ def parse(data: bytes) -> dict:
 		key = (org, login or full_name)
 		if key in seen:
 			warnings.append(
-				f"в выгрузке {org}: пользователь {login or full_name} встречается несколько раз, взята последняя строка"
+				f"в выгрузке «{org}» повторяется строка пользователя (логин: {login or '—'}), взята последняя"
 			)
 		seen.add(key)
 		if org not in orgs:

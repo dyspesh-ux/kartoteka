@@ -227,3 +227,162 @@ class TestDiadocLinking(FrappeTestCase):
 		self.assertIsNone(person)
 		self.assertEqual(method, "")
 		self.assertIn("не найден", note)
+
+
+class TestDiadocUpload(FrappeTestCase):
+	"""The upload mirror. One transaction per class: tests use their own organization names."""
+
+	@staticmethod
+	def file_for(org, users):
+		return export_bytes([make_row(org=org, **u) for u in users])
+
+	def test_first_load_creates_orgs_and_users(self):
+		from access_registry.diadoc.sync import run_upload
+
+		data = self.file_for(
+			"Т-Синк-1",
+			[
+				{
+					"name": "Тестдиадоксинк1 Андрей Андреевич",
+					"login": "a.a@test-sync.example",
+					"can_sign": True,
+				},
+				{"name": "Тестдиадоксинк1 Борис Борисович", "login": ""},
+			],
+		)
+		log = run_upload(data, commit=False)
+		self.assertEqual(log.status, "Успех")
+		self.assertEqual(log.kind, "Диадок")
+		self.assertTrue(frappe.db.exists("Diadoc Organization", "Т-Синк-1"))
+		self.assertEqual(frappe.db.count("Diadoc User", {"organization": "Т-Синк-1"}), 2)
+		self.assertTrue(frappe.db.get_value("Diadoc Organization", "Т-Синк-1", "last_upload"))
+		no_login = frappe.db.get_value(
+			"Diadoc User",
+			{"organization": "Т-Синк-1", "full_name": "Тестдиадоксинк1 Борис Борисович"},
+			["name", "login"],
+			as_dict=True,
+		)
+		self.assertTrue(no_login.name.startswith("Т-Синк-1:фио:"))
+		self.assertEqual(no_login.login, "")
+
+	def test_guard_trips_on_shrunk_file(self):
+		from access_registry.diadoc.sync import run_upload
+
+		org = "Т-Синк-Г"
+		run_upload(
+			self.file_for(
+				org,
+				[{"name": f"Тестдиадокг{i} Иван Иванович", "login": f"g{i}@test.example"} for i in range(4)],
+			),
+			commit=False,
+		)
+		run_upload(
+			self.file_for(
+				org,
+				[{"name": f"Тестдиадокг{i} Иван Иванович", "login": f"g{i}@test.example"} for i in range(5)],
+			),
+			commit=False,
+		)
+		log = run_upload(
+			self.file_for(org, [{"name": "Тестдиадокг0 Иван Иванович", "login": "g0@test.example"}]),
+			commit=False,
+		)
+		self.assertEqual(log.status, "Остановлен предохранителем")
+		self.assertEqual(frappe.db.count("Diadoc User", {"organization": org, "missing_in_source": 0}), 5)
+
+	def test_manual_person_survives_reload(self):
+		from access_registry.diadoc.sync import run_upload
+
+		org = "Т-Синк-М"
+		row = {"name": "Тестдиадокм Мануал Мануалович", "login": "manual@test-sync.example"}
+		run_upload(self.file_for(org, [row]), commit=False)
+		user_name = frappe.db.get_value("Diadoc User", {"organization": org}, "name")
+		manual = frappe.get_doc(
+			{"doctype": "Person", "last_name": "Тестдиадокручной", "first_name": "Мария"}
+		).insert(ignore_permissions=True)
+		user = frappe.get_doc("Diadoc User", user_name)
+		user.manual_person = manual.name
+		user.save(ignore_permissions=True)
+		run_upload(self.file_for(org, [row]), commit=False)
+		reloaded = frappe.get_doc("Diadoc User", user_name)
+		self.assertEqual(reloaded.person, manual.name)
+		self.assertEqual(reloaded.person_link_method, "Вручную")
+
+	def test_missing_marked_only_for_orgs_in_file(self):
+		from access_registry.diadoc.sync import run_upload
+
+		run_upload(
+			export_bytes(
+				[
+					make_row(org="Т-Синк-А", name="Тестдиадока Первый Первович", login="a1@test.example"),
+					make_row(org="Т-Синк-А", name="Тестдиадока Второй Вторович", login="a2@test.example"),
+					make_row(org="Т-Синк-Б", name="Тестдиадокб Третий Третович", login="b1@test.example"),
+				]
+			),
+			commit=False,
+		)
+		run_upload(
+			self.file_for("Т-Синк-А", [{"name": "Тестдиадока Первый Первович", "login": "a1@test.example"}]),
+			commit=False,
+		)
+		gone = frappe.db.get_value(
+			"Diadoc User", {"organization": "Т-Синк-А", "login": "a2@test.example"}, "missing_in_source"
+		)
+		kept = frappe.db.get_value(
+			"Diadoc User", {"organization": "Т-Синк-Б", "login": "b1@test.example"}, "missing_in_source"
+		)
+		self.assertEqual(gone, 1)
+		self.assertEqual(kept, 0)
+
+	def test_person_linking_applied_and_log_has_no_names(self):
+		from access_registry.diadoc.linking import BY_EMAIL_AD
+		from access_registry.diadoc.sync import run_upload
+
+		person = frappe.get_doc(
+			{
+				"doctype": "Person",
+				"last_name": "Тестдиадоклинк",
+				"first_name": "Лев",
+				"middle_name": "Львович",
+			}
+		).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "AD Account",
+				"uid": "TST:acc-diadoc-link",
+				"sam_account_name": "linkdiadoc",
+				"user_principal_name": "linkdiadoc@test-sync.example",
+				"person": person.name,
+			}
+		).insert(ignore_permissions=True)
+		log = run_upload(
+			self.file_for(
+				"Т-Синк-Л", [{"name": "Тестдиадоклинк Лев Львович", "login": "linkdiadoc@test-sync.example"}]
+			),
+			commit=False,
+		)
+		user = frappe.db.get_value(
+			"Diadoc User", {"organization": "Т-Синк-Л"}, ["person", "person_link_method"], as_dict=True
+		)
+		self.assertEqual((user.person, user.person_link_method), (person.name, BY_EMAIL_AD))
+		self.assertNotIn("Тестдиадоклинк", log.messages or "")
+
+	def test_reload_unchanged_creates_no_versions(self):
+		import json as jsonlib
+
+		from access_registry.diadoc.sync import run_upload
+
+		org = "Т-Синк-В"
+		data = self.file_for(
+			org,
+			[
+				{"name": "Тестдиадокв Один Одинович", "login": "v1@test.example", "can_sign": True},
+				{"name": "Тестдиадокв Два Дваович", "login": "v2@test.example"},
+			],
+		)
+		run_upload(data, commit=False)
+		versions_before = frappe.db.count("Version", {"ref_doctype": "Diadoc User"})
+		log = run_upload(data, commit=False)
+		self.assertEqual(frappe.db.count("Version", {"ref_doctype": "Diadoc User"}), versions_before)
+		stats = jsonlib.loads(log.stats)
+		self.assertEqual(stats["Diadoc User"]["unchanged"], 2)
