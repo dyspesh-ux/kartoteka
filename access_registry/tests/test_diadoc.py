@@ -629,3 +629,107 @@ class TestDiadocRegistrySection(FrappeTestCase):
 		self.assertEqual(len(rows), 1)
 		self.assertEqual(rows[0]["login"], "sect-user@test-sync.example")
 		self.assertEqual(rows[0]["can_sign"], 1)
+
+
+class TestDiadocReports(FrappeTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		from access_registry.diadoc.sync import run_upload
+
+		# the second upload below intentionally drops one user: relax the guard for the fixture
+		frappe.db.set_single_value("Access Registry Settings", "shrink_threshold_pct", 50)
+		run_upload(
+			export_bytes(
+				[
+					make_row(
+						org="Т-Отчёт",
+						name="Тестдиадокотчёт Актив Активов",
+						login="rep-active@test-sync.example",
+						login_active=True,
+						can_sign=True,
+						payments=True,
+					),
+					make_row(
+						org="Т-Отчёт",
+						name="Тестдиадокотчёт Админ Админов",
+						login="rep-admin@test-sync.example",
+						login_active=True,
+						is_admin=True,
+					),
+					make_row(
+						org="Т-Отчёт",
+						name="Тестдиадокотчёт Блок Блоков",
+						login="rep-blocked@test-sync.example",
+						login_active=True,
+						is_admin=True,
+						blocked=True,
+					),
+					make_row(
+						org="Т-Отчёт",
+						name="Тестдиадокотчёт Ушёл Ушедшов",
+						login="rep-gone@test-sync.example",
+						login_active=True,
+					),
+				]
+			),
+			commit=False,
+		)
+		run_upload(
+			export_bytes(
+				[
+					make_row(
+						org="Т-Отчёт",
+						name="Тестдиадокотчёт Актив Активов",
+						login="rep-active@test-sync.example",
+						login_active=True,
+						can_sign=True,
+						payments=True,
+					),
+					make_row(
+						org="Т-Отчёт",
+						name="Тестдиадокотчёт Админ Админов",
+						login="rep-admin@test-sync.example",
+						login_active=True,
+						is_admin=True,
+					),
+					make_row(
+						org="Т-Отчёт",
+						name="Тестдиадокотчёт Блок Блоков",
+						login="rep-blocked@test-sync.example",
+						login_active=True,
+						is_admin=True,
+						blocked=True,
+					),
+				]
+			),
+			commit=False,
+		)
+
+	def test_users_report_hides_missing(self):
+		from access_registry.diadoc.report.diadoc_users.diadoc_users import execute
+
+		columns, rows = execute({"organization": "Т-Отчёт"})
+		fieldnames = {c["fieldname"] for c in columns}
+		self.assertTrue(
+			{"organization", "full_name", "login", "can_sign", "person_link_method"} <= fieldnames
+		)
+		logins = {r["login"] for r in rows}
+		self.assertIn("rep-active@test-sync.example", logins)
+		self.assertNotIn("rep-gone@test-sync.example", logins)  # пропал из выгрузки
+		active = [r for r in rows if r["login"] == "rep-active@test-sync.example"][0]
+		self.assertEqual(active["can_sign"], 1)
+		self.assertEqual(active["payments"], 1)
+
+	def test_admins_report_only_active_admins(self):
+		from access_registry.diadoc.report.diadoc_admins.diadoc_admins import execute
+
+		_columns, rows = execute(None)
+		mine = [r for r in rows if r["organization"] == "Т-Отчёт"]
+		self.assertEqual([r["login"] for r in mine], ["rep-admin@test-sync.example"])
+
+	def test_workspace_links_reports(self):
+		ws = frappe.get_doc("Workspace", "Диадок")
+		linked = {row.link_to for row in ws.links if row.link_type == "Report"}
+		self.assertIn("Diadoc Users", linked)
+		self.assertIn("Diadoc Admins", linked)

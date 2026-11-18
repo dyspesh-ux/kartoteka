@@ -16,7 +16,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Диадок",
-   "link_count": 3,
+   "link_count": 5,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -51,6 +51,28 @@
    "link_count": 0,
    "link_to": "Sync Log",
    "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Пользователи Диадок",
+   "link_count": 0,
+   "link_to": "Diadoc Users",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Диадок: администраторы",
+   "link_count": 0,
+   "link_to": "Diadoc Admins",
+   "link_type": "Report",
    "onboard": 0,
    "type": "Link"
   }
