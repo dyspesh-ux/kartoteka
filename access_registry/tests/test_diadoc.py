@@ -386,3 +386,52 @@ class TestDiadocUpload(FrappeTestCase):
 		self.assertEqual(frappe.db.count("Version", {"ref_doctype": "Diadoc User"}), versions_before)
 		stats = jsonlib.loads(log.stats)
 		self.assertEqual(stats["Diadoc User"]["unchanged"], 2)
+
+
+class TestDiadocUploadPermissions(FrappeTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		from access_registry.tests.test_permissions import make_user
+
+		cls.specialist = make_user("diadoc-specialist@registry.test", "Diadoc Specialist")
+		cls.plain = make_user("diadoc-plain@registry.test")
+		cls.data = export_bytes(
+			[
+				make_row(
+					org="Т-Кнопка",
+					name="Тестдиадоккнопка Иван Иванович",
+					login="btn@test-sync.example",
+					can_sign=True,
+				)
+			]
+		)
+		filedoc = frappe.get_doc(
+			{"doctype": "File", "file_name": "diadoc-btn-test.xlsx", "content": cls.data}
+		).insert(ignore_permissions=True)
+		cls.file_url = filedoc.file_url
+		frappe.get_doc({"doctype": "Diadoc Organization", "title": "Т-Кнопка"}).insert(
+			ignore_permissions=True
+		)
+
+	def test_load_file_requires_role(self):
+		org = frappe.get_doc("Diadoc Organization", "Т-Кнопка")
+		org.upload_file = self.file_url
+		frappe.set_user(self.plain)
+		try:
+			with self.assertRaises(frappe.PermissionError):
+				org.load_file()
+		finally:
+			frappe.set_user("Administrator")
+		frappe.set_user(self.specialist)
+		try:
+			result = org.load_file()
+		finally:
+			frappe.set_user("Administrator")
+		self.assertEqual(result["status"], "Успех")
+		self.assertTrue(frappe.db.exists("Diadoc User", {"organization": "Т-Кнопка"}))
+
+	def test_load_file_without_attachment_throws(self):
+		org = frappe.get_doc("Diadoc Organization", "Т-Кнопка")
+		with self.assertRaises(frappe.ValidationError):
+			org.load_file()
