@@ -33,6 +33,30 @@ STATUSES = (MISSING, EXCESS, EXCESS_NOT_WORKING, EXCEPTION, OK)
 
 PRIVILEGED_WORDS = ("админ", "полные права", "full", "admin", "администратор")
 
+# Diadoc rights (keys dd:<organization>|<right>); the flag columns of «Diadoc User» they come from.
+DD_RIGHTS = (
+	"Подпись",
+	"Госключ",
+	"Согл.",
+	"Запрос согл.",
+	"Черновики",
+	"Удаление",
+	"Платежки",
+	"Контрагенты",
+	"Админ",
+)
+DD_FLAG_RIGHT = (
+	("can_sign", "Подпись"),
+	("gov_key", "Госключ"),
+	("can_approve", "Согл."),
+	("can_request_approve", "Запрос согл."),
+	("drafts", "Черновики"),
+	("can_delete", "Удаление"),
+	("payments", "Платежки"),
+	("counterparties", "Контрагенты"),
+	("is_admin", "Админ"),
+)
+
 
 def _active(valid_from, valid_to, on) -> bool:
 	return (not valid_from or getdate(valid_from) <= on) and (not valid_to or getdate(valid_to) >= on)
@@ -281,6 +305,18 @@ def raw_accesses(persons=None) -> dict:
 						b24_key(portal, row["via"], row["resource"]),
 						f"Битрикс24: {row['user_name']}",
 					)
+	dd_columns = ", ".join(flag for flag, _right in DD_FLAG_RIGHT)
+	for row in frappe.db.sql(
+		f"""select u.person, u.organization, ifnull(u.login, ''), {dd_columns}
+		from `tabDiadoc User` u
+		where u.login_active = 1 and u.blocked = 0 and u.missing_in_source = 0
+			and ifnull(u.person, '') != ''"""
+	):
+		person, org, login = row[0], row[1], row[2]
+		evidence = f"Диадок {org}: {login or 'без логина'}"
+		for index, (_flag, right) in enumerate(DD_FLAG_RIGHT):
+			if row[3 + index]:
+				add(person, f"dd:{org}|{right}", evidence)
 	return result
 
 
@@ -312,6 +348,8 @@ def entitlement_keys() -> dict:
 			"bit_kind",
 			"bit_name",
 			"bit_base",
+			"dd_organization",
+			"dd_right",
 		],
 		limit_page_length=0,
 	):
@@ -332,6 +370,14 @@ def entitlement_keys() -> dict:
 					keys[e.name].append(f"b24:{portal}|{e.b24_via}|{e.b24_resource or ''}")
 				else:
 					keys[e.name].append(f"b24:{portal}|{e.b24_via}|")
+		if e.dd_right:
+			orgs = (
+				[e.dd_organization]
+				if e.dd_organization
+				else frappe.get_all("Diadoc Organization", pluck="name")
+			)
+			for org in orgs:
+				keys[e.name].append(f"dd:{org}|{e.dd_right}")
 	return keys
 
 
@@ -500,6 +546,15 @@ def role_design_conflicts() -> list[dict]:
 def describe_key(key: str) -> dict:
 	"""Title, system and link fields of an entitlement for a raw access key."""
 	kind, _, ref = key.partition(":")
+	if kind == "dd":
+		org, right = (ref.split("|", 1) + [""])[:2]
+		return {
+			"title": f"Диадок {org}: {right}",
+			"system": "Диадок",
+			"dd_organization": org,
+			"dd_right": right,
+			"privileged": int(right == "Админ"),
+		}
 	if kind == "bit":
 		base, bit_kind, name = (ref.split("|", 2) + ["", ""])[:3]
 		what = {"Виза": "виза", "Роль исполнителя": "роль", "Доступ к ЦФО": "доступ к ЦФО"}.get(
@@ -558,13 +613,16 @@ def ensure_entitlement(key: str) -> str:
 	if existing:
 		return existing
 	values = describe_key(key)
-	privileged = any(word in values["title"].lower() for word in PRIVILEGED_WORDS)
+	# describe_key of a dd key knows privileged exactly; other systems fall back to the title words.
+	privileged = int(
+		values.pop("privileged", any(word in values["title"].lower() for word in PRIVILEGED_WORDS))
+	)
 	doc = frappe.get_doc(
 		{
 			"doctype": "Entitlement",
 			**values,
 			"risk": "Высокий" if privileged else "Средний",
-			"privileged": int(privileged),
+			"privileged": privileged,
 			"description": "Создано подбором ролей",
 		}
 	).insert(ignore_permissions=True)

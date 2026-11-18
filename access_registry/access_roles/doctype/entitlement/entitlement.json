@@ -26,6 +26,8 @@
   "b24_portal",
   "b24_via",
   "b24_resource",
+  "dd_organization",
+  "dd_right",
   "other_reference"
  ],
  "fields": [
@@ -44,7 +46,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Система",
-   "options": "1С\nActive Directory\nБитрикс24\nДругое",
+   "options": "1С\nActive Directory\nБитрикс24\nДругое\nДиадок",
    "reqd": 1
   },
   {
@@ -167,6 +169,21 @@
    "fieldname": "b24_resource",
    "fieldtype": "Data",
    "label": "Битрикс24: ресурс"
+  },
+  {
+   "depends_on": "eval:doc.system=='Диадок'",
+   "description": "Пусто — в любой организации Диадок",
+   "fieldname": "dd_organization",
+   "fieldtype": "Link",
+   "label": "Диадок: организация",
+   "options": "Diadoc Organization"
+  },
+  {
+   "depends_on": "eval:doc.system=='Диадок'",
+   "fieldname": "dd_right",
+   "fieldtype": "Select",
+   "label": "Диадок: право",
+   "options": "Подпись\nГосключ\nСогл.\nЗапрос согл.\nЧерновики\nУдаление\nПлатежки\nКонтрагенты\nАдмин"
   },
   {
    "depends_on": "eval:doc.system=='Другое'",

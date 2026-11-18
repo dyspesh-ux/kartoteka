@@ -435,3 +435,119 @@ class TestDiadocUploadPermissions(FrappeTestCase):
 		org = frappe.get_doc("Diadoc Organization", "Т-Кнопка")
 		with self.assertRaises(frappe.ValidationError):
 			org.load_file()
+
+
+class TestDiadocEntitlements(FrappeTestCase):
+	"""Diadoc rights as entitlements: dd:<org>|<right> keys of the role model engine."""
+
+	@classmethod
+	def person_with_ad(cls, last, first, upn):
+		person = frappe.get_doc({"doctype": "Person", "last_name": last, "first_name": first}).insert(
+			ignore_permissions=True
+		)
+		frappe.get_doc(
+			{
+				"doctype": "AD Account",
+				"uid": f"TST:acc-{upn.split('@')[0]}",
+				"sam_account_name": upn.split("@")[0],
+				"user_principal_name": upn,
+				"person": person.name,
+			}
+		).insert(ignore_permissions=True)
+		return person
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		from access_registry.diadoc.sync import run_upload
+
+		cls.signer = cls.person_with_ad("Тестдиадокправо", "Подписант", "ddsign@test-sync.example")
+		cls.admin = cls.person_with_ad("Тестдиадокправо", "Админ", "ddadmin@test-sync.example")
+		cls.blocked = cls.person_with_ad("Тестдиадокправо", "Заблок", "ddblocked@test-sync.example")
+		cls.inactive = cls.person_with_ad("Тестдиадокправо", "Неактивен", "ddinactive@test-sync.example")
+		rows = [
+			make_row(
+				org="Т-Права-1",
+				name="Тестдиадокправо Подписант",
+				login="ddsign@test-sync.example",
+				login_active=True,
+				can_sign=True,
+				can_approve=True,
+			),
+			make_row(
+				org="Т-Права-1",
+				name="Тестдиадокправо Заблок",
+				login="ddblocked@test-sync.example",
+				login_active=True,
+				can_sign=True,
+				blocked=True,
+			),
+			make_row(
+				org="Т-Права-1",
+				name="Тестдиадокправо Неактивен",
+				login="ddinactive@test-sync.example",
+				can_sign=True,
+			),
+			make_row(
+				org="Т-Права-2",
+				name="Тестдиадокправо Админ",
+				login="ddadmin@test-sync.example",
+				login_active=True,
+				is_admin=True,
+			),
+		]
+		run_upload(export_bytes(rows), commit=False)
+
+	def test_raw_accesses_dd_keys(self):
+		from access_registry.access_roles import engine
+
+		raw = engine.raw_accesses({self.signer.name, self.admin.name, self.blocked.name, self.inactive.name})
+		self.assertIn("dd:Т-Права-1|Подпись", raw[self.signer.name])
+		self.assertIn("dd:Т-Права-2|Админ", raw[self.admin.name])
+		self.assertFalse(any(k.startswith("dd:") for k in raw[self.blocked.name]))
+		self.assertFalse(any(k.startswith("dd:") for k in raw[self.inactive.name]))
+
+	def test_entitlement_dd_any_org(self):
+		from access_registry.access_roles import engine
+
+		frappe.get_doc(
+			{
+				"doctype": "Entitlement",
+				"title": "Диадок: подпись (тест)",
+				"system": "Диадок",
+				"dd_right": "Подпись",
+			}
+		).insert(ignore_permissions=True)
+		specific = frappe.get_doc(
+			{
+				"doctype": "Entitlement",
+				"title": "Диадок: подпись Т-Права-1 (тест)",
+				"system": "Диадок",
+				"dd_organization": "Т-Права-1",
+				"dd_right": "Подпись",
+			}
+		).insert(ignore_permissions=True)
+		keys = engine.entitlement_keys()
+		self.assertIn("dd:Т-Права-1|Подпись", keys[specific.name])
+		self.assertNotIn("dd:Т-Права-2|Подпись", keys[specific.name])
+		any_org = frappe.get_doc("Entitlement", {"title": "Диадок: подпись (тест)"})
+		self.assertIn("dd:Т-Права-1|Подпись", keys[any_org.name])
+		self.assertIn("dd:Т-Права-2|Подпись", keys[any_org.name])
+
+	def test_describe_key_dd_admin_privileged(self):
+		from access_registry.access_roles import engine
+
+		described = engine.describe_key("dd:Т-Права-2|Админ")
+		self.assertEqual(described["title"], "Диадок Т-Права-2: Админ")
+		self.assertEqual(described["system"], "Диадок")
+		self.assertEqual(described["dd_organization"], "Т-Права-2")
+		self.assertEqual(described["dd_right"], "Админ")
+		self.assertEqual(described["privileged"], 1)
+		sign = engine.describe_key("dd:Т-Права-1|Подпись")
+		self.assertEqual(sign["privileged"], 0)
+
+	def test_uncatalogued_dd_right_surfaces(self):
+		from access_registry.access_roles import engine
+
+		_actual, uncatalogued = engine.actual_entitlements({self.signer.name})
+		self.assertIn("dd:Т-Права-1|Согл.", uncatalogued[self.signer.name])
