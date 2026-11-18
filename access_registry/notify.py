@@ -16,7 +16,7 @@ from html import escape
 
 import frappe
 from frappe import _
-from frappe.utils import get_url, getdate, now_datetime
+from frappe.utils import add_days, cint, get_url, getdate, now_datetime, today
 
 from access_registry import app_access as aa
 
@@ -26,6 +26,7 @@ HR = "Кадровые события"
 AD_PLAN = "План изменений AD"
 HELPDESK = "Техподдержка: просроченные заявки"
 HIRING = "Подбор: новые вакансии"
+DIADOC = "Диадок: пора загружать выгрузку"
 DAILY = "Раз в день"
 LIMIT = 30  # items named in one message; the rest are counted
 KEEP_NOTICES_DAYS = 90
@@ -252,6 +253,37 @@ def _hiring_items(rule) -> list[Item]:
 	]
 
 
+def _diadoc_items(rule) -> list[Item]:
+	"""Diadoc organizations whose last successful upload is older than their reminder threshold."""
+	items = []
+	for org in frappe.get_all(
+		"Diadoc Organization",
+		filters={"enabled": 1},
+		fields=["name", "title", "last_upload", "upload_reminder_days"],
+	):
+		stale_days = cint(org.upload_reminder_days) or 30
+		if org.last_upload:
+			stale = getdate(org.last_upload) < getdate(add_days(today(), -stale_days))
+			loaded = _("последняя загрузка {0}").format(getdate(org.last_upload).strftime("%d.%m.%Y"))
+		else:
+			stale = True
+			loaded = _("ещё не загружалась")
+		if not stale:
+			continue
+		items.append(
+			Item(
+				key=f"diadoc|{org.name}",
+				text=f"{org.title or org.name}: {loaded}",
+				group=_("Диадок"),
+				url=get_url("/app/diadoc-organization"),
+				visible=lambda user, a: bool(
+					frappe.has_permission("Diadoc Organization", ptype="read", user=user)
+				),
+			)
+		)
+	return items
+
+
 COLLECTORS = {
 	CONTROL: _control_items,
 	SOURCES: _source_items,
@@ -259,6 +291,7 @@ COLLECTORS = {
 	AD_PLAN: _ad_plan_items,
 	HELPDESK: _helpdesk_items,
 	HIRING: _hiring_items,
+	DIADOC: _diadoc_items,
 }
 CONTROL_BY_TITLE = aa.CONTROL_BY_TITLE
 
@@ -375,6 +408,7 @@ def _app_link(rule) -> str:
 			AD_PLAN: "/registry#/ad-plans",
 			HELPDESK: "/registry#/support",
 			HIRING: "/registry#/hiring",
+			DIADOC: "/app/diadoc-organization",
 		}[rule.event]
 	)
 

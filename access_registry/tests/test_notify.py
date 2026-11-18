@@ -3,7 +3,8 @@
 from datetime import datetime
 
 import frappe
-from frappe.utils import add_days, today
+from frappe.tests.utils import FrappeTestCase
+from frappe.utils import add_days, now_datetime, today
 
 from access_registry import notify
 from access_registry.registry import api
@@ -152,3 +153,60 @@ class TestNotify(SnipeFixture):
 		frappe.db.set_value("Registry Notice", old.name, "creation", add_days(today(), -200))
 		notify.scheduled(commit=False)
 		self.assertFalse(frappe.db.exists("Registry Notice", old.name))
+
+
+class TestDiadocNotify(FrappeTestCase):
+	"""The «Диадок: пора загружать выгрузку» reminder event."""
+
+	def setUp(self):
+		frappe.db.delete("Registry Notice")
+		frappe.db.delete("Registry Notification Rule")
+		frappe.db.delete("Diadoc Organization", {"name": ["like", "Т-Нап%"]})
+		self.specialist = make_user("diadoc-notify@registry.test", "Diadoc Specialist")
+		self.nobody = make_user("diadoc-notify-none@registry.test")
+		for name, days_ago, enabled in (
+			("Т-Нап-Новая", None, 1),
+			("Т-Нап-Старая", 40, 1),
+			("Т-Нап-Свежая", 10, 1),
+			("Т-Нап-Выключена", 60, 0),
+		):
+			org = frappe.get_doc(
+				{"doctype": "Diadoc Organization", "title": name, "enabled": enabled}
+			).insert(ignore_permissions=True)
+			if days_ago is not None:
+				org.db_set("last_upload", add_days(now_datetime(), -days_ago))
+
+	def rule(self):
+		name = api.save_notification_rule(
+			{
+				"title": "Тест: Диадок напоминания",
+				"event": notify.DIADOC,
+				"channel_app": 1,
+				"channel_email": 0,
+				"users": [self.specialist, self.nobody],
+			}
+		)
+		return frappe.get_doc("Registry Notification Rule", name)
+
+	def test_collector_lists_stale_orgs(self):
+		keys = {item.key for item in notify._diadoc_items(None)}
+		self.assertIn("diadoc|Т-Нап-Новая", keys)
+		self.assertIn("diadoc|Т-Нап-Старая", keys)
+		self.assertNotIn("diadoc|Т-Нап-Свежая", keys)
+		self.assertNotIn("diadoc|Т-Нап-Выключена", keys)
+
+	def test_item_visible_by_desk_permission(self):
+		item = notify._diadoc_items(None)[0]
+		self.assertTrue(item.visible(self.specialist, {}))
+		self.assertFalse(item.visible(self.nobody, {}))
+		self.assertTrue(item.visible("Administrator", {}))
+
+	def test_rule_sends_only_new_to_specialist(self):
+		rule = self.rule()
+		self.assertEqual(notify.run(rule), {})
+		frappe.get_doc({"doctype": "Diadoc Organization", "title": "Т-Нап-Опоздавшая"}).insert(
+			ignore_permissions=True
+		)
+		sent = notify.run(rule)
+		self.assertEqual(list(sent), [self.specialist])
+		self.assertTrue(any("Т-Нап-Опоздавшая" in i.text for i in sent[self.specialist]))
