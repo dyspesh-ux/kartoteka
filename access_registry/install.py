@@ -12,6 +12,7 @@ REGISTRY_ROLES = {
 	"Access Catalog Viewer": "Контролёр прав (главный бухгалтер, руководители): доступы и отчёты без персональных данных",
 	"Access Reviewer": "Проверяющий в пересмотре доступа (руководитель): только свои задания в /registry",
 	"1C Sync": "Технический пользователь внешнего транспорта (n8n): только методы импорта",
+	"Diadoc Specialist": "Специалист по ЭДО Диадок: загружает выгрузки, читает модуль",
 }
 CATALOG_ROLES = tuple(REGISTRY_ROLES)
 # Reviewers work only in /registry: they may be website users without a desk licence.

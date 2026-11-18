@@ -1,0 +1,239 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-11-18 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "organization",
+  "full_name",
+  "position",
+  "login",
+  "column_break_1",
+  "login_active",
+  "is_admin",
+  "blocked",
+  "can_sign",
+  "gov_key",
+  "can_approve",
+  "can_request_approve",
+  "drafts",
+  "can_delete",
+  "payments",
+  "counterparties",
+  "section_break_2",
+  "person",
+  "person_link_method",
+  "person_link_note",
+  "manual_person",
+  "column_break_2",
+  "src_hash",
+  "missing_in_source",
+  "uid"
+ ],
+ "fields": [
+  {
+   "fieldname": "organization",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Организация",
+   "options": "Diadoc Organization",
+   "reqd": 1
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "ФИО"
+  },
+  {
+   "fieldname": "position",
+   "fieldtype": "Data",
+   "label": "Должность"
+  },
+  {
+   "fieldname": "login",
+   "fieldtype": "Data",
+   "label": "Логин"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "login_active",
+   "fieldtype": "Check",
+   "label": "Логин активен"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_admin",
+   "fieldtype": "Check",
+   "label": "Администратор"
+  },
+  {
+   "default": "0",
+   "fieldname": "blocked",
+   "fieldtype": "Check",
+   "label": "Заблокирован"
+  },
+  {
+   "default": "0",
+   "fieldname": "can_sign",
+   "fieldtype": "Check",
+   "label": "Подпись"
+  },
+  {
+   "default": "0",
+   "fieldname": "gov_key",
+   "fieldtype": "Check",
+   "label": "Госключ"
+  },
+  {
+   "default": "0",
+   "fieldname": "can_approve",
+   "fieldtype": "Check",
+   "label": "Согласование"
+  },
+  {
+   "default": "0",
+   "fieldname": "can_request_approve",
+   "fieldtype": "Check",
+   "label": "Запрос согласования"
+  },
+  {
+   "default": "0",
+   "fieldname": "drafts",
+   "fieldtype": "Check",
+   "label": "Черновики"
+  },
+  {
+   "default": "0",
+   "fieldname": "can_delete",
+   "fieldtype": "Check",
+   "label": "Удаление"
+  },
+  {
+   "default": "0",
+   "fieldname": "payments",
+   "fieldtype": "Check",
+   "label": "Платежки"
+  },
+  {
+   "default": "0",
+   "fieldname": "counterparties",
+   "fieldtype": "Check",
+   "label": "Контрагенты"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Сотрудник"
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "label": "Сотрудник",
+   "options": "Person"
+  },
+  {
+   "fieldname": "person_link_method",
+   "fieldtype": "Data",
+   "label": "Как найден сотрудник",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person_link_note",
+   "fieldtype": "Data",
+   "label": "Почему не найден",
+   "read_only": 1
+  },
+  {
+   "description": "Главнее любой автоматической привязки: загрузка её не меняет",
+   "fieldname": "manual_person",
+   "fieldtype": "Link",
+   "label": "Сотрудник вручную",
+   "options": "Person"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "src_hash",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Хеш выгрузки",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "missing_in_source",
+   "fieldtype": "Check",
+   "label": "Нет в выгрузке"
+  },
+  {
+   "description": "Ключ записи: <организация>:<логин> или <организация>:фио:<ФИО>",
+   "fieldname": "uid",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Ключ записи"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-18 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Diadoc",
+ "name": "Diadoc User",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Diadoc Specialist"
+  }
+ ],
+ "search_fields": "full_name,login,organization",
+ "sort_field": "full_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "full_name",
+ "track_changes": 1
+}

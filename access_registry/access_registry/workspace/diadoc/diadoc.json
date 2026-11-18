@@ -1,0 +1,94 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"dd00000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>Диадок:</b> пользователи операторов ЭДО и их права (подпись, согласование, Госключ, платежки). Данные загружает специалист выгрузками xlsx.\", \"col\": 12}}, {\"id\": \"dd00000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"dd00000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Диадок</b></span>\", \"col\": 12}}]",
+ "creation": "2026-11-18 10:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "file-text",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Диадок",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Диадок",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Организации Диадок",
+   "link_count": 0,
+   "link_to": "Diadoc Organization",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Пользователи Диадок",
+   "link_count": 0,
+   "link_to": "Diadoc User",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Журнал синхронизаций",
+   "link_count": 0,
+   "link_to": "Sync Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-11-18 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "Диадок",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "Access Registry",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Registry Admin"
+  },
+  {
+   "role": "Registry Auditor"
+  },
+  {
+   "role": "Access Role Manager"
+  },
+  {
+   "role": "Process Manager"
+  },
+  {
+   "role": "Access Catalog Viewer"
+  },
+  {
+   "role": "Diadoc Specialist"
+  }
+ ],
+ "sequence_id": 1.9,
+ "shortcuts": [],
+ "title": "Диадок"
+}
