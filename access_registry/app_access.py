@@ -26,6 +26,7 @@ SECTIONS = {
 	"equipment": "Техника",
 	"hiring": "Подбор и закупка",
 	"people": "Сотрудники",
+	"diadoc": "Диадок",
 	"control": "Контроль",
 	"access": "Права доступа",
 	"roles": "Роли доступа",
@@ -155,6 +156,7 @@ def profile_access(profile) -> tuple[dict, bool, list]:
 		"reviews": VIEW if profile.s_reviews else NONE,
 		"sources": VIEW if profile.s_sources else NONE,
 		"reports": VIEW if profile.get("s_reports") else NONE,
+		"diadoc": VIEW if profile.get("s_diadoc") else NONE,
 	}
 	lists = [
 		CONTROL_BY_TITLE[r.control_list] for r in profile.control_lists if r.control_list in CONTROL_BY_TITLE

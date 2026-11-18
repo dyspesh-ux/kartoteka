@@ -387,17 +387,17 @@
 		["", [["home", "#/", "Обзор"], ["chart", "#/management", "Руководству"]]],
 		["Люди и доступы", [["people", "#/people", "Сотрудники"], ["key", "#/access", "Права доступа"], ["roles", "#/roles", "Роли доступа"], ["flow", "#/processes", "Бизнес-процессы"]]],
 		["Контроль", [["shield", "#/control", "Контроль", "control"], ["check", "#/reviews", "Пересмотр доступа", "reviews"], ["lock", "#/ad-plans", "План изменений AD"]]],
-		["Сервисы", [["support", "#/support", "Техподдержка"], ["box", "#/equipment", "Техника"], ["cart", "#/hiring", "Подбор и закупка"]]],
+		["Сервисы", [["support", "#/support", "Техподдержка"], ["box", "#/equipment", "Техника"], ["cart", "#/hiring", "Подбор и закупка"], ["file-text", "#/diadoc", "Диадок"]]],
 		["Данные", [["report", "#/reports", "Отчёты"], ["db", "#/sources", "Источники"]]],
 		["Администрирование", [["lock", "#/app-access", "Доступ к приложению"], ["bell", "#/notifications", "Уведомления"]]],
 	];
 	const NAV = NAV_GROUPS.flatMap(([, items]) => items);
 	// menu item → section of the app (app_access.SECTIONS)
 	const NAV_SECTION = { "#/": "overview", "#/management": "management", "#/support": "support", "#/equipment": "equipment", "#/hiring": "hiring", "#/people": "people", "#/control": "control", "#/access": "access", "#/reports": "reports",
-		"#/roles": "roles", "#/processes": "processes", "#/sources": "sources" };
+		"#/roles": "roles", "#/processes": "processes", "#/sources": "sources", "#/diadoc": "diadoc" };
 	const canSee = (section) => ((state.boot.can.sections || {})[section] || 0) > 0;
 	// systems whose data the user sees (access profiles may be limited to some of them)
-	const seesSystem = (code) => (state.boot.can.systems || ["1c", "ad", "b24", "shares"]).includes(code);
+	const seesSystem = (code) => (state.boot.can.systems || ["1c", "ad", "b24", "shares", "dd"]).includes(code);
 	const firstPage = () => {
 		const href = Object.keys(NAV_SECTION).find((h) => canSee(NAV_SECTION[h]));
 		return href ? href.slice(1) : "/reviews";
@@ -550,6 +550,7 @@
 		[/^\/processes$/, viewProcesses],
 		[/^\/process\/(.+)$/, viewProcess],
 		[/^\/sources$/, viewSources],
+		[/^\/diadoc(?:\/(.+))?$/, viewDiadoc],
 		[/^\/reviews$/, viewReviews],
 		[/^\/review\/(.+)$/, viewReview],
 		[/^\/app-access$/, viewAppAccess],
@@ -573,7 +574,7 @@
 		$app.querySelectorAll("[data-nav]").forEach((a) => {
 			const href = a.dataset.nav.slice(1);
 			a.classList.toggle("active", href === "/" ? path === "/" : path.startsWith(href) || (href === "/people" && /^\/(person|position|department|organization)\//.test(path)) ||
-				(href === "/access" && path.startsWith("/entitlement")) || (href === "/roles" && path.startsWith("/role/")) || (href === "/processes" && path.startsWith("/process/")) || (href === "/reviews" && path.startsWith("/review/")) || (href === "/reports" && path.startsWith("/report/")) || (href === "/ad-plans" && path.startsWith("/ad-plan/")));
+				(href === "/access" && path.startsWith("/entitlement")) || (href === "/roles" && path.startsWith("/role/")) || (href === "/processes" && path.startsWith("/process/")) || (href === "/reviews" && path.startsWith("/review/")) || (href === "/reports" && path.startsWith("/report/")) || (href === "/ad-plans" && path.startsWith("/ad-plan/")) || (href === "/diadoc" && path.startsWith("/diadoc/")));
 		});
 		for (const [re, fn] of ROUTES) {
 			const m = path.match(re);
@@ -705,7 +706,7 @@
 		{ key: "suppressed", title: "Погашенные замечания", hint: "приняты с объяснением, в журнале гашений" },
 		{ key: "missing", title: "Не хватает доступов", lower: true, href: "#/control/missing", hint: "положены по роли, но не выданы", model: true },
 	];
-	const MGMT_SYSTEMS = [["1c", "1С"], ["ad", "Active Directory"], ["b24", "Битрикс24"]];
+	const MGMT_SYSTEMS = [["1c", "1С"], ["ad", "Active Directory"], ["b24", "Битрикс24"], ["dd", "Диадок"]];
 	const PERIOD_TITLES = { 7: "7 дней", 30: "30 дней", 90: "90 дней", 365: "год" };
 
 	const canOpen = (href) =>
@@ -1724,7 +1725,7 @@
 						key: "systems",
 						label: "Учётки",
 						render: (r) => `<span class="sys">${seesSystem("1c") ? `<span class="${r.ib ? "on" : ""}">1С${r.ib > 1 ? "×" + r.ib : ""}</span>` : ""}${
-							seesSystem("ad") ? `<span class="${r.ad ? "on" : ""}">AD</span>` : ""}${seesSystem("b24") ? `<span class="${r.b24 ? "on" : ""}">Б24</span>` : ""}</span>`,
+							seesSystem("ad") ? `<span class="${r.ad ? "on" : ""}">AD</span>` : ""}${seesSystem("b24") ? `<span class="${r.b24 ? "on" : ""}">Б24</span>` : ""}${seesSystem("dd") ? `<span class="${r.dd ? "on" : ""}">ДД</span>` : ""}</span>`,
 						csv: (r) => [r.ib ? `1С:${r.ib}` : "", r.ad ? "AD" : "", r.b24 ? "Б24" : ""].filter(Boolean).join(" "),
 					},
 					{ key: "flags", label: "Внимание", render: (r) => r.flags.map((x) => pill(FLAGS[x][0], FLAGS[x][1])).join(" "), csv: (r) => r.flags.map((x) => FLAGS[x][0]).join(", ") },
@@ -1952,6 +1953,29 @@
 				</div>`;
 			})
 			.join("");
+		const ddAccounts = (d.dd || [])
+			.map((u) => {
+				const on = u.login_active && !u.blocked && !u.missing_in_source;
+				const rights = [
+					u.can_sign && "подпись",
+					u.gov_key && "госключ",
+					u.can_approve && "согласование",
+					u.can_request_approve && "запрос согласования",
+					u.drafts && "черновики",
+					u.can_delete && "удаление",
+					u.payments && "платёжки",
+					u.counterparties && "контрагенты",
+				].filter(Boolean);
+				return `<div class="card acct ${on ? "" : "off"} ${on && d.person.status !== "Работает" ? "danger" : ""}">
+					<div class="acct-head"><b>${esc(u.organization)}</b>${systemBadge("Диадок")} ${u.is_admin ? pill("администратор", "t-violet") : ""}
+						<span style="margin-left:auto">${u.missing_in_source ? pill("нет в выгрузке", "t-amber") : on ? pill("активна", "t-green") : pill("не активна", "")}</span></div>
+					<div><b>${esc(u.full_name)}</b> <span class="muted">${esc(u.login || "")}</span></div>
+					<dl class="kv"><dt>Должность</dt><dd>${esc(u.position || "—")}</dd>
+						<dt>Как найден сотрудник</dt><dd>${esc(u.person_link_method || "—")}</dd></dl>
+					<div class="tags">${rights.map((r) => `<span class="tag">${r}</span>`).join("")}</div>
+				</div>`;
+			})
+			.join("");
 		const cards = (content, emptyText) => (content ? `<div class="grid grid-3">${content}</div>` : `<div class="card empty">${emptyText}</div>`);
 		const risky = (list, isOn) => (d.person.status !== "Работает" ? list.filter(isOn).length : 0);
 		// one system at a time: the card does not turn into a long scroll
@@ -1963,6 +1987,8 @@
 			["b24", "Битрикс24", d.b24.length, risky(d.b24, (u) => u.active && !u.missing_in_source),
 				`<div class="group"><h3>Пользователь портала</h3>${cards(b24, "Пользователя Битрикс24 нет")}</div>` +
 				(d.b24.length ? `<div class="group"><h3>Доступ к разделам: CRM, смарт-процессы, диск</h3><div class="card b24-access"></div></div>` : "")],
+			["dd", "Диадок", (d.dd || []).length, risky(d.dd || [], (u) => u.login_active && !u.blocked && !u.missing_in_source),
+				`<div class="group"><h3>Учётные записи Диадок</h3>${cards(ddAccounts, "Учётных записей Диадок нет")}</div>`],
 			["shares", "Общие папки", d.shares.length, risky(d.shares, () => true),
 				`<div class="group"><h3>Папки Synology, к которым есть доступ</h3>${d.shares.length ? `<div class="card shares-access"></div>` : `<div class="card empty">Доступа к общим папкам нет</div>`}</div>`],
 		];
@@ -1990,7 +2016,7 @@
 							.join("")}</div></div>`
 					: ""),
 		]);
-		const SYSTEM_OF_PANEL = { ib: "1c", ad: "ad", b24: "b24", shares: "shares", assets: "assets" };
+		const SYSTEM_OF_PANEL = { ib: "1c", ad: "ad", b24: "b24", shares: "shares", assets: "assets", dd: "dd" };
 		panels.splice(0, panels.length, ...panels.filter(([key]) => seesSystem(SYSTEM_OF_PANEL[key])));
 		if (!panels.length) return `<div class="card empty">Учётки этих систем вам не открыты</div>`;
 		const first = (panels.find((x) => x[3]) || panels.find((x) => x[2]) || panels[0])[0];
@@ -2518,6 +2544,59 @@
 				{ key: "title", label: "Название" },
 				{ key: "last", label: "Последняя успешная загрузка", type: "datetime" },
 				{ key: "status", label: "Последний запуск" },
+			],
+		});
+	}
+
+	// ------------------------------------------------------------------ diadoc
+
+	async function viewDiadoc(view, org) {
+		if (org) {
+			const users = await api("access_registry.registry.diadoc_api.diadoc_users", { organization: org });
+			const flag = (key, label) => ({ key, label, render: (u) => (u[key] ? "✓" : "") });
+			view.innerHTML = `
+				<div class="page-head"><div><h1>${esc(org)}</h1><p>Пользователи организации Диадок и их права по последней выгрузке.</p></div>
+					<a class="btn" href="#/diadoc">${icon("back")} Все организации</a></div>
+				<div class="card users"></div>`;
+			table(view.querySelector(".users"), {
+				name: "пользователи",
+				rows: users,
+				empty: "Пользователей нет",
+				columns: [
+					{ key: "full_name", label: "ФИО", render: (u) => `<b>${esc(u.full_name)}</b>${u.missing_in_source ? ` ${pill("нет в выгрузке", "t-amber")}` : ""}` },
+					{ key: "position", label: "Должность" },
+					{ key: "login", label: "Логин" },
+					{ key: "on", label: "УЗ активна", render: (u) => (u.login_active && !u.blocked ? "✓" : "") },
+					{ key: "is_admin", label: "Админ", render: (u) => (u.is_admin ? "✓" : "") },
+					flag("can_sign", "Подпись"),
+					flag("gov_key", "Госключ"),
+					flag("can_approve", "Согл."),
+					flag("can_request_approve", "Запрос согл."),
+					flag("drafts", "Черновики"),
+					flag("can_delete", "Удаление"),
+					flag("payments", "Платёжки"),
+					flag("counterparties", "Контрагенты"),
+					{ key: "person", label: "Сотрудник", render: (u) => (u.person ? `<a href="#/person/${enc(u.person)}">${esc(u.person_name || u.person)}</a>` : `<span class="muted">не привязан</span>`) },
+				],
+			});
+			return;
+		}
+		const orgs = await api("access_registry.registry.diadoc_api.diadoc_organizations");
+		view.innerHTML = `
+			<div class="page-head"><div><h1>Диадок</h1><p>Организации ЭДО и их пользователи. Данные загружает специалист выгрузками из Диадок;
+				просроченная загрузка подсвечивается.</p></div></div>
+			<div class="card orgs"></div>`;
+		table(view.querySelector(".orgs"), {
+			name: "организации",
+			rows: orgs,
+			empty: "Организации Диадок не заведены",
+			columns: [
+				{ key: "title", label: "Организация", render: (o) => `<a href="#/diadoc/${enc(o.name)}"><b>${esc(o.title)}</b></a>` },
+				{ key: "users_count", label: "Пользователей" },
+				{ key: "linked_count", label: "Привязано" },
+				{ key: "last_upload", label: "Последняя загрузка", type: "datetime" },
+				{ key: "overdue", label: "Свежесть", render: (o) => (o.overdue ? pill("загрузка просрочена", "t-red") : pill("в норме", "t-green")) },
+				{ key: "last_status", label: "Последний запуск" },
 			],
 		});
 	}

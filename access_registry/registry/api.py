@@ -1357,6 +1357,7 @@ SYSTEM_OF_REF = {
 	"Folder ACL": "Общие папки",
 	"File Share": "Общие папки",
 	"IT Asset": "Техника",
+	"Diadoc User": "Диадок",
 }
 
 
@@ -2117,6 +2118,7 @@ PROFILE_FIELDS = {
 	"equipment": "s_equipment",
 	"hiring": "s_hiring",
 	"people": "s_people",
+	"diadoc": "s_diadoc",
 	"control": "s_control",
 	"access": "s_access",
 	"roles": "s_roles",

@@ -551,3 +551,81 @@ class TestDiadocEntitlements(FrappeTestCase):
 
 		_actual, uncatalogued = engine.actual_entitlements({self.signer.name})
 		self.assertIn("dd:Т-Права-1|Согл.", uncatalogued[self.signer.name])
+
+
+class TestDiadocRegistrySection(FrappeTestCase):
+	def test_section_and_system_registered(self):
+		from access_registry import app_access as aa
+		from access_registry.tests.test_permissions import make_user
+
+		self.assertEqual(aa.SECTIONS.get("diadoc"), "Диадок")
+		self.assertEqual(aa.SYSTEMS.get("dd"), "Диадок")
+		self.assertEqual(aa.access("Administrator")["sections"]["diadoc"], aa.VIEW)
+		viewer = make_user("diadoc-viewer@registry.test", "Access Catalog Viewer")
+		self.assertEqual(aa.access(viewer)["sections"]["diadoc"], aa.VIEW)
+
+	def test_profile_limits_dd_system(self):
+		from access_registry import app_access as aa
+		from access_registry.registry import api
+		from access_registry.tests.test_permissions import make_user
+
+		user = make_user("diadoc-profile@registry.test")
+		name = api.save_profile(
+			{
+				"profile_name": "Диадок (тест)",
+				"sections": {"diadoc": 1},
+				"members": [user],
+				"systems": ["1c"],
+			}
+		)
+		self.assertNotIn("dd", aa.systems(user))
+		api.save_profile(
+			{
+				"name": name,
+				"profile_name": "Диадок (тест)",
+				"sections": {"diadoc": 1},
+				"members": [user],
+				"systems": ["dd"],
+			}
+		)
+		self.assertIn("dd", aa.systems(user))
+
+	def test_diadoc_organizations_api(self):
+		from frappe.utils import add_days, now_datetime
+
+		from access_registry.registry.diadoc_api import diadoc_organizations
+
+		fresh = frappe.get_doc({"doctype": "Diadoc Organization", "title": "Т-Раздел-Свежая"}).insert(
+			ignore_permissions=True
+		)
+		fresh.db_set("last_upload", now_datetime())
+		stale = frappe.get_doc({"doctype": "Diadoc Organization", "title": "Т-Раздел-Старая"}).insert(
+			ignore_permissions=True
+		)
+		stale.db_set("last_upload", add_days(now_datetime(), -40))
+		rows = {r["name"]: r for r in diadoc_organizations()}
+		self.assertFalse(rows["Т-Раздел-Свежая"]["overdue"])
+		self.assertTrue(rows["Т-Раздел-Старая"]["overdue"])
+
+	def test_diadoc_users_api(self):
+		from access_registry.diadoc.sync import run_upload
+		from access_registry.registry.diadoc_api import diadoc_users
+
+		run_upload(
+			export_bytes(
+				[
+					make_row(
+						org="Т-Раздел-Польз",
+						name="Тестдиадокраздел Юзер Юзерович",
+						login="sect-user@test-sync.example",
+						login_active=True,
+						can_sign=True,
+					)
+				]
+			),
+			commit=False,
+		)
+		rows = diadoc_users("Т-Раздел-Польз")
+		self.assertEqual(len(rows), 1)
+		self.assertEqual(rows[0]["login"], "sect-user@test-sync.example")
+		self.assertEqual(rows[0]["can_sign"], 1)
