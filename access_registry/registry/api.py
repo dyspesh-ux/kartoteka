@@ -121,12 +121,19 @@ class Accounts:
 			from `tabB24 User` where ifnull(person, '') != '' group by person"""
 		):
 			self.b24[person] = {"total": total, "active": int(active or 0), "admin": int(admin or 0)}
+		self.dd = defaultdict(lambda: {"total": 0, "active": 0})
+		for person, total, active in frappe.db.sql(
+			"""select person, count(*), sum(login_active = 1 and blocked = 0 and missing_in_source = 0)
+			from `tabDiadoc User` where ifnull(person, '') != '' group by person"""
+		):
+			self.dd[person] = {"total": total, "active": int(active or 0)}
 
 	def active(self, person) -> dict:
 		return {
 			"1С": self.ib[person]["active"] if person in self.ib else 0,
 			"AD": self.ad[person]["active"] if person in self.ad else 0,
 			"Битрикс24": self.b24[person]["active"] if person in self.b24 else 0,
+			"Диадок": self.dd[person]["active"] if person in self.dd else 0,
 		}
 
 	def has_active(self, person) -> bool:
@@ -500,7 +507,7 @@ def people(
 	accounts = Accounts()
 	places = main_places([p.name for p in persons])
 	allowed = aa.systems()
-	labels = {"1С": "1c", "AD": "ad", "Битрикс24": "b24"}
+	labels = {"1С": "1c", "AD": "ad", "Битрикс24": "b24", "Диадок": "dd"}
 	rows = []
 	for p in persons:
 		place = places.get(p.name, {})
@@ -533,6 +540,7 @@ def people(
 				"ib": active.get("1С", 0),
 				"ad": active.get("AD", 0),
 				"b24": active.get("Битрикс24", 0),
+				"dd": active.get("Диадок", 0),
 				"flags": flags,
 			}
 		)
@@ -695,8 +703,34 @@ def person(name: str) -> dict:
 	)
 	for e in asset_events:
 		e.event_date = str(e.event_date) if e.event_date else None
+	dd_users = []
 	ib = _accounts({"person": name, "missing_in_source": 0}) if "1c" in allowed else []
 	ad = _ad_accounts({"person": name}) if "ad" in allowed else []
+	if "dd" in allowed:
+		dd_users = frappe.get_all(
+			"Diadoc User",
+			filters={"person": name},
+			fields=[
+				"name",
+				"organization",
+				"full_name",
+				"login",
+				"login_active",
+				"is_admin",
+				"blocked",
+				"can_sign",
+				"gov_key",
+				"can_approve",
+				"can_request_approve",
+				"drafts",
+				"can_delete",
+				"payments",
+				"counterparties",
+				"missing_in_source",
+				"person_link_method",
+			],
+			order_by="organization, full_name",
+		)
 	if "b24" not in allowed:
 		b24_users, b24_access = [], []
 	if "shares" not in allowed:
@@ -724,6 +758,7 @@ def person(name: str) -> dict:
 		"ad": ad,
 		"b24": b24_users,
 		"b24_access": b24_access,
+		"dd": dd_users,
 		"shares": shares,
 		"assets": assets,
 		"asset_events": asset_events,
@@ -1367,6 +1402,10 @@ def _control_dismissed():
 		select p.name, p.full_name, p.status, 'Битрикс24', concat(b.portal, ': ', ifnull(b.email, b.full_name)), b.name, 'B24 User', b.last_login
 		from `tabB24 User` b join `tabPerson` p on p.name = b.person
 		where p.status != 'Работает' and b.active = 1 and b.missing_in_source = 0
+		union all
+		select p.name, p.full_name, p.status, 'Диадок', concat(d.organization, ': ', ifnull(d.login, d.full_name)), d.name, 'Diadoc User', null
+		from `tabDiadoc User` d join `tabPerson` p on p.name = d.person
+		where p.status != 'Работает' and d.login_active = 1 and d.blocked = 0 and d.missing_in_source = 0
 		order by full_name""",
 		as_dict=True,
 	)
@@ -1394,6 +1433,10 @@ def _control_unlinked():
 		select 'Битрикс24', concat(portal, ': ', full_name), ifnull(email, ''), person_link_note, name, 'B24 User'
 		from `tabB24 User` where active = 1 and missing_in_source = 0 and ifnull(person, '') = ''
 			and ifnull(user_type, '') in ('', 'employee')
+		union all
+		select 'Диадок', concat(organization, ': ', full_name), ifnull(login, ''), person_link_note, name, 'Diadoc User'
+		from `tabDiadoc User` where login_active = 1 and blocked = 0 and missing_in_source = 0
+			and ifnull(person, '') = ''
 		order by system, account""",
 		as_dict=True,
 	)

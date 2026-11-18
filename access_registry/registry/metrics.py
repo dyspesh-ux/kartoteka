@@ -9,7 +9,7 @@ import frappe
 from frappe.utils import add_days, cint, getdate, now_datetime, today
 
 CACHE_KEY = "access_registry:management_metrics"
-SYSTEMS = {"1С": "1c", "AD": "ad", "Битрикс24": "b24"}
+SYSTEMS = {"1С": "1c", "AD": "ad", "Битрикс24": "b24", "Диадок": "dd"}
 PERIODS = (7, 30, 90, 365)
 
 
@@ -63,6 +63,8 @@ def _coverage() -> dict:
 			where enabled = 1 and missing_in_source = 0""",
 		"b24": """select count(*), sum(ifnull(person, '') != '') from `tabB24 User`
 			where active = 1 and missing_in_source = 0 and ifnull(user_type, '') in ('', 'employee')""",
+		"dd": """select count(*), sum(ifnull(person, '') != '') from `tabDiadoc User`
+			where login_active = 1 and blocked = 0 and missing_in_source = 0""",
 	}
 	result = {}
 	for code, sql in queries.items():

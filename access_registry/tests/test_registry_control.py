@@ -8,6 +8,7 @@ accounts at all.
 """
 
 import frappe
+from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_days, now_datetime, today
 
 from access_registry.access_roles import engine, suppression
@@ -489,3 +490,112 @@ class TestSuppressionRules(RegistryFixture):
 		self.assertIn(
 			self.dismissed_keys(fedorov)[0], [r["alert_key"] for r in api.control("dismissed")["rows"]]
 		)
+
+
+class TestDiadocControlLists(FrappeTestCase):
+	"""Diadoc in the control lists, the «Сотрудники» counters and the person card."""
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		from access_registry.diadoc.sync import run_upload
+		from access_registry.tests.test_diadoc import export_bytes, make_row
+
+		cls.working = frappe.get_doc(
+			{
+				"doctype": "Person",
+				"last_name": "Тестдиадокконтроль",
+				"first_name": "Работает",
+				"status": "Работает",
+			}
+		).insert(ignore_permissions=True)
+		cls.fired = frappe.get_doc(
+			{
+				"doctype": "Person",
+				"last_name": "Тестдиадокконтроль",
+				"first_name": "Уволен",
+				"status": "Уволен",
+			}
+		).insert(ignore_permissions=True)
+		for person, login in (
+			(cls.working, "ctrl-work@test-sync.example"),
+			(cls.fired, "ctrl-fired@test-sync.example"),
+			(cls.working, "ctrl-blocked@test-sync.example"),
+		):
+			frappe.get_doc(
+				{
+					"doctype": "AD Account",
+					"uid": f"TST:acc-{login.split('@')[0]}",
+					"sam_account_name": login.split("@")[0],
+					"user_principal_name": login,
+					"person": person.name,
+				}
+			).insert(ignore_permissions=True)
+		run_upload(
+			export_bytes(
+				[
+					make_row(
+						org="Т-Контроль",
+						name="Тестдиадокконтроль Работает",
+						login="ctrl-work@test-sync.example",
+						login_active=True,
+						can_sign=True,
+					),
+					make_row(
+						org="Т-Контроль",
+						name="Тестдиадокконтроль Уволен",
+						login="ctrl-fired@test-sync.example",
+						login_active=True,
+					),
+					make_row(
+						org="Т-Контроль",
+						name="Тестдиадокконтроль Блок",
+						login="ctrl-blocked@test-sync.example",
+						login_active=True,
+						blocked=True,
+					),
+					make_row(
+						org="Т-Контроль",
+						name="Тестдиадокконтроль Безсвязи",
+						login="ctrl-nobody@test-sync.example",
+						login_active=True,
+					),
+				]
+			),
+			commit=False,
+		)
+
+	def test_dismissed_includes_active_diadoc(self):
+		_columns, rows = api._control_dismissed()
+		mine = [
+			r for r in rows if r["ref_doctype"] == "Diadoc User" and str(r["ref"]).startswith("Т-Контроль:")
+		]
+		accounts = " | ".join(str(r["account"]) for r in mine)
+		self.assertIn("ctrl-fired@test-sync.example", accounts)
+		self.assertNotIn("ctrl-work@test-sync.example", accounts)
+		self.assertNotIn("ctrl-blocked@test-sync.example", accounts)
+
+	def test_unlinked_includes_diadoc(self):
+		_columns, rows = api._control_unlinked()
+		dd = [
+			r for r in rows if r["ref_doctype"] == "Diadoc User" and str(r["ref"]).startswith("Т-Контроль:")
+		]
+		logins = " | ".join(str(r["login"]) for r in dd)
+		self.assertIn("ctrl-nobody@test-sync.example", logins)
+		self.assertNotIn("ctrl-work@test-sync.example", logins)
+
+	def test_people_flags_dd(self):
+		result = api.people(query="Тестдиадокконтроль")
+		rows = {r["full_name"]: r for r in result["rows"]}
+		working = rows["Тестдиадокконтроль Работает"]
+		fired = rows["Тестдиадокконтроль Уволен"]
+		self.assertEqual(working["dd"], 1)  # the blocked account does not count as active
+		self.assertIn("dismissed_access", fired["flags"])
+		self.assertNotIn("dismissed_access", working["flags"])
+
+	def test_person_includes_dd(self):
+		data = api.person(self.working.name)
+		orgs = [u["organization"] for u in data["dd"]]
+		self.assertIn("Т-Контроль", orgs)
+		signer = [u for u in data["dd"] if u["login"] == "ctrl-work@test-sync.example"][0]
+		self.assertEqual(signer["can_sign"], 1)

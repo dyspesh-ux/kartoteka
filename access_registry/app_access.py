@@ -62,6 +62,7 @@ SYSTEMS = {
 	"b24": "Битрикс24",
 	"shares": "Общие папки",
 	"assets": "Техника",
+	"dd": "Диадок",
 }
 # how the systems are written in rows of lists and reports
 SYSTEM_OF_LABEL = {
@@ -73,6 +74,7 @@ SYSTEM_OF_LABEL = {
 	"Общие папки Synology": "shares",
 	"Техника": "assets",
 	"Snipe-IT": "assets",
+	"Диадок": "dd",
 }
 # control lists that belong to one system
 CONTROL_SYSTEM = {"shares": "shares", "assets": "assets"}
