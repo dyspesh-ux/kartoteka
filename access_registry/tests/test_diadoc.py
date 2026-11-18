@@ -147,3 +147,83 @@ class TestDiadocParser(FrappeTestCase):
 		wb.save(buf)
 		with self.assertRaises(ParseError):
 			parse(buf.getvalue())
+
+
+class TestDiadocLinking(FrappeTestCase):
+	# Names are unique on purpose: the dev site holds a large synthetic HR dataset,
+	# a common name would match several persons and stay ambiguous.
+	# One transaction per test class: the person is created once in setUpClass and
+	# rolled back with the class cleanup, so tests of the class see each other's data.
+	FIO = "Тестдиадок Иван Иванович"
+	FIO_CAPS = "ТЕСТДИАДОК ИВАН ИВАНОВИЧ"
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		cls.person = frappe.get_doc(
+			{
+				"doctype": "Person",
+				"last_name": "Тестдиадок",
+				"first_name": "Иван",
+				"middle_name": "Иванович",
+				"status": "Работает",
+			}
+		).insert(ignore_permissions=True)
+
+	def test_resolve_by_ad_mail(self):
+		from access_registry.diadoc.linking import BY_EMAIL_AD, DiadocResolver
+
+		frappe.get_doc(
+			{
+				"doctype": "AD Account",
+				"uid": "TST:acc-1",
+				"sam_account_name": "iivanov",
+				"user_principal_name": "iivanov@corp.example",
+				"person": self.person.name,
+			}
+		).insert(ignore_permissions=True)
+		person, method, note = DiadocResolver().resolve("Сидоров Сидор Сидорович", "iivanov@corp.example")
+		self.assertEqual(person, self.person.name)
+		self.assertEqual(method, BY_EMAIL_AD)
+		self.assertEqual(note, "")
+
+	def test_resolve_by_b24_mail(self):
+		from access_registry.diadoc.linking import BY_EMAIL_B24, DiadocResolver
+
+		other = frappe.get_doc(
+			{"doctype": "Person", "last_name": "Тестдиадокпетров", "first_name": "Пётр"}
+		).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "B24 User",
+				"uid": "portal:1",
+				"full_name": "Тестдиадокпетров Пётр",
+				"email": "ppetrov-testdiadok@corp.example",
+				"active": 1,
+				"person": other.name,
+			}
+		).insert(ignore_permissions=True)
+		person, method, _note = DiadocResolver().resolve("Сидоров Сидор", "ppetrov-testdiadok@corp.example")
+		self.assertEqual(person, other.name)
+		self.assertEqual(method, BY_EMAIL_B24)
+
+	def test_resolve_by_full_name(self):
+		from access_registry.diadoc.linking import BY_NAME, DiadocResolver
+
+		person, method, _note = DiadocResolver().resolve(self.FIO, "")
+		self.assertEqual(person, self.person.name)
+		self.assertEqual(method, BY_NAME)
+
+	def test_resolve_caps_full_name(self):
+		from access_registry.diadoc.linking import BY_NAME, DiadocResolver
+
+		person, method, _note = DiadocResolver().resolve(self.FIO_CAPS, "")
+		self.assertEqual((person, method), (self.person.name, BY_NAME))
+
+	def test_resolve_not_found(self):
+		from access_registry.diadoc.linking import DiadocResolver
+
+		person, method, note = DiadocResolver().resolve("Пупкин Иннокентий", "nobody@nowhere.example")
+		self.assertIsNone(person)
+		self.assertEqual(method, "")
+		self.assertIn("не найден", note)
