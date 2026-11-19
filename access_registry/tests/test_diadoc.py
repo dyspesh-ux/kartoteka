@@ -795,3 +795,74 @@ class TestDiadocReviewFixes(FrappeTestCase):
 		for report in ("Diadoc Users", "Diadoc Admins"):
 			roles = {r.role for r in frappe.get_doc("Report", report).roles}
 			self.assertIn("Diadoc Specialist", roles, report)
+
+
+class TestDiadocListUpload(FrappeTestCase):
+	"""Upload from the organization list view: no card needed, orgs are created from the file."""
+
+	def test_upload_file_auto_creates_orgs(self):
+		import base64
+
+		from access_registry.diadoc.doctype.diadoc_organization.diadoc_organization import (
+			DiadocOrganization,
+		)
+
+		content = base64.b64encode(
+			export_bytes(
+				[
+					make_row(
+						org="Т-Лист-Загрузка",
+						name="Тестдиадоклист Лев Львович",
+						login="list-upload@test-sync.example",
+						login_active=True,
+					)
+				]
+			)
+		).decode()
+		result = DiadocOrganization.upload_file(content)
+		self.assertEqual(result["status"], "Успех")
+		self.assertTrue(frappe.db.exists("Diadoc Organization", "Т-Лист-Загрузка"))
+		self.assertEqual(
+			frappe.db.count("Diadoc User", {"organization": "Т-Лист-Загрузка", "missing_in_source": 0}),
+			1,
+		)
+
+	def test_upload_file_requires_role(self):
+		import base64
+
+		from access_registry.diadoc.doctype.diadoc_organization.diadoc_organization import (
+			DiadocOrganization,
+		)
+		from access_registry.tests.test_permissions import make_user
+
+		nobody = make_user("diadoc-list-nobody@registry.test")
+		content = base64.b64encode(export_bytes([make_row(org="Т-Лист-Роль")])).decode()
+		frappe.set_user(nobody)
+		try:
+			with self.assertRaises(frappe.PermissionError):
+				DiadocOrganization.upload_file(content)
+		finally:
+			frappe.set_user("Administrator")
+
+
+class TestDiadocUploadFlag(FrappeTestCase):
+	def test_bootstrap_exposes_upload_permission(self):
+		from access_registry.registry import api
+		from access_registry.tests.test_permissions import make_user
+
+		frappe.set_user("Administrator")
+		self.assertTrue(api.bootstrap()["can"]["diadoc_upload"])  # Administrator
+		viewer = make_user("diadoc-flag-viewer@registry.test", "Access Catalog Viewer")
+		frappe.set_user(viewer)
+		try:
+			self.assertFalse(api.bootstrap()["can"]["diadoc_upload"])
+		finally:
+			frappe.set_user("Administrator")
+		specialist = make_user("diadoc-flag-specialist@registry.test", "Diadoc Specialist")
+		frappe.set_user(specialist)
+		try:
+			# the specialist works in Desk and has no access to the /registry app at all
+			with self.assertRaises(frappe.PermissionError):
+				api.bootstrap()
+		finally:
+			frappe.set_user("Administrator")

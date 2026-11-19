@@ -2585,8 +2585,37 @@
 		const orgs = await api("access_registry.registry.diadoc_api.diadoc_organizations");
 		view.innerHTML = `
 			<div class="page-head"><div><h1>Диадок</h1><p>Организации ЭДО и их пользователи. Данные загружает специалист выгрузками из Диадок;
-				просроченная загрузка подсвечивается.</p></div></div>
+				просроченная загрузка подсвечивается.</p></div>
+				${state.boot.can.diadoc_upload ? `<button class="btn primary" data-dd-upload>${icon("download")} Загрузить выгрузку</button>` : ""}</div>
 			<div class="card orgs"></div>`;
+		const upload = view.querySelector("[data-dd-upload]");
+		if (upload) {
+			upload.addEventListener("click", () => {
+				const input = document.createElement("input");
+				input.type = "file";
+				input.accept = ".xlsx";
+				input.onchange = async () => {
+					const file = input.files[0];
+					if (!file) return;
+					const bytes = new Uint8Array(await file.arrayBuffer());
+					let binary = "";
+					for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+					const result = await api(
+						"access_registry.diadoc.doctype.diadoc_organization.diadoc_organization.upload_file",
+						{ content: btoa(binary), file_name: file.name },
+						true
+					);
+					if (result.status === "Успех") {
+						const orgs = Object.keys((result.stats || {}).organizations || {}).join(", ");
+						toast(`Загрузка выполнена: ${result.log}. Организации: ${orgs}`);
+					} else {
+						toast(`Загрузка Диадок: ${result.status}. Журнал: ${result.log}`);
+					}
+					route();
+				};
+				input.click();
+			});
+		}
 		table(view.querySelector(".orgs"), {
 			name: "организации",
 			rows: orgs,

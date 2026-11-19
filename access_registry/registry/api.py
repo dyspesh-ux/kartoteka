@@ -18,6 +18,7 @@ from access_registry.app_access import CONTROL_BY_TITLE, CONTROLS, VIEW, WORK
 from access_registry.permissions import (
 	ADMINS,
 	AUDITOR,
+	DD_SPECIALIST,
 	PROCESS_MANAGER,
 	REVIEWER,
 	ROLE_MANAGER,
@@ -81,6 +82,7 @@ def bootstrap() -> dict:
 			"suppress": a["sections"]["control"] >= WORK,
 			"reviewer": bool(a.get("reviewer")),
 			"ad_plans": _ad_plan_rights(a)["see"],
+			"diadoc_upload": has_any(*ADMINS, DD_SPECIALIST),
 			"unread_notices": frappe.db.count(
 				"Registry Notice", {"for_user": frappe.session.user, "read": 0}
 			),
