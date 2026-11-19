@@ -80,7 +80,11 @@ def parse(data: bytes) -> dict:
 	seen: set[tuple[str, str]] = set()
 	warnings: list[str] = []
 	for row in rows:
-		values = {field: (row[col] if col < len(row) else None) for col, field in header_map.items()}
+		values = {}
+		for col, field in header_map.items():
+			if field in values:
+				continue  # the leftmost column wins: a same-row legend must not zero real flags
+			values[field] = row[col] if col < len(row) else None
 		org = str(values.get("org") or "").strip()
 		full_name = str(values.get("full_name") or "").strip()
 		if not org and not full_name:

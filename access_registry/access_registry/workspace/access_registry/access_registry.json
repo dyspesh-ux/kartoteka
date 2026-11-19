@@ -156,6 +156,11 @@
    "label": "Источники данных",
    "url": "/app/источники-данных",
    "type": "URL"
+  },
+  {
+   "label": "Диадок",
+   "url": "/app/диадок",
+   "type": "URL"
   }
  ],
  "title": "Access Registry"

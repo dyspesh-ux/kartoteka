@@ -733,3 +733,65 @@ class TestDiadocReports(FrappeTestCase):
 		linked = {row.link_to for row in ws.links if row.link_type == "Report"}
 		self.assertIn("Diadoc Users", linked)
 		self.assertIn("Diadoc Admins", linked)
+
+
+class TestDiadocReviewFixes(FrappeTestCase):
+	"""Regression tests of the final-review findings."""
+
+	def test_org_title_variant_updates_registered_org(self):
+		"""Файл с вариантом написания названия обновляет карточку существующей организации."""
+		from access_registry.diadoc.sync import run_upload
+
+		run_upload(
+			export_bytes(
+				[
+					make_row(
+						org='ООО "Ромашка"', name="Тестдиадокфикс Олег Олегов", login="fix1@test-sync.example"
+					)
+				]
+			),
+			commit=False,
+		)
+		frappe.db.set_value("Diadoc Organization", 'ООО "Ромашка"', "last_upload", None)
+		run_upload(
+			export_bytes(
+				[
+					make_row(
+						org='ооо "ромашка"', name="Тестдиадокфикс Олег Олегов", login="fix1@test-sync.example"
+					)
+				]
+			),
+			commit=False,
+		)
+		org = frappe.db.get_value(
+			"Diadoc Organization", 'ООО "Ромашка"', ["last_upload", "users_count"], as_dict=True
+		)
+		self.assertTrue(org.last_upload)
+		self.assertEqual(org.users_count, 1)
+		duplicate = frappe.db.sql(
+			"select count(*) from `tabDiadoc Organization` where lower(name) = %s",
+			('ооо "ромашка"',),
+		)[0][0]
+		self.assertEqual(duplicate, 1)
+
+	def test_legend_on_the_header_row_does_not_zero_flags(self):
+		"""Легенда в той же строке, что и заголовки, не перезаписывает флаги пустыми ячейками."""
+		import openpyxl
+
+		from access_registry.diadoc.parser import parse
+
+		wb = openpyxl.Workbook()
+		ws = wb.active
+		ws.append([None] + HEADERS + [None, "Логин акт.", "УЗ Активна"])
+		row = make_row(login_active=True, can_sign=True)
+		ws.append([None] + row + [None, None, None])
+		buf = io.BytesIO()
+		wb.save(buf)
+		parsed = parse(buf.getvalue())
+		self.assertEqual(parsed["users"][0]["rights"]["login_active"], 1)
+		self.assertEqual(parsed["users"][0]["rights"]["can_sign"], 1)
+
+	def test_reports_are_available_to_the_specialist(self):
+		for report in ("Diadoc Users", "Diadoc Admins"):
+			roles = {r.role for r in frappe.get_doc("Report", report).roles}
+			self.assertIn("Diadoc Specialist", roles, report)

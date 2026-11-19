@@ -86,8 +86,12 @@ def run_upload(data: bytes, commit: bool = True):
 	log.stats = json.dumps(stats, ensure_ascii=False, indent=1, sort_keys=True)
 	log.messages = _format_messages(messages)
 	log.save(ignore_permissions=True)
+	# the card update goes by the registered organization name: the file title may be a
+	# re-cased/quoted variant of an existing organization (org_key matched it)
+	org_names = stats.get("org_names", {})
 	for title in org_titles:
-		if not frappe.db.exists("Diadoc Organization", title):
+		org_name = org_names.get(title) or title
+		if not frappe.db.exists("Diadoc Organization", org_name):
 			continue
 		values = {"last_status": f"{status} ({log.name}, {log.finished.strftime('%Y-%m-%d %H:%M')})"}
 		if status == "Успех":
@@ -95,7 +99,7 @@ def run_upload(data: bytes, commit: bool = True):
 			org_stats = stats.get("organizations", {}).get(title, {})
 			values["users_count"] = org_stats.get("users", 0)
 			values["linked_count"] = org_stats.get("linked", 0)
-		frappe.db.set_value("Diadoc Organization", title, values, update_modified=False)
+		frappe.db.set_value("Diadoc Organization", org_name, values, update_modified=False)
 	if commit:
 		frappe.db.commit()
 	return log
