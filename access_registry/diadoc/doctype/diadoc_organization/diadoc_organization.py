@@ -1,6 +1,8 @@
 # Copyright (c) 2026, Access Registry contributors
 # For license information, please see license.txt
 
+from base64 import b64decode
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
@@ -20,6 +22,19 @@ class DiadocOrganization(Document):
 		content = frappe.get_doc("File", {"file_url": self.upload_file}).get_content()
 		if isinstance(content, str):
 			content = content.encode()
+		return self._run(content)
+
+	@staticmethod
+	@frappe.whitelist()
+	def upload_file(content: str, file_name: str | None = None):
+		"""Uploads an export from the list view: organizations in the file are created automatically."""
+		require(*ADMINS, DD_SPECIALIST)
+		if not content:
+			frappe.throw(_("Пустой файл"))
+		return DiadocOrganization._run(b64decode(content))
+
+	@staticmethod
+	def _run(content: bytes) -> dict:
 		from access_registry.diadoc.sync import run_upload
 
 		log = run_upload(content, commit=not frappe.flags.in_test)
