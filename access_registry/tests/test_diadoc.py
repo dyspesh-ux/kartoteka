@@ -798,15 +798,17 @@ class TestDiadocReviewFixes(FrappeTestCase):
 
 
 class TestDiadocListUpload(FrappeTestCase):
-	"""Upload from the organization list view: no card needed, orgs are created from the file."""
+	"""Upload from the organization list view: no card needed, orgs are created from the file.
 
-	def test_upload_file_auto_creates_orgs(self):
+	The endpoint is called through frappe.call with the dotted path — the way the browser
+	calls it (a class-level static method is NOT reachable this way; the module-level
+	endpoint in diadoc/api.py is).
+	"""
+
+	def test_upload_auto_creates_orgs(self):
 		import base64
 
-		from access_registry.diadoc.doctype.diadoc_organization.diadoc_organization import (
-			DiadocOrganization,
-		)
-
+		frappe.set_user("Administrator")
 		content = base64.b64encode(
 			export_bytes(
 				[
@@ -819,7 +821,7 @@ class TestDiadocListUpload(FrappeTestCase):
 				]
 			)
 		).decode()
-		result = DiadocOrganization.upload_file(content)
+		result = frappe.call("access_registry.diadoc.api.upload", content=content)
 		self.assertEqual(result["status"], "Успех")
 		self.assertTrue(frappe.db.exists("Diadoc Organization", "Т-Лист-Загрузка"))
 		self.assertEqual(
@@ -827,12 +829,9 @@ class TestDiadocListUpload(FrappeTestCase):
 			1,
 		)
 
-	def test_upload_file_requires_role(self):
+	def test_upload_requires_role(self):
 		import base64
 
-		from access_registry.diadoc.doctype.diadoc_organization.diadoc_organization import (
-			DiadocOrganization,
-		)
 		from access_registry.tests.test_permissions import make_user
 
 		nobody = make_user("diadoc-list-nobody@registry.test")
@@ -840,7 +839,7 @@ class TestDiadocListUpload(FrappeTestCase):
 		frappe.set_user(nobody)
 		try:
 			with self.assertRaises(frappe.PermissionError):
-				DiadocOrganization.upload_file(content)
+				frappe.call("access_registry.diadoc.api.upload", content=content)
 		finally:
 			frappe.set_user("Administrator")
 

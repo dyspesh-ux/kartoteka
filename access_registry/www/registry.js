@@ -2600,11 +2600,17 @@
 					const bytes = new Uint8Array(await file.arrayBuffer());
 					let binary = "";
 					for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-					const result = await api(
-						"access_registry.diadoc.doctype.diadoc_organization.diadoc_organization.upload_file",
-						{ content: btoa(binary), file_name: file.name },
-						true
-					);
+					let result;
+					try {
+						result = await api(
+							"access_registry.diadoc.api.upload",
+							{ content: btoa(binary), file_name: file.name },
+							true
+						);
+					} catch (e) {
+						toast(`Загрузка не выполнена: ${e.message || "ошибка сервера"}`);
+						return;
+					}
 					if (result.status === "Успех") {
 						const orgs = Object.keys((result.stats || {}).organizations || {}).join(", ");
 						toast(`Загрузка выполнена: ${result.log}. Организации: ${orgs}`);

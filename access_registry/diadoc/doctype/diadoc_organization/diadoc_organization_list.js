@@ -13,7 +13,7 @@ frappe.listview_settings["Diadoc Organization"] = {
 				let binary = "";
 				for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
 				frappe.call({
-					method: "access_registry.diadoc.doctype.diadoc_organization.diadoc_organization.upload_file",
+					method: "access_registry.diadoc.api.upload",
 					args: { content: btoa(binary), file_name: file.name },
 					freeze: true,
 					freeze_message: __("Загружаю выгрузку Диадок…"),
@@ -33,6 +33,13 @@ frappe.listview_settings["Diadoc Organization"] = {
 							});
 						}
 						listview.refresh();
+					},
+					error(r) {
+						frappe.msgprint({
+							title: __("Загрузка не выполнена"),
+							indicator: "red",
+							message: (r && r.message) || __("Неизвестная ошибка — посмотрите консоль браузера"),
+						});
 					},
 				});
 			};
