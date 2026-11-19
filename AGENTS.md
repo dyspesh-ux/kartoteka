@@ -54,4 +54,6 @@ bench --site <site> run-tests --app access_registry
 ```
 
 Перед коммитом: `ruff check access_registry` и `ruff format --check` (если ruff доступен).
-Ветка по умолчанию — `claude/new-session-dkdpyd`; `main` отстаёт, пуши идут в рабочую ветку.
+Ветка по умолчанию — `main`: пуши идут в `main` (решение владельца от 2026-11-19: один
+пользователь системы). Прод-сборка (`deploy/docker/apps.json`) идёт из `main`; ветка
+`claude/new-session-dkdpyd` — историческая.
