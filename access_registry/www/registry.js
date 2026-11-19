@@ -2597,6 +2597,8 @@
 				input.onchange = async () => {
 					const file = input.files[0];
 					if (!file) return;
+					upload.disabled = true;
+					upload.textContent = "Загружаю выгрузку…";
 					const bytes = new Uint8Array(await file.arrayBuffer());
 					let binary = "";
 					for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
@@ -2608,6 +2610,8 @@
 							true
 						);
 					} catch (e) {
+						upload.disabled = false;
+						upload.innerHTML = `${icon("download")} Загрузить выгрузку`;
 						toast(`Загрузка не выполнена: ${e.message || "ошибка сервера"}`);
 						return;
 					}

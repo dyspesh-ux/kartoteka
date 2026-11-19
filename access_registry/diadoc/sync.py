@@ -17,7 +17,7 @@ from access_registry.access_roles.engine import refresh_counters
 from access_registry.diadoc.linking import DiadocResolver
 from access_registry.diadoc.parser import ParseError, parse
 from access_registry.settings import get_settings
-from access_registry.sync.engine import _format_messages, _switch_user
+from access_registry.sync.engine import _acquire_lock, _format_messages, _release_lock, _switch_user
 from access_registry.sync.normalize import normalize_name
 
 SAVEPOINT = "diadoc_sync"
@@ -46,7 +46,17 @@ def user_key(org_name: str, login: str, full_name: str) -> str:
 	return f"{org_name}:фио:{normalize_name(full_name)}"
 
 
-def run_upload(data: bytes, commit: bool = True):
+def _rollback():
+	"""Undoes everything the upload wrote; the Sync Log row was created before the savepoint."""
+	try:
+		frappe.db.rollback(save_point=SAVEPOINT)
+	except Exception:
+		# The server may have aborted the whole transaction (deadlock, lost connection):
+		# the savepoint is gone, roll back completely. With commit=True the log is already committed.
+		frappe.db.rollback()
+
+
+def run_upload(data: bytes, commit: bool = True, file_name: str | None = None):
 	"""Parses one xlsx export and mirrors it in one transaction. Returns the Sync Log."""
 	settings = get_settings()
 	log = frappe.get_doc(
@@ -55,37 +65,57 @@ def run_upload(data: bytes, commit: bool = True):
 	if commit:
 		frappe.db.commit()
 	stats, messages = {}, []
+	if file_name:
+		messages.append(f"Файл: {file_name}")
 	previous_user = frappe.session.user
 	_switch_user(settings.sync_user, messages)
-	frappe.db.savepoint(SAVEPOINT)
+	# Uploads share the sync lock with the source syncs: two uploads (or an upload during
+	# a 1C/AD sync) must not interleave on the same rows.
+	locked = _acquire_lock(settings.job_timeout)
 	status = "Ошибка"
 	org_titles = []
 	try:
-		parsed = parse(data)
-		importer = DiadocImport()
-		stats = importer.run(parsed)
-		messages += parsed["warnings"]
-		messages += importer.warnings
-		org_titles = importer.org_titles
-		status = "Успех"
-	except DiadocGuardTripped as e:
-		frappe.db.rollback(save_point=SAVEPOINT)
-		status = "Остановлен предохранителем"
-		messages.append(str(e))
-	except ParseError as e:
-		frappe.db.rollback(save_point=SAVEPOINT)
-		messages.append(f"Выгрузка не разобрана: {e}")
-	except Exception:
-		frappe.db.rollback(save_point=SAVEPOINT)
-		messages.append(traceback.format_exc())
+		if not locked:
+			messages.append(
+				"Не дождались окончания другой загрузки (загрузки выполняются по очереди). "
+				"Повторите через пару минут."
+			)
+		else:
+			frappe.db.savepoint(SAVEPOINT)
+			try:
+				parsed = parse(data)
+				importer = DiadocImport()
+				stats = importer.run(parsed)
+				messages += parsed["warnings"]
+				messages += importer.warnings
+				stats["warnings"] += len(parsed["warnings"])
+				org_titles = importer.org_titles
+				status = "Успех"
+			except DiadocGuardTripped as e:
+				_rollback()
+				status = "Остановлен предохранителем"
+				messages.append(str(e))
+			except ParseError as e:
+				_rollback()
+				messages.append(f"Выгрузка не разобрана: {e}")
+			except Exception:
+				_rollback()
+				messages.append(traceback.format_exc())
 	finally:
+		if locked:
+			_release_lock()
 		_switch_user(previous_user, None)
-	log.reload()
+	log_exists = frappe.db.exists("Sync Log", log.name)
+	if log_exists:
+		log.reload()
 	log.status = status
 	log.finished = now_datetime()
 	log.stats = json.dumps(stats, ensure_ascii=False, indent=1, sort_keys=True)
 	log.messages = _format_messages(messages)
-	log.save(ignore_permissions=True)
+	if log_exists:
+		log.save(ignore_permissions=True)
+	else:
+		log.db_insert()
 	# the card update goes by the registered organization name: the file title may be a
 	# re-cased/quoted variant of an existing organization (org_key matched it)
 	org_names = stats.get("org_names", {})
@@ -139,7 +169,7 @@ class DiadocImport:
 				"unchanged": self.counters["Diadoc User: без изменений"],
 				"missing": self.counters["Diadoc User: пропало"],
 			},
-			"warnings": self.counters["warnings"],
+			"warnings": len(self.warnings),
 		}
 
 	# ------------------------------------------------------------ organizations

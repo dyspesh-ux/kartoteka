@@ -843,6 +843,37 @@ class TestDiadocListUpload(FrappeTestCase):
 		finally:
 			frappe.set_user("Administrator")
 
+	def test_upload_rejects_bad_base64(self):
+		frappe.set_user("Administrator")
+		with self.assertRaises(frappe.ValidationError):
+			frappe.call("access_registry.diadoc.api.upload", content="не base64 ###")
+
+	def test_upload_records_file_name_in_log(self):
+		import base64
+
+		frappe.set_user("Administrator")
+		content = base64.b64encode(export_bytes([make_row(org="Т-Лист-Файл")])).decode()
+		result = frappe.call(
+			"access_registry.diadoc.api.upload", content=content, file_name="реестр-ноябрь.xlsx"
+		)
+		messages = frappe.db.get_value("Sync Log", result["log"], "messages")
+		self.assertIn("реестр-ноябрь.xlsx", messages)
+
+	def test_stats_count_warnings(self):
+		import json as jsonlib
+
+		from access_registry.diadoc.sync import run_upload
+
+		data = export_bytes(
+			[
+				make_row(org="Т-Лист-Предуп", name="Тестдиадокдубль Иван Иванович", login="dup@test.example"),
+				make_row(org="Т-Лист-Предуп", name="Тестдиадокдубль Иван Иванович", login="dup@test.example"),
+			]
+		)
+		log = run_upload(data, commit=False)
+		stats = jsonlib.loads(log.stats)
+		self.assertEqual(stats["warnings"], 1)
+
 
 class TestDiadocUploadFlag(FrappeTestCase):
 	def test_bootstrap_exposes_upload_permission(self):

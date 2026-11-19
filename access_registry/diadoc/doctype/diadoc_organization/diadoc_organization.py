@@ -17,14 +17,15 @@ class DiadocOrganization(Document):
 		require(*ADMINS, DD_SPECIALIST)
 		if not self.upload_file:
 			frappe.throw(_("Приложите файл выгрузки (xlsx) в поле «Файл выгрузки»"))
-		content = frappe.get_doc("File", {"file_url": self.upload_file}).get_content()
+		attached = frappe.get_doc("File", {"file_url": self.upload_file})
+		content = attached.get_content()
 		if isinstance(content, str):
 			content = content.encode()
-		return self._run(content)
+		return self._run(content, file_name=attached.file_name)
 
 	@staticmethod
-	def _run(content: bytes) -> dict:
+	def _run(content: bytes, file_name: str | None = None) -> dict:
 		from access_registry.diadoc.sync import run_upload
 
-		log = run_upload(content, commit=not frappe.flags.in_test)
+		log = run_upload(content, commit=not frappe.flags.in_test, file_name=file_name)
 		return {"status": log.status, "log": log.name, "stats": frappe.parse_json(log.stats or "{}")}
