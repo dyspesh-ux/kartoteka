@@ -959,8 +959,11 @@ AD (`username`) → почта (AD или Битрикс24) → ФИО (или �
 1. В PostgreSQL СКУД создайте роль только для чтения:
 
    ```sql
+   -- первые два оператора — из любой базы (например, postgres)
    create role registry_ro login password '<пароль>';
    grant connect on database "biosecurity-boot" to registry_ro;
+   -- дальше — только из базы СКУД
+   \c biosecurity-boot
    grant usage on schema public to registry_ro;
    grant select on pers_person, auth_department, acc_transaction to registry_ro;
    alter role registry_ro set default_transaction_read_only = on;
