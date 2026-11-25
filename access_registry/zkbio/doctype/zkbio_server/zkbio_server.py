@@ -6,6 +6,9 @@ import re
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import cint
+
+from access_registry.permissions import require
 
 CODE_RE = re.compile(r"^[A-Za-z0-9_-]{1,20}$")
 
@@ -18,7 +21,7 @@ class ZKBioServer(Document):
 
 	@frappe.whitelist()
 	def test_connection(self):
-		frappe.only_for(("System Manager", "Registry Admin"))
+		require("Registry Admin")
 		from access_registry.zkbio import pg_client
 
 		info = pg_client.test_connection(self)
@@ -27,8 +30,19 @@ class ZKBioServer(Document):
 		)
 
 	@frappe.whitelist()
+	def refetch_events(self, days: int):
+		require("Registry Admin")
+		from frappe.utils import add_days, now_datetime
+
+		days = min(max(cint(days), 1), 180)
+		self.db_set("events_watermark", add_days(now_datetime(), -days))
+		return _(
+			"Окно событий сдвинуто на {0} дн. назад; ближайший синк перечитает события (дубликаты пропускаются)."
+		).format(days)
+
+	@frappe.whitelist()
 	def sync_now(self):
-		frappe.only_for(("System Manager", "Registry Admin"))
+		require("Registry Admin")
 		from frappe.utils.background_jobs import is_job_enqueued
 
 		from access_registry.zkbio.sync import enqueue, job_id_for

@@ -299,3 +299,34 @@ class TestZKBioEventsSync(FrappeTestCase):
 		stats = jsonlib.loads(log2.stats)
 		self.assertEqual(stats["ZKBio Event"].get("created", 0), 0)
 		self.assertGreaterEqual(stats["ZKBio Event"].get("duplicates", 0), 1)
+
+
+class TestZKBioPermissions(FrappeTestCase):
+	def test_buttons_require_admin(self):
+		from access_registry.tests.test_permissions import make_user
+
+		make_server("TSKDPR")
+		nobody = make_user("zkbio-nobody@registry.test")
+		doc = frappe.get_doc("ZKBio Server", "TSKDPR")
+		frappe.set_user(nobody)
+		try:
+			with self.assertRaises(frappe.PermissionError):
+				doc.sync_now()
+			with self.assertRaises(frappe.PermissionError):
+				doc.test_connection()
+			with self.assertRaises(frappe.PermissionError):
+				doc.refetch_events(7)
+		finally:
+			frappe.set_user("Administrator")
+
+	def test_refetch_shifts_watermark(self):
+		from frappe.utils import add_days, now_datetime
+
+		make_server("TSKDSB")
+		doc = frappe.get_doc("ZKBio Server", "TSKDSB")
+		doc.db_set("events_watermark", now_datetime())
+		doc.refetch_events(7)
+		doc.reload()
+		self.assertEqual(
+			frappe.utils.get_datetime(doc.events_watermark).date(), add_days(frappe.utils.getdate(), -7)
+		)
