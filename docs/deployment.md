@@ -80,6 +80,7 @@ bench --site registry.company.local set-maintenance-mode off
 | реестр → контроллеры домена | 636 (LDAPS) или 389 | учётки и группы AD, учётка только на чтение |
 | реестр → Битрикс24 (вебхук и `/local/registry/export.php`) | 443 | пользователи, структура, права |
 | NAS Synology → реестр (`/api/method/access_registry.file_shares.api.upload`) | 443 | сборщик сам отправляет права папок |
+| реестр → PostgreSQL СКУД (ZKBio CVAccess) | 5442 | персонал и события проходов, роль только на чтение |
 | n8n → реестр (если права 1С везёт n8n) | 443 | API импорта |
 | пользователи → реестр | 443 | desk и `/registry` |
 
@@ -125,6 +126,9 @@ bench restart            # frappe_docker: пересоздать контейн�
 приложения и восстанавливаются из репозитория). Приложение `/registry` сборщик не использует;
 для desk есть один скрипт (`public/js/registry_desk.js`), поэтому после обновления на bench
 выполните `bench build --app access_registry` (в frappe_docker он уже в новом образе).
+
+Драйвер PostgreSQL для СКУД (`psycopg2-binary`) — в зависимостях приложения: на bench он ставится
+при `get-app`/`migrate` сам, в frappe_docker требует пересборки образа.
 
 ## 8. Первый запуск по порядку
 
