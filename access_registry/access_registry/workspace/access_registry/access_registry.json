@@ -161,6 +161,11 @@
    "label": "Диадок",
    "url": "/app/диадок",
    "type": "URL"
+  },
+  {
+   "label": "СКУД",
+   "url": "/app/скуд",
+   "type": "URL"
   }
  ],
  "title": "Access Registry"
