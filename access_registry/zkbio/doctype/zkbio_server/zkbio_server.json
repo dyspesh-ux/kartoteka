@@ -1,0 +1,194 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:server_code",
+ "creation": "2026-11-25 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "server_code",
+  "title",
+  "enabled",
+  "section_break_conn",
+  "host",
+  "port",
+  "database",
+  "column_break_conn",
+  "username",
+  "password",
+  "section_break_what",
+  "pass_event_nos",
+  "events_overlap_minutes",
+  "section_break_last",
+  "events_watermark",
+  "column_break_last",
+  "last_sync",
+  "last_status"
+ ],
+ "fields": [
+  {
+   "description": "Короткий постоянный код, например SKD1. Входит в ключи всех записей сервера",
+   "fieldname": "server_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Код сервера",
+   "reqd": 1,
+   "set_only_once": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Название"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Включён"
+  },
+  {
+   "fieldname": "section_break_conn",
+   "fieldtype": "Section Break",
+   "label": "Подключение к PostgreSQL (только чтение)"
+  },
+  {
+   "fieldname": "host",
+   "fieldtype": "Data",
+   "label": "Хост",
+   "reqd": 1
+  },
+  {
+   "default": "5442",
+   "fieldname": "port",
+   "fieldtype": "Int",
+   "label": "Порт"
+  },
+  {
+   "default": "biosecurity-boot",
+   "fieldname": "database",
+   "fieldtype": "Data",
+   "label": "База данных",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_conn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Учётка PostgreSQL только с правом SELECT (см. README, раздел «СКУД»)",
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "label": "Пользователь",
+   "reqd": 1
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "label": "Пароль",
+   "no_copy": 1,
+   "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_what",
+   "fieldtype": "Section Break",
+   "label": "Что загружать"
+  },
+  {
+   "default": "0",
+   "description": "Коды событий-проходов через запятую. Пусто — только 0 (обычный проход)",
+   "fieldname": "pass_event_nos",
+   "fieldtype": "Data",
+   "label": "Коды событий-проходов"
+  },
+  {
+   "default": "10",
+   "description": "Перекрытие окна событий от watermark, минут (страховка от задержек записи в СКУД)",
+   "fieldname": "events_overlap_minutes",
+   "fieldtype": "Int",
+   "label": "Перекрытие окна событий, мин"
+  },
+  {
+   "fieldname": "section_break_last",
+   "fieldtype": "Section Break",
+   "label": "Последняя загрузка"
+  },
+  {
+   "description": "События читаются строго позже этого момента (минус перекрытие)",
+   "fieldname": "events_watermark",
+   "fieldtype": "Datetime",
+   "label": "События загружены по",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_last",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_sync",
+   "fieldtype": "Datetime",
+   "label": "Последняя успешная загрузка",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Статус последней загрузки",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ZKBio",
+ "name": "ZKBio Server",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

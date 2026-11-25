@@ -9,6 +9,8 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # frappe and requests are provided by the bench environment
+    # psycopg2-binary: PostgreSQL driver for the СКУД (ZKBio CVAccess) source
+    "psycopg2-binary",
 ]
 
 [build-system]
