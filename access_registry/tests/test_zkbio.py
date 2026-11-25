@@ -330,3 +330,95 @@ class TestZKBioPermissions(FrappeTestCase):
 		self.assertEqual(
 			frappe.utils.get_datetime(doc.events_watermark).date(), add_days(frappe.utils.getdate(), -7)
 		)
+
+
+def make_hr_person(last, first, status="Работает"):
+	return frappe.get_doc(
+		{"doctype": "Person", "last_name": last, "first_name": first, "status": status}
+	).insert(ignore_permissions=True)
+
+
+class TestZKBioAttendanceReport(FrappeTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		from access_registry.zkbio.sync import run_server_sync
+
+		cls.day = frappe.utils.getdate()
+		cls.present = make_hr_person("Тестскудотчёт", "Пётр")
+		cls.vacationer = make_hr_person("Тестскудотчёт", "Вера")
+		cls.dismissed = make_hr_person("Тестскудотчёт", "Уволен")
+		make_server("TSKDO")
+		run_server_sync(
+			"TSKDO",
+			"persons",
+			commit=False,
+			fetch=lambda _s: [
+				person_row("o1", "Тестскудотчёт", "Пётр", pin="501"),
+				person_row("o2", "Тестскудотчёт", "Вера", pin="502"),
+				person_row("o3", "Тестскудотчёт", "Уволен", pin="503"),
+			],
+		)
+
+		def dt(hour):
+			return frappe.utils.get_datetime(f"{cls.day} {hour:02d}:00:00")
+
+		events = [
+			event_row("a1", dt(9), pin="501"),
+			event_row("a2", dt(18), pin="501"),
+			event_row("a3", dt(10), pin="502"),
+			event_row("a4", dt(11), pin="503"),
+		]
+		run_server_sync("TSKDO", "events", commit=False, fetch=fetch_with(events))
+		# после синка: Вера в отпуске на сегодня, Уволен — уволен
+		if not frappe.db.exists("Info Base", "ZUP1"):
+			frappe.get_doc(
+				{
+					"doctype": "Info Base",
+					"source_code": "ZUP1",
+					"title": "ZUP1",
+					"base_url": "http://127.0.0.1:9/hs",
+				}
+			).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "HR Absence",
+				"source": "ZUP1",
+				"employment_guid": "g-test",
+				"state_code": "ОТ",
+				"state": "Отпуск ежегодный",
+				"category": "Отпуск",
+				"date_from": cls.day,
+				"date_to": cls.day,
+				"person": cls.vacationer.name,
+				"record_key": f"ZUP1:g-test:ОТ:{cls.day}",
+			}
+		).insert(ignore_permissions=True)
+		frappe.db.set_value("Person", cls.dismissed.name, "status", "Уволен")
+
+	def test_first_and_last(self):
+		from access_registry.zkbio.report.zkbio_attendance.zkbio_attendance import execute
+
+		_columns, rows = execute({"date_from": self.day, "date_to": self.day})
+		mine = [r for r in rows if r["person"] == self.present.name]
+		self.assertEqual(len(mine), 1)
+		self.assertEqual(str(mine[0]["first_event"])[:5], "09:00")
+		self.assertEqual(str(mine[0]["last_event"])[:5], "18:00")
+		self.assertEqual(mine[0]["events_count"], 2)
+
+	def test_absent_hidden_by_default_shown_with_flag(self):
+		from access_registry.zkbio.report.zkbio_attendance.zkbio_attendance import execute
+
+		filters = {"date_from": self.day, "date_to": self.day}
+		_columns, rows = execute(filters)
+		self.assertNotIn(self.vacationer.name, {r["person"] for r in rows})
+		_columns, rows = execute({**filters, "show_absent": 1})
+		mine = [r for r in rows if r["person"] == self.vacationer.name]
+		self.assertEqual(mine[0]["absence"], "Отпуск ежегодный")
+
+	def test_dismissed_never_shown(self):
+		from access_registry.zkbio.report.zkbio_attendance.zkbio_attendance import execute
+
+		for extra in ({}, {"show_absent": 1}):
+			_columns, rows = execute({"date_from": self.day, "date_to": self.day, **extra})
+			self.assertNotIn(self.dismissed.name, {r["person"] for r in rows})
