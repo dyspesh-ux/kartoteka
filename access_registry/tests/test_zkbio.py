@@ -422,3 +422,67 @@ class TestZKBioAttendanceReport(FrappeTestCase):
 		for extra in ({}, {"show_absent": 1}):
 			_columns, rows = execute({"date_from": self.day, "date_to": self.day, **extra})
 			self.assertNotIn(self.dismissed.name, {r["person"] for r in rows})
+
+
+class TestZKBioNoPassesReport(FrappeTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		from frappe.utils import add_days, getdate
+
+		from access_registry.zkbio.sync import run_server_sync
+
+		cls.to = getdate()
+		cls.from_ = add_days(cls.to, -1)
+		cls.no_card = make_hr_person("Тестскудбезкарта", "Нина")
+		cls.with_events = make_hr_person("Тестскудбезпроходов", "Семён")
+		cls.on_leave = make_hr_person("Тестскудбезпроходов", "Ольга")
+		make_server("TSKDB")
+		run_server_sync(
+			"TSKDB",
+			"persons",
+			commit=False,
+			fetch=lambda _s: [
+				person_row("b1", "Тестскудбезпроходов", "Семён", pin="601"),
+				person_row("b2", "Тестскудбезпроходов", "Ольга", pin="602"),
+			],
+		)
+		yesterday = frappe.utils.get_datetime(f"{cls.from_} 10:00:00")
+		run_server_sync(
+			"TSKDB", "events", commit=False, fetch=fetch_with([event_row("b1e", yesterday, pin="601")])
+		)
+		if not frappe.db.exists("Info Base", "ZUP1"):
+			frappe.get_doc(
+				{
+					"doctype": "Info Base",
+					"source_code": "ZUP1",
+					"title": "ZUP1",
+					"base_url": "http://127.0.0.1:9/hs",
+				}
+			).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "HR Absence",
+				"source": "ZUP1",
+				"employment_guid": "g-test-2",
+				"state_code": "ОТ",
+				"state": "Отпуск ежегодный",
+				"category": "Отпуск",
+				"date_from": cls.from_,
+				"date_to": cls.to,
+				"person": cls.on_leave.name,
+				"record_key": f"ZUP1:g-test-2:ОТ:{cls.from_}",
+			}
+		).insert(ignore_permissions=True)
+
+	def test_shows_only_workers_without_events(self):
+		from access_registry.zkbio.report.zkbio_no_passes.zkbio_no_passes import execute
+
+		_columns, rows = execute({"date_from": self.from_, "date_to": self.to})
+		persons = {r["person"] for r in rows}
+		self.assertIn(self.no_card.name, persons)  # работает, событий нет, карты нет
+		self.assertNotIn(self.with_events.name, persons)  # события были
+		self.assertNotIn(self.on_leave.name, persons)  # отпуск на весь период
+		mine = [r for r in rows if r["person"] == self.no_card.name][0]
+		self.assertEqual(mine["has_card"], 0)
+		self.assertEqual(mine["absence_days"], 0)
