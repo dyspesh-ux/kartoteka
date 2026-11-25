@@ -9,9 +9,10 @@ import hashlib
 import json
 import traceback
 from collections import Counter, defaultdict
+from datetime import timedelta
 
 import frappe
-from frappe.utils import cint, now_datetime
+from frappe.utils import add_days, cint, get_datetime, getdate, now_datetime
 
 from access_registry.access_catalog.importer import save_changed
 from access_registry.settings import get_settings
@@ -54,6 +55,11 @@ def clean(value) -> str:
 def scheduled_persons_sync():
 	for server in frappe.get_all("ZKBio Server", filters={"enabled": 1}, pluck="name"):
 		enqueue(server, "persons")
+
+
+def scheduled_events_sync():
+	for server in frappe.get_all("ZKBio Server", filters={"enabled": 1}, pluck="name"):
+		enqueue(server, "events")
 
 
 def enqueue(server: str, phase: str):
@@ -103,6 +109,8 @@ def run_server_sync(server: str, phase: str, commit: bool = True, fetch=None):
 		if phase == "persons":
 			rows = (fetch or pg_client.fetch_persons)(doc)
 			sync.sync_persons(rows)
+		elif phase == "events":
+			sync.run_events(fetch or pg_client.fetch_events)
 		else:
 			frappe.throw(f"Неизвестная фаза синка СКУД: {phase}")
 		frappe.db.set_value("ZKBio Server", server, "last_sync", now_datetime(), update_modified=False)
@@ -291,3 +299,80 @@ class ServerSync:
 				doc.missing_in_source = 1
 				doc.save(ignore_permissions=True, ignore_version=False)
 				self.stats["ZKBio Person"]["missing"] += 1
+
+	# ------------------------------------------------------------ events
+
+	def run_events(self, fetch):
+		"""Watermark loop: events strictly after the watermark (minus the overlap).
+
+		First run starts 180 days back — the retention window, older history is purged anyway.
+		"""
+		overlap = cint(self.server.events_overlap_minutes) or 10
+		watermark = get_datetime(self.server.events_watermark) if self.server.events_watermark else None
+		if watermark:
+			since = watermark - timedelta(minutes=overlap)
+		else:
+			since = get_datetime(add_days(getdate(), -180))
+		while True:
+			rows = fetch(self.server, since, 5000)
+			if not rows:
+				break
+			self.sync_events(rows)
+			since = max(get_datetime(r["event_time"]) for r in rows)
+			watermark = since
+			if len(rows) < 5000:
+				break
+		if watermark:
+			frappe.db.set_value(
+				"ZKBio Server", self.code, "events_watermark", watermark, update_modified=False
+			)
+
+	def sync_events(self, rows: list[dict]):
+		allowed = pass_nos(self.server)
+		pin_map = {}
+		for r in frappe.get_all(
+			"ZKBio Person",
+			filters={"server": self.code, "missing_in_source": 0},
+			fields=["name", "pin", "person"],
+			limit_page_length=0,
+		):
+			pin = clean(r.pin)
+			if pin:
+				pin_map.setdefault(pin, (r.name, r.person))
+		for row in rows:
+			stats = self.stats["ZKBio Event"]
+			pin = clean(row.get("pin"))
+			if not pin:
+				stats["skipped_no_pin"] += 1
+				continue
+			if cint(row.get("event_no")) not in allowed:
+				stats["skipped_event_no"] += 1
+				continue
+			name = self.key(row["id"])
+			if frappe.db.exists("ZKBio Event", name):
+				stats["duplicates"] += 1
+				continue
+			zkbio_person, person = pin_map.get(pin, ("", ""))
+			doc = frappe.new_doc("ZKBio Event")
+			doc.update(
+				{
+					"record_key": name,
+					"server": self.code,
+					"zkbio_id": clean(row.get("id")),
+					"event_time": get_datetime(row.get("event_time")),
+					"zkbio_person": zkbio_person,
+					"person": person or "",
+					"pin": pin,
+					"card_no": clean(row.get("card_no")),
+					"dev_alias": clean(row.get("dev_alias")),
+					"event_point_name": clean(row.get("event_point_name")),
+					"reader_name": clean(row.get("reader_name")),
+					"event_no": cint(row.get("event_no")),
+					"event_name": clean(row.get("event_name")),
+					"verify_mode_name": clean(row.get("verify_mode_name")),
+					"acc_zone": clean(row.get("acc_zone")),
+					"area_name": clean(row.get("area_name")),
+				}
+			)
+			doc.insert(ignore_permissions=True)
+			stats["created"] += 1

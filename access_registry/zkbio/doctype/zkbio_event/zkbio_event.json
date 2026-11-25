@@ -1,0 +1,197 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:record_key",
+ "creation": "2026-11-25 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "event_time",
+  "person",
+  "zkbio_person",
+  "event_point_name",
+  "column_break_main",
+  "pin",
+  "card_no",
+  "dev_alias",
+  "reader_name",
+  "event_no",
+  "event_name",
+  "verify_mode_name",
+  "acc_zone",
+  "area_name",
+  "section_break_src",
+  "record_key",
+  "server",
+  "zkbio_id"
+ ],
+ "fields": [
+  {
+   "fieldname": "event_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Время",
+   "read_only": 1,
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Сотрудник",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "zkbio_person",
+   "fieldtype": "Link",
+   "label": "Персона СКУД",
+   "options": "ZKBio Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "event_point_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Точка прохода",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pin",
+   "fieldtype": "Data",
+   "label": "Табельный номер (pin)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "card_no",
+   "fieldtype": "Data",
+   "label": "Карта",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dev_alias",
+   "fieldtype": "Data",
+   "label": "Устройство",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reader_name",
+   "fieldtype": "Data",
+   "label": "Считыватель",
+   "read_only": 1
+  },
+  {
+   "fieldname": "event_no",
+   "fieldtype": "Int",
+   "label": "Код события",
+   "read_only": 1
+  },
+  {
+   "fieldname": "event_name",
+   "fieldtype": "Data",
+   "label": "Событие",
+   "read_only": 1
+  },
+  {
+   "fieldname": "verify_mode_name",
+   "fieldtype": "Data",
+   "label": "Способ подтверждения",
+   "read_only": 1
+  },
+  {
+   "fieldname": "acc_zone",
+   "fieldtype": "Data",
+   "label": "Зона",
+   "read_only": 1
+  },
+  {
+   "fieldname": "area_name",
+   "fieldtype": "Data",
+   "label": "Область",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_src",
+   "fieldtype": "Section Break",
+   "label": "Источник"
+  },
+  {
+   "fieldname": "record_key",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "server",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Сервер СКУД",
+   "options": "ZKBio Server",
+   "read_only": 1,
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "zkbio_id",
+   "fieldtype": "Data",
+   "label": "ID в СКУД",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ZKBio",
+ "name": "ZKBio Event",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  }
+ ],
+ "sort_field": "event_time",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

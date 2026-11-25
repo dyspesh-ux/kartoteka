@@ -1,0 +1,102 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"skd0000001\", \"type\": \"paragraph\", \"data\": {\"text\": \"<b>СКУД (ZKBio CVAccess):</b> персонал и события проходов из PostgreSQL СКУД — только чтение. Отчёты по приходам/уходам исключают отпуска и командировки из ЗУП.\", \"col\": 12}}, {\"id\": \"skd0000002\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"skd0000003\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Разделы</b></span>\", \"col\": 12}}, {\"id\": \"skd0000004\", \"type\": \"card\", \"data\": {\"card_name\": \"СКУД\", \"col\": 12}}]",
+ "creation": "2026-11-25 12:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "lock",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "СКУД",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "СКУД",
+   "link_count": 4,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Серверы СКУД",
+   "link_count": 0,
+   "link_to": "ZKBio Server",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Персонал СКУД",
+   "link_count": 0,
+   "link_to": "ZKBio Person",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "События СКУД",
+   "link_count": 0,
+   "link_to": "ZKBio Event",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Журнал синхронизаций",
+   "link_count": 0,
+   "link_to": "Sync Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-11-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Access Registry",
+ "name": "СКУД",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "Access Registry",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Registry Admin"
+  },
+  {
+   "role": "Registry Auditor"
+  },
+  {
+   "role": "Access Role Manager"
+  },
+  {
+   "role": "Process Manager"
+  },
+  {
+   "role": "Access Catalog Viewer"
+  }
+ ],
+ "sequence_id": 2.0,
+ "shortcuts": [],
+ "title": "СКУД"
+}

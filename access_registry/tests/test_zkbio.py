@@ -6,11 +6,13 @@ from frappe.tests.utils import FrappeTestCase
 
 class TestZKBioScaffold(FrappeTestCase):
 	def test_module_scaffold(self):
-		# Task 1–2 scope: server and person DocTypes. Event and the workspace join in Task 3.
-		for doctype in ("ZKBio Server", "ZKBio Person"):
+		for doctype in ("ZKBio Server", "ZKBio Person", "ZKBio Event"):
 			self.assertTrue(frappe.db.exists("DocType", doctype), doctype)
 		kind = frappe.get_meta("Sync Log").get_field("kind")
 		self.assertIn("СКУД", kind.options.split("\n"))
+		ws = frappe.get_doc("Workspace", "СКУД")
+		linked = {row.link_to for row in ws.links}
+		self.assertTrue({"ZKBio Server", "ZKBio Person", "ZKBio Event"} <= linked)
 
 
 class TestPassNos(FrappeTestCase):
@@ -208,3 +210,92 @@ class TestZKBioLinking(FrappeTestCase):
 			"TSKDR", "persons", commit=False, fetch=lambda _s: [person_row("r1", "Тестскудновая", "Анна")]
 		)
 		self.assertEqual(frappe.db.get_value("ZKBio Person", "TSKDR:r1", "person"), other.name)
+
+
+def event_row(eid, dt, pin="100", event_no=0, point="Вход"):
+	return {
+		"id": eid,
+		"event_time": dt,
+		"pin": pin,
+		"card_no": "123",
+		"dev_alias": "Турникет",
+		"event_point_name": point,
+		"reader_name": "R1",
+		"event_no": event_no,
+		"event_name": f"acc_eventNo_{event_no}",
+		"verify_mode_name": "Card",
+		"acc_zone": "",
+		"area_name": "",
+	}
+
+
+def fetch_with(rows):
+	"""fetch(server, since, limit): события строго позже since, по возрастанию."""
+	sorted_rows = sorted(rows, key=lambda r: r["event_time"])
+
+	def _fetch(_server, since, limit):
+		return [r for r in sorted_rows if r["event_time"] > since][:limit]
+
+	return _fetch
+
+
+class TestZKBioEventsSync(FrappeTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		cls.person = frappe.get_doc(
+			{"doctype": "Person", "last_name": "Тестскудсобытие", "first_name": "Елена", "status": "Работает"}
+		).insert(ignore_permissions=True)
+		make_server("TSKDE")
+		from access_registry.zkbio.sync import run_server_sync
+
+		run_server_sync(
+			"TSKDE",
+			"persons",
+			commit=False,
+			fetch=lambda _s: [person_row("e1", "Тестскудсобытие", "Елена", pin="100")],
+		)
+
+	def test_first_run_starts_180_days_back(self):
+		from access_registry.zkbio.sync import run_server_sync
+
+		seen_since = []
+		log = run_server_sync(
+			"TSKDE", "events", commit=False, fetch=lambda s, since, limit: seen_since.append(since) or []
+		)
+		self.assertEqual(log.status, "Успех")
+		# перекрытие (overlap) применяется только к существующему watermark
+		self.assertEqual(seen_since[0].date(), frappe.utils.add_days(frappe.utils.getdate(), -180))
+
+	def test_watermark_dedupe_and_filters(self):
+		from datetime import datetime, timedelta
+
+		from access_registry.zkbio.sync import run_server_sync
+
+		now = datetime.now().replace(microsecond=0)
+		rows = [
+			event_row("t1", now - timedelta(hours=2), pin="100"),  # проход
+			event_row("t2", now - timedelta(hours=1), pin="100", event_no=202),  # не в белом списке
+			event_row("t3", now - timedelta(minutes=30), pin=""),  # без pin
+			event_row("t4", now, pin="999"),  # чужой pin — сирота
+		]
+		log = run_server_sync("TSKDE", "events", commit=False, fetch=fetch_with(rows))
+		self.assertEqual(log.status, "Успех")
+		ev = frappe.db.get_value(
+			"ZKBio Event", "TSKDE:t1", ["person", "zkbio_person", "event_point_name"], as_dict=True
+		)
+		self.assertEqual(ev.person, self.person.name)
+		self.assertEqual(ev.zkbio_person, "TSKDE:e1")
+		self.assertFalse(frappe.db.exists("ZKBio Event", "TSKDE:t2"))  # отфильтрован по коду
+		self.assertFalse(frappe.db.exists("ZKBio Event", "TSKDE:t3"))  # без pin
+		self.assertTrue(frappe.db.exists("ZKBio Event", "TSKDE:t4"))  # сирота хранится без person
+		self.assertIsNone(frappe.db.get_value("ZKBio Event", "TSKDE:t4", "person") or None)
+		# watermark на max(event_time); повтор с перекрытием не даёт дублей
+		server = frappe.get_doc("ZKBio Server", "TSKDE")
+		self.assertEqual(frappe.utils.get_datetime(server.events_watermark), now)
+		import json as jsonlib
+
+		log2 = run_server_sync("TSKDE", "events", commit=False, fetch=fetch_with(rows))
+		stats = jsonlib.loads(log2.stats)
+		self.assertEqual(stats["ZKBio Event"].get("created", 0), 0)
+		self.assertGreaterEqual(stats["ZKBio Event"].get("duplicates", 0), 1)

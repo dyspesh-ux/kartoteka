@@ -11,7 +11,7 @@ after_install = "access_registry.install.after_install"
 after_migrate = "access_registry.install.after_migrate"
 
 # Sync Log retention in days; adjustable in Log Settings.
-default_log_clearing_doctypes = {"Sync Log": [180]}
+default_log_clearing_doctypes = {"Sync Log": [180], "ZKBio Event": [180]}
 
 # own name and logo instead of the platform's (see branding.py)
 app_logo_url = "/assets/access_registry/images/registry-logo.svg"
@@ -47,6 +47,8 @@ scheduler_events = {
 		"25 * * * *": ["access_registry.it_assets.sync.scheduled_snipeit_sync"],
 		# ZKBio (СКУД): personnel changes rarely — once a day.
 		"45 4 * * *": ["access_registry.zkbio.sync.scheduled_persons_sync"],
+		# ZKBio (СКУД): access events by watermark.
+		"10,25,40,55 * * * *": ["access_registry.zkbio.sync.scheduled_events_sync"],
 		# Notification rules (who gets what): due rules every 15 minutes.
 		"3,18,33,48 * * * *": ["access_registry.notify.scheduled"],
 		# Bitrix24 smart processes (helpdesk requests): every 15 minutes, only the state of items.
