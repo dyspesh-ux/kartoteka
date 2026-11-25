@@ -45,6 +45,8 @@ scheduler_events = {
 		"40 * * * *": ["access_registry.bitrix24.sync.scheduled_b24_sync"],
 		# Snipe-IT (equipment): every hour at :25, after AD (users are linked to employees through AD).
 		"25 * * * *": ["access_registry.it_assets.sync.scheduled_snipeit_sync"],
+		# ZKBio (СКУД): personnel changes rarely — once a day.
+		"45 4 * * *": ["access_registry.zkbio.sync.scheduled_persons_sync"],
 		# Notification rules (who gets what): due rules every 15 minutes.
 		"3,18,33,48 * * * *": ["access_registry.notify.scheduled"],
 		# Bitrix24 smart processes (helpdesk requests): every 15 minutes, only the state of items.

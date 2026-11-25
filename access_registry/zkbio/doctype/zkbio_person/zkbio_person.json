@@ -1,0 +1,198 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:record_key",
+ "creation": "2026-11-25 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "person",
+  "manual_person",
+  "person_link_method",
+  "person_link_note",
+  "column_break_main",
+  "last_name",
+  "first_name",
+  "pin",
+  "dept_name",
+  "email",
+  "hire_date",
+  "zk_status",
+  "section_break_src",
+  "record_key",
+  "server",
+  "zkbio_id",
+  "src_hash",
+  "missing_in_source"
+ ],
+ "fields": [
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Сотрудник",
+   "options": "Person",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "description": "Заданная вручную привязка всегда главнее: загрузка её не меняет",
+   "fieldname": "manual_person",
+   "fieldtype": "Link",
+   "label": "Сотрудник (вручную)",
+   "options": "Person"
+  },
+  {
+   "fieldname": "person_link_method",
+   "fieldtype": "Data",
+   "label": "Как найден сотрудник",
+   "read_only": 1
+  },
+  {
+   "fieldname": "person_link_note",
+   "fieldtype": "Data",
+   "label": "Почему не найден",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Фамилия",
+   "read_only": 1
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Имя",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pin",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Табельный номер (pin)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dept_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Подразделение в СКУД",
+   "read_only": 1
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "hire_date",
+   "fieldtype": "Date",
+   "label": "Дата приёма",
+   "read_only": 1
+  },
+  {
+   "fieldname": "zk_status",
+   "fieldtype": "Int",
+   "label": "Статус в СКУД",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_src",
+   "fieldtype": "Section Break",
+   "label": "Источник"
+  },
+  {
+   "fieldname": "record_key",
+   "fieldtype": "Data",
+   "label": "Ключ записи",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "server",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Сервер СКУД",
+   "options": "ZKBio Server",
+   "read_only": 1,
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "zkbio_id",
+   "fieldtype": "Data",
+   "label": "ID в СКУД",
+   "read_only": 1
+  },
+  {
+   "fieldname": "src_hash",
+   "fieldtype": "Data",
+   "label": "Хеш данных",
+   "read_only": 1
+  },
+  {
+   "fieldname": "missing_in_source",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Нет в СКУД",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ZKBio",
+ "name": "ZKBio Person",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Registry Auditor"
+  }
+ ],
+ "search_fields": "last_name,first_name,pin",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
