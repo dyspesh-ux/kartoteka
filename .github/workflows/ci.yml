@@ -56,10 +56,14 @@ jobs:
 
       - name: Setup bench
         run: |
+          # ubuntu-latest ships a mariadb client that requires SSL by default;
+          # the service container does not support it — disable SSL for every CLI call
+          # (including the ones frappe makes internally, e.g. restore_database)
+          printf '[client]\nskip-ssl\n' | sudo tee /etc/mysql/conf.d/99-skip-ssl.cnf
           pip install frappe-bench
           bench init --skip-redis-config-generation --skip-assets --frappe-branch version-15 --python "$(which python)" ~/frappe-bench
-          mariadb --skip-ssl --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
-          mariadb --skip-ssl --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
+          mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
+          mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
 
       - name: Install app on a clean site
         working-directory: /home/runner/frappe-bench
