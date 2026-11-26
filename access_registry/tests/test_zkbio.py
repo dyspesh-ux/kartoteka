@@ -431,11 +431,9 @@ class TestZKBioAttendanceReport(FrappeTestCase):
 		self.assertIn(self.present.name, {r["person"] for r in rows})
 
 	def test_attendance_weekends_hidden_by_default(self):
-		import datetime
-
 		from access_registry.zkbio.report.zkbio_attendance.zkbio_attendance import execute
 
-		sat = datetime.date(2026, 11, 28)
+		sat = SAT
 		_columns, rows = execute({"date_from": self.day, "date_to": SAT})
 		self.assertEqual([r for r in rows if r["day"] == sat], [])
 		_columns, rows = execute({"date_from": self.day, "date_to": SAT, "show_weekends": 1})
@@ -506,8 +504,9 @@ class TestZKBioNoPassesReport(FrappeTestCase):
 		self.assertEqual(mine["absence_days"], 0)
 
 
-MON = "2026-11-23"  # понедельник
-SAT = "2026-11-28"  # суббота
+_TODAY = frappe.utils.getdate()
+MON = frappe.utils.add_days(_TODAY, -_TODAY.weekday())  # понедельник этой недели
+SAT = frappe.utils.add_days(MON, 5)  # суббота этой недели
 
 
 class TestZKBioLatecomersReport(FrappeTestCase):
@@ -597,14 +596,12 @@ class TestZKBioLatecomersReport(FrappeTestCase):
 		self.assertNotIn(self.early.name, {r["person"] for r in rows})
 
 	def test_weekends_hidden_by_default(self):
-		import datetime
-
 		from access_registry.zkbio.report.zkbio_latecomers.zkbio_latecomers import execute
 
 		_columns, rows = execute({"date_from": MON, "date_to": SAT, "only_late": 0})
-		self.assertEqual({r["day"] for r in rows}, {datetime.date(2026, 11, 23)})
+		self.assertEqual({r["day"] for r in rows}, {MON})
 		_columns, rows = execute({"date_from": MON, "date_to": SAT, "only_late": 0, "show_weekends": 1})
-		self.assertIn(datetime.date(2026, 11, 28), {r["day"] for r in rows})
+		self.assertIn(SAT, {r["day"] for r in rows})
 
 	def test_absent_excluded(self):
 		from access_registry.zkbio.report.zkbio_latecomers.zkbio_latecomers import execute
