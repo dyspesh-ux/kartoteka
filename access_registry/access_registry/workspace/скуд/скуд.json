@@ -16,7 +16,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "СКУД",
-   "link_count": 6,
+   "link_count": 7,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -83,6 +83,17 @@
    "label": "СКУД: работающие без проходов",
    "link_count": 0,
    "link_to": "ZKBio No Passes",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "СКУД: опоздания",
+   "link_count": 0,
+   "link_to": "ZKBio Latecomers",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"

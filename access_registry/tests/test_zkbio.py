@@ -486,3 +486,124 @@ class TestZKBioNoPassesReport(FrappeTestCase):
 		mine = [r for r in rows if r["person"] == self.no_card.name][0]
 		self.assertEqual(mine["has_card"], 0)
 		self.assertEqual(mine["absence_days"], 0)
+
+
+MON = "2026-11-23"  # понедельник
+SAT = "2026-11-28"  # суббота
+
+
+class TestZKBioLatecomersReport(FrappeTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		from access_registry.zkbio.sync import run_server_sync
+
+		cls.early = make_hr_person("Тестскудопозд", "Ранний")
+		cls.late = make_hr_person("Тестскудопозд", "Поздний")
+		cls.on_leave = make_hr_person("Тестскудопозд", "Отпускная")
+		make_server("TSKDLT")
+		run_server_sync(
+			"TSKDLT",
+			"persons",
+			commit=False,
+			fetch=lambda _s: [
+				person_row("l1", "Тестскудопозд", "Ранний", pin="701"),
+				person_row("l2", "Тестскудопозд", "Поздний", pin="702"),
+				person_row("l3", "Тестскудопозд", "Отпускная", pin="703"),
+			],
+		)
+
+		def dt(day, hour, minute=0):
+			return frappe.utils.get_datetime(f"{day} {hour:02d}:{minute:02d}:00")
+
+		events = [
+			event_row("lm1", dt(MON, 8, 55), pin="701"),
+			event_row("lm2", dt(MON, 9, 0), pin="701"),
+			event_row("lm3", dt(MON, 9, 20), pin="702"),
+			event_row("lm4", dt(SAT, 10, 0), pin="702"),
+			event_row("lm5", dt(MON, 9, 30), pin="703"),
+		]
+		run_server_sync("TSKDLT", "events", commit=False, fetch=fetch_with(events))
+		if not frappe.db.exists("Info Base", "ZUP1"):
+			frappe.get_doc(
+				{
+					"doctype": "Info Base",
+					"source_code": "ZUP1",
+					"title": "ZUP1",
+					"base_url": "http://127.0.0.1:9/hs",
+				}
+			).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "HR Absence",
+				"source": "ZUP1",
+				"employment_guid": "g-late",
+				"state_code": "ОТ",
+				"state": "Отпуск ежегодный",
+				"category": "Отпуск",
+				"date_from": MON,
+				"person": cls.on_leave.name,
+				"record_key": f"ZUP1:g-late:ОТ:{MON}",
+			}
+		).insert(ignore_permissions=True)
+
+	def test_late_minutes_and_only_late_default(self):
+		from access_registry.zkbio.report.zkbio_latecomers.zkbio_latecomers import execute
+
+		_columns, rows = execute({"date_from": MON, "date_to": MON})
+		self.assertEqual([r["person"] for r in rows], [self.late.name])
+		self.assertEqual(rows[0]["late_minutes"], 20)
+		self.assertEqual(rows[0]["first_event"], "09:20")
+
+	def test_only_late_off_shows_all(self):
+		from access_registry.zkbio.report.zkbio_latecomers.zkbio_latecomers import execute
+
+		_columns, rows = execute({"date_from": MON, "date_to": MON, "only_late": 0})
+		persons = {r["person"] for r in rows}
+		self.assertIn(self.early.name, persons)
+		self.assertIn(self.late.name, persons)
+		early_row = [r for r in rows if r["person"] == self.early.name][0]
+		self.assertFalse(early_row["late_minutes"])
+
+	def test_threshold_filter(self):
+		from access_registry.zkbio.report.zkbio_latecomers.zkbio_latecomers import execute
+
+		_columns, rows = execute({"date_from": MON, "date_to": MON, "threshold": "9:10"})
+		self.assertEqual(rows[0]["late_minutes"], 10)
+
+	def test_exact_threshold_is_not_late(self):
+		from access_registry.zkbio.report.zkbio_latecomers.zkbio_latecomers import execute
+
+		# первое событие Раннего ровно в порог — не опоздание (строго позже)
+		_columns, rows = execute({"date_from": MON, "date_to": MON, "threshold": "08:55"})
+		self.assertNotIn(self.early.name, {r["person"] for r in rows})
+
+	def test_weekends_hidden_by_default(self):
+		import datetime
+
+		from access_registry.zkbio.report.zkbio_latecomers.zkbio_latecomers import execute
+
+		_columns, rows = execute({"date_from": MON, "date_to": SAT, "only_late": 0})
+		self.assertEqual({r["day"] for r in rows}, {datetime.date(2026, 11, 23)})
+		_columns, rows = execute({"date_from": MON, "date_to": SAT, "only_late": 0, "show_weekends": 1})
+		self.assertIn(datetime.date(2026, 11, 28), {r["day"] for r in rows})
+
+	def test_absent_excluded(self):
+		from access_registry.zkbio.report.zkbio_latecomers.zkbio_latecomers import execute
+
+		_columns, rows = execute({"date_from": MON, "date_to": MON, "only_late": 0})
+		self.assertNotIn(self.on_leave.name, {r["person"] for r in rows})
+		_columns, rows = execute({"date_from": MON, "date_to": MON, "only_late": 0, "show_absent": 1})
+		mine = [r for r in rows if r["person"] == self.on_leave.name]
+		self.assertEqual(mine[0]["absence"], "Отпуск ежегодный")
+
+	def test_default_dates_yesterday(self):
+		from access_registry.zkbio.report.zkbio_latecomers.zkbio_latecomers import execute
+
+		yesterday = frappe.utils.add_days(frappe.utils.getdate(), -1)
+		_columns, default_rows = execute({})
+		_columns, explicit_rows = execute({"date_from": yesterday, "date_to": yesterday})
+		self.assertEqual(
+			{(r["person"], r["day"]) for r in default_rows},
+			{(r["person"], r["day"]) for r in explicit_rows},
+		)
