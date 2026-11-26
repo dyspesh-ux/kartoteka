@@ -368,6 +368,7 @@ class TestZKBioAttendanceReport(FrappeTestCase):
 			event_row("a2", dt(18), pin="501"),
 			event_row("a3", dt(10), pin="502"),
 			event_row("a4", dt(11), pin="503"),
+			event_row("a5", frappe.utils.get_datetime(f"{SAT} 10:00:00"), pin="501"),
 		]
 		run_server_sync("TSKDO", "events", commit=False, fetch=fetch_with(events))
 		# после синка: Вера в отпуске на сегодня, Уволен — уволен
@@ -422,6 +423,23 @@ class TestZKBioAttendanceReport(FrappeTestCase):
 		for extra in ({}, {"show_absent": 1}):
 			_columns, rows = execute({"date_from": self.day, "date_to": self.day, **extra})
 			self.assertNotIn(self.dismissed.name, {r["person"] for r in rows})
+
+	def test_attendance_defaults_unchanged(self):
+		from access_registry.zkbio.report.zkbio_attendance.zkbio_attendance import execute
+
+		_columns, rows = execute({"date_from": self.day, "date_to": self.day})
+		self.assertIn(self.present.name, {r["person"] for r in rows})
+
+	def test_attendance_weekends_hidden_by_default(self):
+		import datetime
+
+		from access_registry.zkbio.report.zkbio_attendance.zkbio_attendance import execute
+
+		sat = datetime.date(2026, 11, 28)
+		_columns, rows = execute({"date_from": self.day, "date_to": SAT})
+		self.assertEqual([r for r in rows if r["day"] == sat], [])
+		_columns, rows = execute({"date_from": self.day, "date_to": SAT, "show_weekends": 1})
+		self.assertIn(sat, {r["day"] for r in rows})
 
 
 class TestZKBioNoPassesReport(FrappeTestCase):
