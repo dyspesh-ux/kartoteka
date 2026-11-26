@@ -93,6 +93,13 @@ class TestAlertSuppression(RegistryFixture):
 		suppression.expire()
 		self.assertEqual(frappe.db.get_value("Alert Suppression", name, "status"), "Истёк срок")
 
+	def test_expire_keeps_suppressions_without_valid_to(self):
+		row = self.unlinked_b24()
+		api.suppress_alerts("unlinked", [row["alert_key"]], "бессрочно")
+		name = frappe.get_all("Alert Suppression", pluck="name")[0]
+		suppression.expire()
+		self.assertEqual(frappe.db.get_value("Alert Suppression", name, "status"), "Погашено")
+
 	def test_other_lists_and_dismissed_counter(self):
 		dismissed = api.control("dismissed")["rows"]
 		person = dismissed[0]["person"]

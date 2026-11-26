@@ -157,7 +157,14 @@ def restore(name: str, reason: str) -> str:
 def expire():
 	"""Nightly: suppressions past their date become «Истёк срок» — the alert is back in the lists."""
 	for name in frappe.get_all(
-		"Alert Suppression", filters={"status": ACTIVE, "valid_to": ["<", today()]}, pluck="name"
+		"Alert Suppression",
+		filters=[
+			["Alert Suppression", "status", "=", ACTIVE],
+			# без даты нет и истечения: ifnull-fallback Frappe подставляет 0001-01-01 в сравнение
+			["Alert Suppression", "valid_to", "is", "set"],
+			["Alert Suppression", "valid_to", "<", today()],
+		],
+		pluck="name",
 	):
 		doc = frappe.get_doc("Alert Suppression", name)
 		doc.status = EXPIRED
